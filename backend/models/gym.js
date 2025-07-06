@@ -32,21 +32,18 @@ passwordResetOTPExpiry: { type: Date },
   activities: [String],
   otherActivities: { type: String },
 
-  membershipPlans: {
-    basic: {
-      price: { type: String },
-      features: [{ type: String }]  // changed to Array of strings
-    },
-    standard: {
-      price: { type: String },
-      features: [{ type: String }]
-    },
-    premium: {
-      price: { type: String },
-      features: [{ type: String }]
-    },
-    other: { type: String }
-  },
+  membershipPlans: [
+    {
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      discount: { type: Number, default: 0 },
+      discountMonths: { type: Number, default: 0 },
+      benefits: [{ type: String }],
+      note: { type: String },
+      icon: { type: String, default: 'fa-leaf' },
+      color: { type: String, default: '#38b000' }
+    }
+  ],
 
   contactPerson: { type: String, required: true },  // Use contactPerson for the owner's name
   supportEmail: { type: String },

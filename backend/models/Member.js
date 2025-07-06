@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const memberSchema = new mongoose.Schema({
   gym: {
     type: mongoose.Schema.Types.ObjectId,
@@ -18,7 +19,9 @@ const memberSchema = new mongoose.Schema({
   activityPreference: { type: String, required: true },
   address: { type: String },
   joinDate: { type: Date, default: Date.now },
-  profileImage: { type: String }
+  profileImage: { type: String },
+  membershipId: { type: String },
+  membershipValidUntil: { type: String }
 });
 
 module.exports = mongoose.model('Member', memberSchema);

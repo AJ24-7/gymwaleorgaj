@@ -136,7 +136,7 @@
 
                 <!-- Stats Cards -->
                 <div class="stats-cards">
-                    <div class="stat-card new-users" id="membersStatCard" tabindex="0" style="cursor:pointer;">
+                    <div class="stat-card new-users" id="membersStatCard" style="cursor:pointer;">
                         <div class="stat-title">Members</div>
                         <div class="stat-value"></div>
                         <div class="stat-change"></div>
@@ -170,6 +170,67 @@
                     <div id="photoGrid" class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px;"></div>
                   </div>
                 </section>
+                 <!-- Membership Plans Section -->
+                        <div class="card" id="membershipPlansSection" style="margin-top:18px;">
+                          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                            <h2 class="card-title"><i class="fas fa-crown" style="color:#ffbe0b;margin-right:8px;"></i>Membership Plans</h2>
+                            <button id="editPlansBtn" class="btn btn-primary" style="font-size:1em;padding:6px 18px;"><i class="fas fa-edit"></i> Edit Plans</button>
+                          </div>
+                          <div class="plans-list" id="plansList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;"></div>
+                        </div>
+                        <!-- Membership Plan Editor Modal -->
+                        <div class="modal" id="planEditorModal" style="display:none;z-index:10001;align-items:flex-start;">
+                          <div class="modal-content" style="max-width:700px;margin-top:48px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                              <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-crown" style="color:#ffbe0b;"></i> Edit Membership Plans</h3>
+                              <button class="modal-close" id="closePlanEditorModal" style="font-size:1.5rem;">&times;</button>
+                            </div>
+                            <form id="planEditorForm" style="margin-top:18px;">
+                          <div id="planEditorCards" style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;"></div>
+                          <!-- Icon/Color Picker Modal Styles (for accessibility) -->
+                          <style>
+                            .icon-picker-grid {
+                              display: grid;
+                              grid-template-columns: repeat(6, 1fr);
+                              gap: 10px;
+                              margin-top: 8px;
+                              margin-bottom: 8px;
+                            }
+                            .icon-picker-option {
+                              display: flex;
+                              flex-direction: column;
+                              align-items: center;
+                              justify-content: center;
+                              cursor: pointer;
+                              border: 2px solid transparent;
+                              border-radius: 8px;
+                              padding: 6px 0 2px 0;
+                              transition: border 0.2s, background 0.2s;
+                              font-size: 1.3em;
+                              background: #f8f9fa;
+                            }
+                            .icon-picker-option.selected {
+                              border: 2px solid #1976d2;
+                              background: #e3f2fd;
+                            }
+                            .color-picker-input {
+                              width: 32px;
+                              height: 32px;
+                              border: none;
+                              border-radius: 50%;
+                              margin-left: 8px;
+                              cursor: pointer;
+                              box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+                              vertical-align: middle;
+                            }
+                          </style>
+                              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+                                <button type="button" class="btn btn-secondary" id="cancelPlanEditBtn">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save All</button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
                 <!-- Rush Hour Indicator -->
                 <div class="rush-hour">
                     <div class="rush-hour-info">
@@ -291,23 +352,24 @@
                             <div class="card-header">
                                 <h2 class="card-title">Quick Actions</h2>
                             </div>
-                            <div class="quick-actions">
-                                <div class="quick-action" id="addMemberBtn">
+                            <div class="quick-action-list">
+                                <button class="quick-action-btn" id="addMemberBtn" type="button">
                                     <i class="fas fa-user-plus"></i>
-                                    <div class="quick-action-title">Add Member</div>
-                                </div>
-                                <div class="quick-action" id="recordPaymentBtn">
+                                    <span class="quick-action-title">Add Member</span>
+                                </button>
+                                <button class="quick-action-btn" id="recordPaymentBtn" type="button">
                                     <i class="fas fa-money-bill-wave"></i>
-                                    <div class="quick-action-title">Record Payment</div>
-                                </div>
-                                <div class="quick-action" id="addTrainerBtn">
+                                    <span class="quick-action-title">Record Payment</span>
+                                </button>
+                                <button class="quick-action-btn" id="addTrainerBtn" type="button">
                                     <i class="fas fa-user-tie"></i>
-                                    <div class="quick-action-title">Add Trainer</div>
-                                </div>
-                                <div class="quick-action" id="uploadEquipmentBtn">
+                                    <span class="quick-action-title">Add Trainer</span>
+                                </button>
+                                <button class="quick-action-btn" id="uploadEquipmentBtn" type="button">
                                     <i class="fas fa-dumbbell"></i>
-                                    <div class="quick-action-title">Add Equipment</div>
-                                </div>
+                                    <span class="quick-action-title">Add Equipment</span>
+                                </button>
+                       
                             </div>
                         </div>
 
@@ -401,16 +463,16 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Notification Title</label>
-                    <input type="text" class="form-control" placeholder="Enter notification title">
+                    <label class="form-label" for="notificationTitle">Notification Title</label>
+                    <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Message</label>
-                    <textarea class="form-control" placeholder="Enter your message"></textarea>
+                    <label class="form-label" for="notificationMessage">Message</label>
+                    <textarea class="form-control" id="notificationMessage" placeholder="Enter your message"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Send To</label>
-                    <select class="form-control">
+                    <label class="form-label" for="notificationSendTo">Send To</label>
+                    <select class="form-control" id="notificationSendTo">
                         <option>All Members</option>
                         <option>Premium Members</option>
                         <option>Basic Members</option>
@@ -430,24 +492,24 @@
         <div class="modal-content">
           <div class="modal-header">
             <h3 class="modal-title">Upload Gym Photo</h3>
-            <button class="modal-close">&times;</button>
+            <!-- Removed the X close button -->
           </div>
           <form id="uploadGymPhotoForm" enctype="multipart/form-data" data-field="gymPhotos">
             <div class="modal-body">
               <div class="form-group">
-                <label class="form-label">Photo Title</label>
+                <label class="form-label" for="photoTitle">Photo Title</label>
                 <input type="text" class="form-control" id="photoTitle" name="title" placeholder="Enter photo title" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Description</label>
+                <label class="form-label" for="photoDescription">Description</label>
                 <textarea class="form-control" id="photoDescription" name="description" placeholder="Enter photo description" required></textarea>
               </div>
               <div class="form-group">
-                <label class="form-label">Upload Photo</label>
+                <label class="form-label" for="photoFile">Upload Photo</label>
                 <input type="file" id="photoFile" name="photo" accept="image/*" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Category</label>
+                <label class="form-label" for="photoCategory">Category</label>
                 <select class="form-control" id="photoCategory" name="category" required>
                   <option>Gym Facility</option>
                   <option>Equipment</option>
@@ -458,7 +520,7 @@
             </div>
             <div id="uploadPhotoMsg" style="margin-bottom: 10px; color: green; text-align: center;"></div>
               <div class="modal-footer">
-              <button class="btn btn-secondary modal-close" type="button">Cancel</button>
+              <button class="btn btn-secondary" id="cancelUploadPhotoBtn" type="button" style="margin-right:8px;">Cancel</button>
               <button class="btn btn-primary" type="submit">Upload Photo</button>
             </div>
           </form>
@@ -479,7 +541,7 @@
           <div id="editPhotoPreview" style="margin: 10px 0;"></div>
           <div id="editPhotoMsg" style="margin-bottom: 10px; color: green; text-align: center;"></div>
            <button type="submit" style="background:#1976d2; color:#fff; border:none; padding:8px 20px; border-radius:4px; margin-right:8px;">Save</button>
-          <button type="button" id="cancelEditPhotoBtn" style="background:#eee; color:#333; border:none; padding:8px 20px; border-radius:4px;">Cancel</button>
+          <button type="button" id="cancelEditPhotoBtn" class="btn btn-primary" style="margin-right:8px;">Cancel</button>
         </form>
       </div>
     </div>
@@ -583,6 +645,10 @@
         <input type="email" id="memberEmail" name="memberEmail" required>
       </div>
       <div class="form-group">
+        <label for="memberAddress">Address</label>
+        <input type="text" id="memberAddress" name="memberAddress" placeholder="Street, City, State" required>
+      </div>
+      <div class="form-group">
         <label for="paymentMode">Payment Mode</label>
         <select id="paymentMode" name="paymentMode" required>
           <option value="">Select</option>
@@ -635,6 +701,7 @@
       <button id="removeMemberBtnTab" class="member-action-btn remove-member-action-btn">
         <i class="fas fa-user-minus"></i><span class="btn-text"> Remove Members</span>
       </button>
+      <!-- Remove Member dropdown and modal will be created and managed by JS only -->
     </div>
   </div>
   <div class="search-bar">
@@ -652,6 +719,7 @@
           <th>Gender</th>
           <th>Phone</th>
           <th>Email</th>
+          <th>Address</th>
           <th>Plan</th>
           <th>Monthly</th>
           <th>Activity</th>
@@ -681,5 +749,6 @@
     </div>
   </div>
 </div>
+<!-- Remove Member dropdown and modal will be created and managed by JS only -->
 </body>
 </html>

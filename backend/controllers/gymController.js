@@ -410,14 +410,59 @@ exports.getMyProfile = async (req, res) => {
 };
 
 // Update Logged-in Gym's Profile (by admin)
+// Helper: Validate current password
+async function validateCurrentPassword(gym, currentPassword) {
+  if (typeof currentPassword !== 'string' || currentPassword.trim().length === 0) {
+    return { valid: false, message: 'Current password is required to update profile.' };
+  }
+  const isMatch = await bcrypt.compare(currentPassword, gym.password);
+  if (!isMatch) {
+    return { valid: false, message: 'Invalid current password.' };
+  }
+  return { valid: true };
+}
+
+// Helper: Handle password change
+async function handlePasswordChange(gym, newPassword) {
+  if (typeof newPassword === 'string' && newPassword.trim().length > 0) {
+    if (newPassword.length < 8) {
+      return { error: 'New password must be at least 8 characters long.' };
+    }
+    if (await bcrypt.compare(newPassword, gym.password)) {
+      return { error: 'New password cannot be the same as the old password.' };
+    }
+    gym.password = await bcrypt.hash(newPassword, 10);
+  }
+  return {};
+}
+
+// Helper: Update location fields
+function updateLocation(gym, { address, city, state, pincode, landmark }) {
+  if (!gym.location) gym.location = {};
+  if (address) gym.location.address = address;
+  if (city) gym.location.city = city;
+  if (state) gym.location.state = state;
+  if (pincode) gym.location.pincode = pincode;
+  if (landmark) gym.location.landmark = landmark;
+}
+
+// Helper: Handle logo upload
+function handleLogoUpload(gym, file, gymLogo) {
+  if (file?.filename) {
+    gym.logoUrl = `uploads/gymImages/${file.filename}`;
+  } else if (gymLogo === null) {
+    gym.logoUrl = undefined;
+  }
+}
+
 exports.updateMyProfile = async (req, res) => {
-  const adminId = req.admin && req.admin.id;
+  const adminId = req.admin?.id;
   console.log("Fetching gym for adminId:", adminId);
   if (!adminId) {
     return res.status(401).json({ message: 'Not authorized' });
   }
 
-  const { gymName, email, phone, address, city, state, pincode, landmark, description } = req.body;
+  const { gymName, email, phone, address, city, state, pincode, landmark, description, currentPassword, newPassword, gymLogo } = req.body;
 
   try {
     const gym = await Gym.findOne({ admin: adminId });
@@ -431,43 +476,25 @@ exports.updateMyProfile = async (req, res) => {
     if (phone) gym.phone = phone;
     if (description) gym.description = description;
 
-    // Update location fields if provided
-    if (!gym.location) gym.location = {};
-    if (address) gym.location.address = address;
-    if (city) gym.location.city = city;
-    if (state) gym.location.state = state;
-    if (pincode) gym.location.pincode = pincode;
-    if (landmark) gym.location.landmark = landmark;
+    updateLocation(gym, { address, city, state, pincode, landmark });
 
-    // --- Secure Current Password Check for ALL Updates ---
-    if (typeof req.body.currentPassword !== 'string' || req.body.currentPassword.trim().length === 0) {
-      return res.status(401).json({ message: 'Current password is required to update profile.' });
-    }
-    const isMatch = await bcrypt.compare(req.body.currentPassword, gym.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid current password.' });
+    // Secure Current Password Check
+    const passwordValidation = await validateCurrentPassword(gym, currentPassword);
+    if (!passwordValidation.valid) {
+      return res.status(401).json({ message: passwordValidation.message });
     }
 
-    // --- Secure Password Change Logic ---
-    if (typeof req.body.newPassword === 'string' && req.body.newPassword.trim().length > 0) {
-      if (req.body.newPassword.length < 8) {
-        return res.status(400).json({ message: 'New password must be at least 8 characters long.' });
-      }
-      if (await bcrypt.compare(req.body.newPassword, gym.password)) {
-        return res.status(400).json({ message: 'New password cannot be the same as the old password.' });
-      }
-      gym.password = await bcrypt.hash(req.body.newPassword, 10);
+    // Secure Password Change Logic
+    const passwordChangeResult = await handlePasswordChange(gym, newPassword);
+    if (passwordChangeResult.error) {
+      return res.status(400).json({ message: passwordChangeResult.error });
     }
 
     // Debug: Log file and body
     console.log('File received:', req.file);
     console.log('Body received:', req.body);
-    // Handle logo upload (updates logoUrl)
-    if (req.file && req.file.filename) {
-      gym.logoUrl = `uploads/gymImages/${req.file.filename}`;
-    } else if (req.body.gymLogo === null) {
-      gym.logoUrl = undefined; // or set to default
-    }
+
+    handleLogoUpload(gym, req.file, gymLogo);
 
     await gym.save();
     // Debug: Log final logoUrl

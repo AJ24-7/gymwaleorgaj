@@ -6,6 +6,12 @@ const { registerGym, loginGym, updateMyProfile, getMyProfile, getGymsByCities } 
 const gymadminAuth = require('../middleware/gymadminAuth');
 const Gym = require('../models/gym');
 
+// --- Membership Plans API ---
+const membershipPlanController = require('../controllers/membershipPlanController');
+// Get all membership plans for the logged-in gym admin
+router.get('/membership-plans', gymadminAuth, membershipPlanController.getMembershipPlans);
+// Update all membership plans for the logged-in gym admin
+router.put('/membership-plans', gymadminAuth, membershipPlanController.updateMembershipPlans);
 // 🔧 Multer Storage Setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

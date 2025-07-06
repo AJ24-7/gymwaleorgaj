@@ -1,3 +1,613 @@
+// --- Membership Plans Section (Dynamic, Editable, Backend Sync) ---
+document.addEventListener('DOMContentLoaded', function() {
+  // Membership plans state
+  let plans = [
+    { name: 'Basic', price: 800, discount: 0, discountMonths: 0, benefits: ['Gym Access', 'Group Classes'], note: 'Best for beginners', icon: 'fa-leaf', color: '#38b000' },
+    { name: 'Standard', price: 1200, discount: 10, discountMonths: 6, benefits: ['All Basic Benefits', 'Diet Plan', 'Locker Facility'], note: 'Most Popular', icon: 'fa-star', color: '#3a86ff' },
+    { name: 'Premium', price: 1800, discount: 15, discountMonths: 12, benefits: ['All Standard Benefits', 'Personal Trainer', 'Spa & Sauna'], note: 'For serious fitness', icon: 'fa-gem', color: '#8338ec' }
+  ];
+  // DOM refs
+  const plansList = document.getElementById('plansList');
+  const editPlansBtn = document.getElementById('editPlansBtn');
+  const planEditorModal = document.getElementById('planEditorModal');
+  const closePlanEditorModal = document.getElementById('closePlanEditorModal');
+  const planEditorForm = document.getElementById('planEditorForm');
+  const planEditorCards = document.getElementById('planEditorCards');
+  const cancelPlanEditBtn = document.getElementById('cancelPlanEditBtn');
+
+  // Fetch plans from backend
+  async function fetchPlans() {
+    try {
+      const token = localStorage.getItem('gymAdminToken');
+      const res = await fetch('http://localhost:5000/api/gyms/membership-plans', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length === 3) plans = data;
+      }
+    } catch (e) { /* fallback to default */ }
+    renderPlans();
+    updateDiscountedFees();
+  }
+
+  // Render plans in dashboard
+  function renderPlans() {
+    if (!plansList) return;
+    plansList.innerHTML = plans.map((plan, idx) => `
+      <div class="plan-card" data-plan="${plan.name}" style="background:#f6f8fc;border-radius:12px;padding:22px 16px;box-shadow:0 2px 10px ${plan.color}11;display:flex;flex-direction:column;align-items:center;">
+        <i class="fas ${plan.icon}" style="font-size:2.2em;color:${plan.color};margin-bottom:8px;"></i>
+        <div style="font-weight:700;font-size:1.15em;margin-bottom:6px;">${plan.name}</div>
+        <div style="font-size:1.5em;font-weight:700;color:#1976d2;margin-bottom:6px;">₹${plan.price}/mo</div>
+        <div style="color:${plan.color};font-weight:600;margin-bottom:8px;">${plan.discount > 0 ? `${plan.discount}% Off on ${plan.discountMonths}+ months` : 'No Discount'}</div>
+        <ul style="list-style:none;padding:0;margin:0 0 10px 0;font-size:0.98em;color:#333;text-align:left;">
+          ${plan.benefits.map(b => `<li><i class=\"fas fa-check-circle\" style=\"color:${plan.color};margin-right:6px;\"></i> ${b}</li>`).join('')}
+        </ul>
+        <div style="font-size:0.95em;color:#888;">${plan.note || ''}</div>
+      </div>
+    `).join('');
+  }
+
+  // Open Plan Editor Modal
+  if (editPlansBtn && planEditorModal && planEditorCards) {
+    editPlansBtn.onclick = async function() {
+      await fetchPlans();
+      planEditorModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      renderPlanEditorCards();
+    };
+  }
+  function closePlanEditor() {
+    planEditorModal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  if (closePlanEditorModal) closePlanEditorModal.onclick = closePlanEditor;
+  if (cancelPlanEditBtn) cancelPlanEditBtn.onclick = closePlanEditor;
+  if (planEditorModal) {
+    planEditorModal.addEventListener('mousedown', function(e) {
+      if (e.target === planEditorModal) closePlanEditor();
+    });
+  }
+
+  // Render Plan Editor Cards
+  function renderPlanEditorCards() {
+    // FontAwesome icon options (add more as needed)
+    const iconOptions = [
+      'fa-leaf', 'fa-star', 'fa-gem', 'fa-dumbbell', 'fa-heart', 'fa-fire', 'fa-bolt', 'fa-crown', 'fa-medal', 'fa-trophy', 'fa-user-shield', 'fa-rocket', 'fa-mountain', 'fa-bicycle', 'fa-running', 'fa-swimmer', 'fa-apple-alt', 'fa-shield-alt', 'fa-thumbs-up', 'fa-check-circle'
+    ];
+    planEditorCards.innerHTML = '';
+    plans.forEach((plan, idx) => {
+      // Benefits as comma-separated string
+      const benefitsStr = plan.benefits ? plan.benefits.join(', ') : '';
+      // Card HTML
+      const card = document.createElement('div');
+      card.className = 'plan-editor-card';
+      card.style = 'background:#f8f9fa;border-radius:12px;padding:18px;min-width:220px;max-width:260px;flex:1 1 220px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:12px;';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span class="plan-icon" style="font-size:2em;color:${plan.color};cursor:pointer;" data-plan-idx="${idx}" title="Change icon or color"><i class="fas ${plan.icon}"></i></span>
+          <input type="text" class="plan-name-input" data-plan-idx="${idx}" value="${plan.name}" style="font-size:1.1em;font-weight:600;border:none;background:transparent;outline:none;width:100px;">
+        </div>
+        <div class="icon-color-picker-wrap" id="iconColorPickerWrap${idx}" style="display:none;">
+          <div class="icon-picker" style="margin-bottom:10px;">
+            <label style="font-weight:500;">Icon:</label>
+            <div class="icon-picker-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+              ${iconOptions.map(icon => `
+                <button type="button" class="icon-picker-btn${plan.icon === icon ? ' selected' : ''}" data-plan-idx="${idx}" data-icon="${icon}" aria-label="${icon.replace('fa-', '')}" style="font-size:1.3em;padding:6px;border-radius:6px;border:${plan.icon === icon ? '2px solid #1976d2' : '1px solid #ccc'};background:${plan.icon === icon ? '#e3f2fd' : '#fff'};color:#333;outline:none;cursor:pointer;transition:all 0.15s;">
+                  <i class="fas ${icon}"></i>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="color-picker" style="margin-bottom:10px;">
+            <label style="font-weight:500;">Color:</label>
+            <input type="color" class="plan-color-input" data-plan-idx="${idx}" value="${plan.color}" style="margin-left:10px;width:36px;height:36px;border:none;outline:none;cursor:pointer;vertical-align:middle;">
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>Price (₹):</label>
+          <input type="number" class="plan-price-input" data-plan-idx="${idx}" value="${plan.price}" min="0" style="width:80px;margin-left:8px;">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>Discount (%):</label>
+          <input type="number" class="plan-discount-input" data-plan-idx="${idx}" value="${plan.discount}" min="0" max="100" style="width:60px;margin-left:8px;">
+          <label style="margin-left:10px;">For</label>
+          <input type="number" class="plan-discount-months-input" data-plan-idx="${idx}" value="${plan.discountMonths}" min="0" max="24" style="width:50px;margin-left:6px;"> <span>months</span>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>Benefits:</label>
+          <input type="text" class="plan-benefits-input" data-plan-idx="${idx}" value="${benefitsStr}" placeholder="Comma separated" style="width:100%;margin-top:4px;">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>Note:</label>
+          <input type="text" class="plan-note-input" data-plan-idx="${idx}" value="${plan.note}" style="width:100%;margin-top:4px;">
+        </div>
+      `;
+      planEditorCards.appendChild(card);
+    });
+    // Icon click to toggle picker
+    planEditorCards.querySelectorAll('.plan-icon').forEach(iconEl => {
+      iconEl.addEventListener('click', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        const picker = document.getElementById('iconColorPickerWrap' + idx);
+        if (picker) picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+    // Icon picker event
+    planEditorCards.querySelectorAll('.icon-picker-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        const icon = this.getAttribute('data-icon');
+        plans[idx].icon = icon;
+        renderPlanEditorCards();
+        // Keep picker open after icon change
+        setTimeout(() => {
+          const picker = document.getElementById('iconColorPickerWrap' + idx);
+          if (picker) picker.style.display = 'block';
+        }, 0);
+      });
+    });
+    // Color picker event
+    planEditorCards.querySelectorAll('.plan-color-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].color = this.value;
+        renderPlanEditorCards();
+        // Keep picker open after color change
+        setTimeout(() => {
+          const picker = document.getElementById('iconColorPickerWrap' + idx);
+          if (picker) picker.style.display = 'block';
+        }, 0);
+      });
+    });
+    // Other field events (name, price, discount, etc.)
+    planEditorCards.querySelectorAll('.plan-name-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].name = this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-price-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].price = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-discount-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].discount = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-discount-months-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].discountMonths = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-benefits-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].benefits = this.value.split(',').map(b => b.trim()).filter(Boolean);
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-note-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].note = this.value;
+      });
+    });
+    // Icon picker event
+    planEditorCards.querySelectorAll('.icon-picker-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        const icon = this.getAttribute('data-icon');
+        plans[idx].icon = icon;
+        renderPlanEditorCards();
+      });
+    });
+    // Color picker event
+    planEditorCards.querySelectorAll('.plan-color-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].color = this.value;
+        renderPlanEditorCards();
+      });
+    });
+    // Other field events (name, price, discount, etc.)
+    planEditorCards.querySelectorAll('.plan-name-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].name = this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-price-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].price = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-discount-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].discount = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-discount-months-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].discountMonths = +this.value;
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-benefits-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].benefits = this.value.split(',').map(b => b.trim()).filter(Boolean);
+      });
+    });
+    planEditorCards.querySelectorAll('.plan-note-input').forEach(input => {
+      input.addEventListener('input', function() {
+        const idx = +this.getAttribute('data-plan-idx');
+        plans[idx].note = this.value;
+      });
+    });
+  // END of renderPlanEditorCards
+}
+
+  // Save Plans to Backend
+  if (planEditorForm) {
+    planEditorForm.onsubmit = async function(e) {
+      e.preventDefault();
+      // Collect values (from plans state, which now includes icon/color)
+      const newPlans = plans.map((plan, idx) => ({
+        ...plan
+      }));
+      // Save to backend
+      try {
+        const token = localStorage.getItem('gymAdminToken');
+        const res = await fetch('http://localhost:5000/api/gyms/membership-plans', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newPlans)
+        });
+        if (res.ok) {
+          plans = newPlans;
+          renderPlans();
+          closePlanEditor();
+          showDialog({
+            title: 'Plans Updated',
+            message: 'Membership plans updated successfully.',
+            confirmText: 'OK',
+            iconHtml: '<i class="fas fa-check-circle" style="color:#38b000;"></i>'
+          });
+        } else {
+          showDialog({
+            title: 'Error',
+            message: 'Failed to update plans.',
+            confirmText: 'OK',
+            iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#ef233c;"></i>'
+          });
+        }
+      } catch (err) {
+        showDialog({
+          title: 'Error',
+          message: 'Server error. Please try again.',
+          confirmText: 'OK',
+          iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#ef233c;"></i>'
+        });
+      }
+    };
+  }
+
+  // Discounted Fees Example (dynamic)
+  const planTypeSelect = document.getElementById('planTypeSelect');
+  const monthsInput = document.getElementById('monthsInput');
+  const calcBtn = document.getElementById('calcDiscountBtn');
+  const resultSpan = document.getElementById('discountedFeesResult');
+  function updateDiscountedFees() {
+    if (!planTypeSelect || !monthsInput || !resultSpan) return;
+    const planName = planTypeSelect.value;
+    const months = parseInt(monthsInput.value, 10) || 1;
+    const plan = plans.find(p => p.name === planName) || plans[0];
+    const price = plan.price * months;
+    const discount = (months >= plan.discountMonths) ? plan.discount : 0;
+    const discounted = price * (1 - discount / 100);
+    if (discount > 0) {
+      resultSpan.innerHTML = `Total: <s>₹${price}</s> <span style='color:#38b000;'>₹${discounted.toFixed(0)}</span> <span style='color:#ffbe0b;'>(-${discount}% off)</span>`;
+    } else {
+      resultSpan.innerHTML = `Total: ₹${price}`;
+    }
+  }
+  if (calcBtn) calcBtn.onclick = updateDiscountedFees;
+  if (planTypeSelect) planTypeSelect.onchange = updateDiscountedFees;
+  if (monthsInput) monthsInput.oninput = updateDiscountedFees;
+
+  // Initial render
+  fetchPlans();
+});
+// --- Remove Member Button Dropdown Logic ---
+// (showDialog is now defined only once at the top of the file, remove this duplicate)
+document.addEventListener('DOMContentLoaded', function () {
+  const removeMemberBtnTab = document.getElementById('removeMemberBtnTab');
+  let removeDropdown = null;
+
+  if (removeMemberBtnTab) {
+    removeMemberBtnTab.addEventListener('click', function (e) {
+      e.preventDefault();
+      // Remove any existing dropdown
+      if (removeDropdown) removeDropdown.remove();
+
+      // Create dropdown
+      removeDropdown = document.createElement('div');
+      removeDropdown.className = 'remove-member-dropdown';
+      removeDropdown.innerHTML = `
+        <button class="remove-dropdown-option" id="removeExpiredMembersBtn">
+          <i class="fas fa-user-slash" style="color:#d32f2f;margin-right:8px;"></i>
+          Remove Expired (7+ days)
+        </button>
+        <button class="remove-dropdown-option" id="customRemoveMembersBtn">
+          <i class="fas fa-user-cog" style="color:#1976d2;margin-right:8px;"></i>
+          Custom Remove
+        </button>
+      `;
+
+      // Position dropdown below the button, adjust for mobile view
+      const rect = removeMemberBtnTab.getBoundingClientRect();
+      removeDropdown.style.position = 'absolute';
+      removeDropdown.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+      // Default left position
+      let left = rect.left + window.scrollX;
+      // If on mobile (screen width <= 600px), ensure dropdown doesn't overflow right edge
+      if (window.innerWidth <= 600) {
+        const dropdownWidth = 220;
+        if (left + dropdownWidth > window.innerWidth - 8) {
+          left = window.innerWidth - dropdownWidth - 8; // 8px margin from right
+          if (left < 8) left = 8; // 8px min left margin
+        }
+      }
+      removeDropdown.style.left = left + 'px';
+      removeDropdown.style.zIndex = 10000;
+      removeDropdown.style.background = '#fff';
+      removeDropdown.style.boxShadow = '0 4px 18px 0 rgba(0,0,0,0.10)';
+      removeDropdown.style.borderRadius = '10px';
+      removeDropdown.style.padding = '8px 0';
+      removeDropdown.style.minWidth = '220px';
+
+      document.body.appendChild(removeDropdown);
+
+      // Remove dropdown on outside click
+      function handleOutsideClick(ev) {
+        if (!removeDropdown.contains(ev.target) && ev.target !== removeMemberBtnTab) {
+          removeDropdown.remove();
+          document.removeEventListener('mousedown', handleOutsideClick);
+        }
+      }
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleOutsideClick);
+      }, 0);
+
+
+      // Remove expired members logic
+      document.getElementById('removeExpiredMembersBtn').onclick = function () {
+        removeDropdown.remove();
+        showDialog({
+          title: 'Remove Expired Members',
+          message: 'Remove all members whose membership expired more than 7 days ago?',
+          confirmText: 'Remove',
+          cancelText: 'Cancel',
+          showCancel: true,
+          iconHtml: '<i class="fas fa-user-slash" style="color:#d32f2f;"></i>',
+          onConfirm: async function () {
+            const token = localStorage.getItem('gymAdminToken');
+            try {
+              const res = await fetch('http://localhost:5000/api/members', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const members = await res.json();
+              const now = new Date();
+              const expired = (Array.isArray(members) ? members : []).filter(m => {
+                if (!m.membershipValidUntil) return false;
+                const valid = new Date(m.membershipValidUntil);
+                return (now - valid) / (1000 * 60 * 60 * 24) > 7;
+              });
+              if (!expired.length) {
+                showDialog({
+                  title: 'No Expired Members',
+                  message: 'No expired members found.',
+                  confirmText: 'OK',
+                  iconHtml: '<i class="fas fa-info-circle" style="color:#1976d2;"></i>'
+                });
+                return;
+              }
+              let removed = 0;
+              for (const m of expired) {
+                await fetch(`http://localhost:5000/api/members/${m._id}`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                removed++;
+              }
+              showDialog({
+                title: 'Members Removed',
+                message: `Removed ${removed} expired member(s).`,
+                confirmText: 'OK',
+                iconHtml: '<i class="fas fa-check-circle" style="color:#38b000;"></i>',
+                onConfirm: function () {
+                  if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+                  // Do NOT update total payments after member removal; keep the value unchanged
+                  // If you have a function that recalculates total payments, do NOT call it here
+                }
+              });
+            } catch (err) {
+              showDialog({
+                title: 'Error',
+                message: 'Error removing expired members.',
+                confirmText: 'OK',
+                iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#ef233c;"></i>'
+              });
+            }
+          }
+        });
+      };
+
+      // Custom remove logic (interactive layout)
+      document.getElementById('customRemoveMembersBtn').onclick = function () {
+        removeDropdown.remove();
+        showCustomRemoveMembersModal();
+      };
+    });
+  }
+
+  // Interactive custom remove modal
+  function showCustomRemoveMembersModal() {
+    // Remove any existing modal
+    let modal = document.getElementById('customRemoveMembersModal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'customRemoveMembersModal';
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:420px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="margin:0;"><i class="fas fa-user-cog" style="color:#1976d2;margin-right:8px;"></i>Custom Remove Members</h3>
+          <button class="modal-close" id="closeCustomRemoveMembersModal" style="font-size:1.5rem;">&times;</button>
+        </div>
+        <div style="margin:18px 0;">
+          <label for="customRemoveSearch" style="font-weight:500;">Search by name, email, or ID:</label>
+          <input type="text" id="customRemoveSearch" style="width:100%;margin-top:6px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+        </div>
+        <div id="customRemoveMembersList" style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 0;background:#fafbfc;"></div>
+        <div style="margin-top:18px;display:flex;justify-content:flex-end;gap:12px;">
+          <button class="btn btn-secondary" id="cancelCustomRemoveBtn">Cancel</button>
+          <button class="btn btn-danger" id="confirmCustomRemoveBtn" disabled>Remove Selected</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Close logic
+    document.getElementById('closeCustomRemoveMembersModal').onclick =
+      document.getElementById('cancelCustomRemoveBtn').onclick = function () {
+        modal.remove();
+      };
+    modal.addEventListener('mousedown', function handler(e) {
+      if (e.target === modal) {
+        modal.remove();
+        modal.removeEventListener('mousedown', handler);
+      }
+    });
+
+    // Fetch and render members
+    const token = localStorage.getItem('gymAdminToken');
+    fetch('http://localhost:5000/api/members', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(members => {
+        renderCustomRemoveMembersList(members, '');
+        // Search logic
+        document.getElementById('customRemoveSearch').oninput = function (e) {
+          renderCustomRemoveMembersList(members, e.target.value);
+        };
+      });
+
+    // Render members with checkboxes
+    function renderCustomRemoveMembersList(members, filter) {
+      const list = document.getElementById('customRemoveMembersList');
+      if (!list) return;
+      let filtered = Array.isArray(members) ? members : [];
+      if (filter) {
+        const f = filter.toLowerCase();
+        filtered = filtered.filter(m =>
+          (m.memberName && m.memberName.toLowerCase().includes(f)) ||
+          (m.email && m.email.toLowerCase().includes(f)) ||
+          (m.membershipId && m.membershipId.toLowerCase().includes(f))
+        );
+      }
+      if (!filtered.length) {
+        list.innerHTML = '<div style="color:#888;text-align:center;">No members found.</div>';
+        document.getElementById('confirmCustomRemoveBtn').disabled = true;
+        return;
+      }
+      list.innerHTML = filtered.map(m => `
+        <label style="display:flex;align-items:center;padding:6px 12px;cursor:pointer;">
+          <input type="checkbox" class="custom-remove-checkbox" value="${m._id}" style="margin-right:10px;">
+          <img src="${m.profileImage ? `http://localhost:5000${m.profileImage}` : 'https://via.placeholder.com/32?text=Photo'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:10px;">
+          <span style="font-weight:500;">${m.memberName || ''}</span>
+          <span style="color:#888;font-size:0.95em;margin-left:8px;">${m.membershipId || ''}</span>
+        </label>
+      `).join('');
+      // Enable/disable confirm button
+      const checkboxes = list.querySelectorAll('.custom-remove-checkbox');
+      const confirmBtn = document.getElementById('confirmCustomRemoveBtn');
+      checkboxes.forEach(cb => {
+        cb.onchange = function () {
+          confirmBtn.disabled = !Array.from(checkboxes).some(c => c.checked);
+        };
+      });
+      confirmBtn.disabled = !Array.from(checkboxes).some(c => c.checked);
+      // Confirm remove logic
+      confirmBtn.onclick = function () {
+        const selected = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+        if (!selected.length) return;
+        showDialog({
+          title: 'Remove Members',
+          message: `Remove ${selected.length} selected member(s)?`,
+          confirmText: 'Remove',
+          cancelText: 'Cancel',
+          showCancel: true,
+          iconHtml: '<i class="fas fa-user-cog" style="color:#1976d2;"></i>',
+          onConfirm: async function () {
+            try {
+              const res = await fetch('http://localhost:5000/api/members/bulk', {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ memberIds: selected })
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                showDialog({
+                  title: 'Error',
+                  message: data && data.message ? data.message : 'Error removing members.',
+                  confirmText: 'OK',
+                  iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#ef233c;"></i>'
+                });
+                return;
+              }
+              showDialog({
+                title: 'Members Removed',
+                message: `Removed ${data.deletedCount || 0} member(s).`,
+                confirmText: 'OK',
+                iconHtml: '<i class="fas fa-check-circle" style="color:#38b000;"></i>',
+                onConfirm: function () {
+                  modal.remove();
+                  if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+                  // Do NOT update total payments after member removal; keep the value unchanged
+                  // If you have a function that recalculates total payments, do NOT call it here
+                }
+              });
+            } catch (err) {
+              showDialog({
+                title: 'Error',
+                message: 'Error removing members.',
+                confirmText: 'OK',
+                iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#ef233c;"></i>'
+              });
+            }
+          }
+        });
+      };
+    }
+  }
+});
 // --- Unified Add Member Modal Logic (Dashboard Quick Action & Member Tab) ---
 document.addEventListener('DOMContentLoaded', function() {
   const addMemberBtn = document.getElementById('addMemberBtn'); // Dashboard quick action
@@ -33,8 +643,8 @@ document.addEventListener('DOMContentLoaded', function() {
     addMemberBtn.addEventListener('click', function(e) {
       e.preventDefault();
       openAddMemberModal();
-    });
-  }
+  });
+}
   // Open modal from member tab button
   if (addMemberBtnTab && addMemberModal) {
     addMemberBtnTab.addEventListener('click', function(e) {
@@ -84,502 +694,426 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('You must be logged in as a gym admin.');
         return;
       }
-      // Gather form data
-      const formData = new FormData(addMemberForm); // includes file
-      // Generate membership ID and valid date
+      const formData = prepareMemberFormData(addMemberForm);
+      const { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate } = getMemberFormMeta(formData);
+      try {
+        const res = await fetch('http://localhost:5000/api/members', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          sendMembershipEmail({ token, memberEmail, memberName, membershipId, plan, monthlyPlan, validDate, gymName });
+          showAddMemberSuccess(addMemberSuccessMsg, membershipId, addMemberForm, memberImageTag, closeAddMemberModalFunc);
+        } else {
+          showAddMemberError(addMemberSuccessMsg, data.message || 'Failed to add member.');
+        }
+      } catch (err) {
+        showAddMemberError(addMemberSuccessMsg, 'Server error. Please try again.');
+      }
+    };
+
+    function prepareMemberFormData(form) {
+      const formData = new FormData(form);
+      const addressInput = document.getElementById('memberAddress');
+      if (addressInput?.value) {
+        formData.set('address', addressInput.value);
+      }
+      return formData;
+    }
+
+    function getMemberFormMeta(formData) {
       const gymName = (window.currentGymProfile && (window.currentGymProfile.gymName || window.currentGymProfile.name)) ? (window.currentGymProfile.gymName || window.currentGymProfile.name) : 'GYM';
       const plan = formData.get('planSelected') || 'PLAN';
       const monthlyPlan = formData.get('monthlyPlan') || '';
       const memberEmail = formData.get('memberEmail') || '';
       const memberName = formData.get('memberName') || '';
-      // Membership ID: GYMNAME-YYYYMM-PLAN-UNIQUE
       const now = new Date();
       const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
-      const random = Math.floor(1000 + Math.random() * 9000);
+      // Use a more unique random string for membership ID (alphanumeric, 6 chars)
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
       const gymShort = gymName.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       const planShort = plan.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       const membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
       formData.append('membershipId', membershipId);
-      // Calculate valid date (add months)
       let validDate = '';
       let months = 1;
-      if (/1\s*Month/i.test(monthlyPlan)) months = 1;
-      else if (/3\s*Month/i.test(monthlyPlan)) months = 3;
+      if (/3\s*Month/i.test(monthlyPlan)) months = 3;
       else if (/6\s*Month/i.test(monthlyPlan)) months = 6;
       else if (/12\s*Month/i.test(monthlyPlan)) months = 12;
       const validUntil = new Date(now);
       validUntil.setMonth(validUntil.getMonth() + months);
       validDate = validUntil.toISOString().split('T')[0];
       formData.append('membershipValidUntil', validDate);
-      try {
-        // 1. Add member to backend
-        const res = await fetch('http://localhost:5000/api/members', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
+      return { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate };
+    }
 
-        // --- Member Detail Card Logic ---
-        const membersDetailCard = document.getElementById('membersDetailCard');
-        const closeMembersDetailCard = document.getElementById('closeMembersDetailCard');
-        const membersStatCard = document.getElementById('membersStatCard');
-        const newMembersList = document.getElementById('newMembersList');
-        const existingMembersList = document.getElementById('existingMembersList');
-        const membersDetailLoading = document.getElementById('membersDetailLoading');
-        const membersDetailError = document.getElementById('membersDetailError');
-        const membersDetailContent = document.getElementById('membersDetailContent');
+    function sendMembershipEmail({ token, memberEmail, memberName, membershipId, plan, monthlyPlan, validDate, gymName }) {
+      fetch('http://localhost:5000/api/members/send-membership-email', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: memberEmail,
+          memberName,
+          membershipId,
+          plan,
+          monthlyPlan,
+          validUntil: validDate,
+          gymName
+        })
+      }).catch((err) => {
+        console.error('Failed to send membership email:', err);
+      });
+    }
 
-        // Helper to open/close the card
-        function openMembersDetailCard() {
-            if (membersDetailCard) {
-                membersDetailCard.style.display = 'flex';
-                if (membersDetailLoading) membersDetailLoading.style.display = 'block';
-                if (membersDetailError) membersDetailError.style.display = 'none';
-                if (membersDetailContent) membersDetailContent.style.display = 'none';
-                fetchAndRenderMembersDetail();
-            }
-        }
-        function closeMembersDetailCardFunc() {
-            if (membersDetailCard) membersDetailCard.style.display = 'none';
-        }
-        if (membersStatCard && membersDetailCard) {
-            membersStatCard.addEventListener('click', openMembersDetailCard);
-            membersStatCard.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') openMembersDetailCard();
-            });
-        }
-        if (closeMembersDetailCard && membersDetailCard) {
-            closeMembersDetailCard.addEventListener('click', closeMembersDetailCardFunc);
-        }
-        // Close on outside click
-        if (membersDetailCard) {
-            membersDetailCard.addEventListener('mousedown', function(e) {
-                if (e.target === membersDetailCard) closeMembersDetailCardFunc();
-            });
-        }
-
-        // Fetch and render members detail (new/existing)
-        async function fetchAndRenderMembersDetail() {
-            if (membersDetailLoading) membersDetailLoading.style.display = 'block';
-            if (membersDetailError) membersDetailError.style.display = 'none';
-            if (membersDetailContent) membersDetailContent.style.display = 'none';
-            if (newMembersList) newMembersList.innerHTML = '';
-            if (existingMembersList) existingMembersList.innerHTML = '';
-            const token = localStorage.getItem('gymAdminToken');
-            try {
-                const res = await fetch('http://localhost:5000/api/members', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                const data = await res.json();
-                if (!res.ok || !Array.isArray(data.members)) {
-                    throw new Error(data.message || 'Failed to fetch members');
-                }
-                // Split new/existing
-                const now = new Date();
-                const newMembers = [];
-                const existingMembers = [];
-                data.members.forEach(member => {
-                    if (!member.joinDate) return existingMembers.push(member); // fallback
-                    const join = new Date(member.joinDate);
-                    const diffDays = (now - join) / (1000 * 60 * 60 * 24);
-                    if (diffDays <= 30) newMembers.push(member);
-                    else existingMembers.push(member);
-                });
-                // Render lists
-                if (newMembersList) newMembersList.innerHTML = newMembers.length ? newMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No new members in last 30 days.</li>';
-                if (existingMembersList) existingMembersList.innerHTML = existingMembers.length ? existingMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No existing members.</li>';
-                if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-                if (membersDetailContent) membersDetailContent.style.display = 'block';
-            } catch (err) {
-                if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-                if (membersDetailError) {
-                    membersDetailError.textContent = err.message || 'Failed to load members.';
-                    membersDetailError.style.display = 'block';
-                }
-            }
-        }
-        // Helper to render a member list item
-        function renderMemberListItem(member) {
-            const img = member.profileImageUrl ? `<img src="${member.profileImageUrl}" alt="${member.name || member.memberName || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:10px;">` : `<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#eee;margin-right:10px;"></span>`;
-            const name = member.name || member.memberName || 'Member';
-            const plan = member.planSelected || member.plan || '';
-            const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
-            return `<li style="display:flex;align-items:center;margin-bottom:10px;">${img}<div><div style="font-weight:500;">${name}</div><div style="font-size:0.95em;color:#888;">${plan}${joinDate ? ' | Joined: ' + joinDate : ''}</div></div></li>`;
-        }
-        const data = await res.json();
-        if (res.ok) {
-          // 2. Send membership email (do not block UI if email fails)
-          fetch('http://localhost:5000/api/members/send-membership-email', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              to: memberEmail,
-              memberName,
-              membershipId,
-              plan,
-              monthlyPlan,
-              validUntil: validDate,
-              gymName
-            })
-          }).catch((err) => {
-            console.error('Failed to send membership email:', err);
-          });
-          if (addMemberSuccessMsg) {
-            addMemberSuccessMsg.textContent = `Member added! Membership ID: ${membershipId}`;
-            addMemberSuccessMsg.style.display = 'block';
-          }
-          addMemberForm.reset();
-          if (memberImageTag) memberImageTag.src = 'https://via.placeholder.com/96?text=Photo';
-          setTimeout(() => {
-            closeAddMemberModalFunc();
-          }, 1500);
-        } else {
-          if (addMemberSuccessMsg) {
-            addMemberSuccessMsg.textContent = data.message || 'Failed to add member.';
-            addMemberSuccessMsg.style.display = 'block';
-          }
-        }
-      } catch (err) {
-        if (addMemberSuccessMsg) {
-          addMemberSuccessMsg.textContent = 'Server error. Please try again.';
-          addMemberSuccessMsg.style.display = 'block';
-        }
+    function showAddMemberSuccess(msgElem, membershipId, form, imgTag, closeModalFunc) {
+      if (msgElem) {
+        msgElem.textContent = `Member added! Membership ID: ${membershipId}`;
+        msgElem.style.display = 'block';
       }
-    };
+      form.reset();
+      if (imgTag) imgTag.src = 'https://via.placeholder.com/96?text=Photo';
+      setTimeout(() => {
+        closeModalFunc();
+      }, 1500);
+    }
+
+    function showAddMemberError(msgElem, message) {
+      if (msgElem) {
+        msgElem.textContent = message;
+        msgElem.style.display = 'block';
+      }
+    }
   }
 });
 let currentGymProfile = {}; // Store fetched profile data
 
-        async function fetchAndUpdateAdminProfile() {
-    // Debug: Log all localStorage items
-    console.log('All localStorage items:', Object.keys(localStorage).map(key => {
-        return { key, value: localStorage.getItem(key) };
-    }));
-
-    // Wait for token to appear (retry up to 1 second)
-    let token = localStorage.getItem('gymAdminToken');
-    let tries = 0;
-    while (!token && tries < 10) {
-        await new Promise(res => setTimeout(res, 100));
-        token = localStorage.getItem('gymAdminToken');
-        tries++;
+            async function fetchAndUpdateAdminProfile() {
+        logLocalStorageItems();
+        const token = await waitForToken('gymAdminToken', 10, 100);
+        const adminNameElement = document.getElementById('adminName');
+        const adminAvatarElement = document.getElementById('adminAvatar');
+        setDefaultAdminProfile(adminNameElement, adminAvatarElement);
+    
+        if (!token) {
+            handleMissingToken();
+            return;
+        }
+    
+        try {
+            const responseData = await fetchAdminProfile(token);
+            if (!responseData.ok) {
+                handleProfileFetchError(responseData, adminNameElement, adminAvatarElement);
+                return;
+            }
+            currentGymProfile = responseData.data;
+            updateAdminProfileUI(adminNameElement, adminAvatarElement, responseData.data);
+        } catch (error) {
+            handleProfileFetchException(error, adminNameElement, adminAvatarElement);
+        }
     }
-     const adminNameElement = document.getElementById('adminName');
-    const adminAvatarElement = document.getElementById('adminAvatar');
-
-            console.group('Admin Profile Fetch');
-            console.log('Fetching admin profile');
-            console.log('Token retrieval:', {
-                gymAuthToken: !!localStorage.getItem('gymAuthToken'),
-                token: !!localStorage.getItem('token'),
-                authToken: !!localStorage.getItem('authToken')
-            });
-
-            // Set default placeholders
-            if (adminNameElement) adminNameElement.textContent = 'Gym Admin';
-            if (adminAvatarElement) adminAvatarElement.src = 'https://via.placeholder.com/40';
-
-            if (!token) {
+    
+    function logLocalStorageItems() {
+        console.log('All localStorage items:', Object.keys(localStorage).map(key => {
+            return { key, value: localStorage.getItem(key) };
+        }));
+    }
+    
+    async function waitForToken(tokenKey, maxTries, delayMs) {
+        let token = localStorage.getItem(tokenKey);
+        let tries = 0;
+        while (!token && tries < maxTries) {
+            await new Promise(res => setTimeout(res, delayMs));
+            token = localStorage.getItem(tokenKey);
+            tries++;
+        }
+        return token;
+    }
+    
+    function setDefaultAdminProfile(adminNameElement, adminAvatarElement) {
+        if (adminNameElement) adminNameElement.textContent = 'Gym Admin';
+        if (adminAvatarElement) adminAvatarElement.src = 'https://via.placeholder.com/40';
+    }
+    
+    function handleMissingToken() {
         console.error("No authentication token found after retry. Redirecting to login.");
-        console.groupEnd();
         window.location.replace('http://localhost:5000/public/admin-login.html');
-        return;
     }
-
-            try {
-                console.log('Sending profile request to:', 'http://localhost:5000/api/gym/profile/me');
-                const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                console.log('Profile fetch response status:', response.status);
-
-                const responseData = await response.json();
-                console.log('Profile fetch response data:', responseData);
-
-                if (!response.ok) {
-                    console.error(`Error fetching profile: ${response.status} ${response.statusText}`);
-                    console.error('Detailed server response:', responseData);
-                    
-                    // Clear token and redirect if unauthorized
-                    if (response.status === 401 || response.status === 403) {
-                        console.error('Unauthorized access. Clearing tokens.');
-                       localStorage.removeItem('gymAdminToken');
-                        console.groupEnd();
-                       window.location.replace('http://localhost:5000/public/admin-login.html');
-                    } else {
-                        throw new Error(responseData.message || 'Failed to fetch profile');
-                    }
-                    return;
+    
+    async function fetchAdminProfile(token) {
+        console.group('Admin Profile Fetch');
+        console.log('Fetching admin profile');
+        console.log('Token retrieval:', {
+            gymAuthToken: !!localStorage.getItem('gymAuthToken'),
+            token: !!localStorage.getItem('token'),
+            authToken: !!localStorage.getItem('authToken')
+        });
+        console.log('Sending profile request to:', 'http://localhost:5000/api/gym/profile/me');
+        const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log('Profile fetch response status:', response.status);
+        const data = await response.json();
+        console.log('Profile fetch response data:', data);
+        console.groupEnd();
+        return { ok: response.ok, status: response.status, statusText: response.statusText, data, raw: response };
+    }
+    
+    function handleProfileFetchError(responseData, adminNameElement, adminAvatarElement) {
+        console.error(`Error fetching profile: ${responseData.status} ${responseData.statusText}`);
+        console.error('Detailed server response:', responseData.data);
+        if (responseData.status === 401 || responseData.status === 403) {
+            console.error('Unauthorized access. Clearing tokens.');
+            localStorage.removeItem('gymAdminToken');
+            window.location.replace('http://localhost:5000/public/admin-login.html');
+        } else {
+            throw new Error(responseData.data.message || 'Failed to fetch profile');
+        }
+    }
+    
+    function updateAdminProfileUI(adminNameElement, adminAvatarElement, profile) {
+        if (adminNameElement) {
+            adminNameElement.textContent = profile.gymName || profile.name || 'Gym Admin';
+            console.log('Updated admin name:', adminNameElement.textContent);
+        }
+        if (adminAvatarElement) {
+            if (profile.logoUrl) {
+                let logoPath = profile.logoUrl;
+                if (!logoPath.startsWith('http')) {
+                    logoPath = `http://localhost:5000${logoPath.startsWith('/') ? logoPath : '/' + logoPath}`;
                 }
-
-                currentGymProfile = responseData;
-
-                // Update profile name and logo
-                if (adminNameElement) {
-                    adminNameElement.textContent = responseData.gymName || responseData.name || 'Gym Admin';
-                    console.log('Updated admin name:', adminNameElement.textContent);
-                }
-                if (adminAvatarElement) {
-                    if (responseData.logoUrl) {
-                        let logoPath = responseData.logoUrl;
-                        // Ensure full URL for local images
-                        if (!logoPath.startsWith('http')) {
-                            logoPath = `http://localhost:5000${logoPath.startsWith('/') ? logoPath : '/' + logoPath}`;
-                        }
-                        adminAvatarElement.src = logoPath;
-                        console.log('Updated admin logo:', logoPath);
-                    } else {
-                        adminAvatarElement.src = 'https://via.placeholder.com/40';
-                        console.log('Using default avatar');
-                    }
-                }
-
-                console.groupEnd();
-            } catch (error) {
-                console.error('Comprehensive error fetching or updating admin profile:', error);
-                
-                // Always provide a fallback
-                if (adminNameElement) adminNameElement.textContent = 'Admin';
-                if (adminAvatarElement) adminAvatarElement.src = 'https://via.placeholder.com/40';
-                
-                // Clear all potential token keys
-               localStorage.removeItem('gymAdminToken');
-
-                console.groupEnd();
-                
-                // Optional: Show user-friendly error message
-                alert('Unable to fetch profile. Please try logging in again.');
-                window.location.replace('http://localhost:5000/public/admin-login.html');
+                adminAvatarElement.src = logoPath;
+                console.log('Updated admin logo:', logoPath);
+            } else {
+                adminAvatarElement.src = 'https://via.placeholder.com/40';
+                console.log('Using default avatar');
             }
         }
+    }
+    
+    function handleProfileFetchException(error, adminNameElement, adminAvatarElement) {
+        console.error('Comprehensive error fetching or updating admin profile:', error);
+        if (adminNameElement) adminNameElement.textContent = 'Admin';
+        if (adminAvatarElement) adminAvatarElement.src = 'https://via.placeholder.com/40';
+        localStorage.removeItem('gymAdminToken');
+        alert('Unable to fetch profile. Please try logging in again.');
+        window.location.replace('http://localhost:5000/public/admin-login.html');
+    }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const deletePhotoConfirmModal = document.getElementById('deletePhotoConfirmModal');
-            const closeDeletePhotoConfirmModal = document.getElementById('closeDeletePhotoConfirmModal');
-            const confirmDeletePhotoBtn = document.getElementById('confirmDeletePhotoBtn');
-            const cancelDeletePhotoBtn = document.getElementById('cancelDeletePhotoBtn');
-            let pendingDeletePhotoId = null;
-            fetchAndUpdateAdminProfile();
-            fetchGymPhotos();
+document.addEventListener('DOMContentLoaded', function () {
+    const deletePhotoConfirmModal = document.getElementById('deletePhotoConfirmModal');
+    const closeDeletePhotoConfirmModal = document.getElementById('closeDeletePhotoConfirmModal');
+    const confirmDeletePhotoBtn = document.getElementById('confirmDeletePhotoBtn');
+    const cancelDeletePhotoBtn = document.getElementById('cancelDeletePhotoBtn');
+    let pendingDeletePhotoId = null;
+    fetchAndUpdateAdminProfile();
+    fetchGymPhotos();
 
-            function fetchGymPhotos() {
-                const token = localStorage.getItem('gymAdminToken');
-                fetch('http://localhost:5000/api/gyms/photos', {
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success && Array.isArray(data.photos)) {
-                            renderPhotoGrid(data.photos);
-                        } else {
-                            renderPhotoGrid([]);
-                        }
-                    })
-                    .catch(() => renderPhotoGrid([]));
+    function fetchGymPhotos() {
+        const token = localStorage.getItem('gymAdminToken');
+        fetch('http://localhost:5000/api/gyms/photos', {
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
             }
-
-            function renderPhotoGrid(photos) {
-                const grid = document.getElementById('photoGrid');
-                if (!grid) return;
-                grid.innerHTML = '';
-                if (!photos.length) {
-                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color: #888;">No photos uploaded yet.</div>';
-                    return;
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.photos)) {
+                    renderPhotoGridWithRemove(data.photos);
+                } else {
+                    renderPhotoGridWithRemove([]);
                 }
-                photos.forEach(photo => {
-                    const card = document.createElement('div');
-                    card.className = 'photo-card';
-                    card.style = 'background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 12px; display: flex; flex-direction: column; align-items: center;';
-                    card.innerHTML = `
-                        <img src="${photo.imageUrl}" alt="${photo.title || ''}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
-                        <h3 style="margin: 4px 0 2px 0; font-size: 1.1em;">${photo.title || ''}</h3>
-                        <p style="margin: 0 0 6px 0; color: #666; font-size: 0.95em;">${photo.description || ''}</p>
-                        <div style="font-size: 0.85em; color: #aaa; margin-bottom: 6px;">${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString() : ''}</div>
-                        <button class="edit-photo-btn" data-photo-id="${photo._id || ''}" style="margin-top: 4px; padding: 4px 10px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer;">Edit</button>
-                    `;
-                    grid.appendChild(card);
-                });
-            }
+            })
+            .catch(() => renderPhotoGridWithRemove([]));
+    }
 
-            // Edit button handler (delegation)
-            document.getElementById('photoGridSection').addEventListener('click', async function(e) {
-                // Edit button logic (already present)
-                if (e.target.classList.contains('edit-photo-btn')) {
-                    const photoId = e.target.getAttribute('data-photo-id');
-                    // Find photo data from last loaded grid
-                    const photo = (window._lastPhotoGrid || []).find(p => (p._id || p.id) === photoId);
-                    if (!photo) return alert('Photo not found.');
-                    // Populate modal
-                    document.getElementById('editPhotoId').value = photoId;
-                    document.getElementById('editPhotoTitle').value = photo.title || '';
-                    document.getElementById('editPhotoDescription').value = photo.description || '';
-                    document.getElementById('editPhotoFile').value = '';
-                    document.getElementById('editPhotoPreview').innerHTML = photo.imageUrl ? `<img src="${photo.imageUrl}" style="max-width:180px;max-height:120px;border-radius:6px;">` : '';
-                    document.getElementById('editPhotoModal').style.display = 'flex';
-                    return;
-                }
-                // Remove button logic
-                if (e.target.classList.contains('remove-photo-btn')) {
-                    const photoId = e.target.getAttribute('data-photo-id');
-                    if (!photoId) return alert('Photo ID missing.');
-                    pendingDeletePhotoId = photoId;
-        // Show the confirmation modal
+    function renderPhotoGridWithRemove(photos) {
+        window._lastPhotoGrid = photos;
+        const grid = document.getElementById('photoGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (!photos.length) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color: #888;">No photos uploaded yet.</div>';
+            return;
+        }
+        photos.forEach(photo => {
+            const card = document.createElement('div');
+            card.className = 'photo-card';
+            card.style = 'background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 12px; display: flex; flex-direction: column; align-items: center;';
+            card.innerHTML = `
+                <img src="${photo.imageUrl}" alt="${photo.title || ''}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
+                <h3 style="margin: 4px 0 2px 0; font-size: 1.1em;">${photo.title || ''}</h3>
+                <p style="margin: 0 0 6px 0; color: #666; font-size: 0.95em;">${photo.description || ''}</p>
+                <div style="font-size: 0.85em; color: #aaa; margin-bottom: 6px;">${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString() : ''}</div>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="edit-photo-btn" data-photo-id="${photo._id || ''}" style="padding: 4px 10px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer;">Edit</button>
+                    <button class="remove-photo-btn" data-photo-id="${photo._id || ''}" style="padding: 4px 10px; border: none; background: #e53935; color: #fff; border-radius: 4px; cursor: pointer;">Remove</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function handlePhotoGridClick(e) {
+        if (e.target.classList.contains('edit-photo-btn')) {
+            handleEditPhotoBtn(e.target);
+        } else if (e.target.classList.contains('remove-photo-btn')) {
+            handleRemovePhotoBtn(e.target);
+        }
+    }
+
+    function handleEditPhotoBtn(target) {
+        const photoId = target.getAttribute('data-photo-id');
+        const photo = (window._lastPhotoGrid || []).find(p => (p._id || p.id) === photoId);
+        if (!photo) return alert('Photo not found.');
+        document.getElementById('editPhotoId').value = photoId;
+        document.getElementById('editPhotoTitle').value = photo.title || '';
+        document.getElementById('editPhotoDescription').value = photo.description || '';
+        document.getElementById('editPhotoFile').value = '';
+        document.getElementById('editPhotoPreview').innerHTML = photo.imageUrl ? `<img src="${photo.imageUrl}" style="max-width:180px;max-height:120px;border-radius:6px;">` : '';
+        document.getElementById('editPhotoModal').style.display = 'flex';
+    }
+
+    function handleRemovePhotoBtn(target) {
+        const photoId = target.getAttribute('data-photo-id');
+        if (!photoId) return alert('Photo ID missing.');
+        pendingDeletePhotoId = photoId;
         deletePhotoConfirmModal.style.display = 'flex';
     }
-});
-            // Modal close/cancel logic
-            document.getElementById('closeEditPhotoModal').onclick = document.getElementById('cancelEditPhotoBtn').onclick = function() {
-                document.getElementById('editPhotoModal').style.display = 'none';
+
+    function wireModalCloseButtons() {
+        document.getElementById('closeEditPhotoModal').onclick = document.getElementById('cancelEditPhotoBtn').onclick = function() {
+            document.getElementById('editPhotoModal').style.display = 'none';
+        };
+        if (closeDeletePhotoConfirmModal) {
+            closeDeletePhotoConfirmModal.onclick = () => {
+                deletePhotoConfirmModal.style.display = 'none';
+                pendingDeletePhotoId = null;
             };
-            if (closeDeletePhotoConfirmModal) {
-    closeDeletePhotoConfirmModal.onclick = () => {
-        deletePhotoConfirmModal.style.display = 'none';
-        pendingDeletePhotoId = null;
-    };
-}
-if (cancelDeletePhotoBtn) {
-    cancelDeletePhotoBtn.onclick = () => {
-        deletePhotoConfirmModal.style.display = 'none';
-        pendingDeletePhotoId = null;
-    };
-}
-if (confirmDeletePhotoBtn) {
-    confirmDeletePhotoBtn.onclick = async () => {
-        if (!pendingDeletePhotoId) return;
-        const token = localStorage.getItem('gymAdminToken');
-        try {
-            const res = await fetch(`http://localhost:5000/api/gyms/photos/${pendingDeletePhotoId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                alert('Photo removed successfully!');
-                fetchGymPhotos();
-            } else {
-                alert(data.message || 'Failed to remove photo');
-            }
-        } catch (err) {
-            alert('Network error while removing photo');
         }
-        deletePhotoConfirmModal.style.display = 'none';
-        pendingDeletePhotoId = null;
-    };
-}
-            // Preview new image
-            document.getElementById('editPhotoFile').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                const preview = document.getElementById('editPhotoPreview');
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        preview.innerHTML = `<img src="${evt.target.result}" style="max-width:180px;max-height:120px;border-radius:6px;">`;
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    preview.innerHTML = '';
-                }
-            });
-
-            // Store last loaded grid for easy lookup
-            function renderPhotoGrid(photos) {
-                window._lastPhotoGrid = photos;
-                const grid = document.getElementById('photoGrid');
-                if (!grid) return;
-                grid.innerHTML = '';
-                if (!photos.length) {
-                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color: #888;">No photos uploaded yet.</div>';
-                    return;
-                }
-                photos.forEach(photo => {
-                    const card = document.createElement('div');
-                    card.className = 'photo-card';
-                    card.style = 'background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 12px; display: flex; flex-direction: column; align-items: center;';
-                   card.innerHTML = `
-    <img src="${photo.imageUrl}" alt="${photo.title || ''}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
-    <h3 style="margin: 4px 0 2px 0; font-size: 1.1em;">${photo.title || ''}</h3>
-    <p style="margin: 0 0 6px 0; color: #666; font-size: 0.95em;">${photo.description || ''}</p>
-    <div style="font-size: 0.85em; color: #aaa; margin-bottom: 6px;">${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString() : ''}</div>
-    <div style="display: flex; gap: 8px; justify-content: center;">
-        <button class="edit-photo-btn" data-photo-id="${photo._id || ''}" style="padding: 4px 10px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer;">Edit</button>
-        <button class="remove-photo-btn" data-photo-id="${photo._id || ''}" style="padding: 4px 10px; border: none; background: #e53935; color: #fff; border-radius: 4px; cursor: pointer;">Remove</button>
-    </div>
-`;
-                    grid.appendChild(card);
-                });
-            }
-
-            // Handle edit form submit
-            document.getElementById('editPhotoForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
+        if (cancelDeletePhotoBtn) {
+            cancelDeletePhotoBtn.onclick = () => {
+                deletePhotoConfirmModal.style.display = 'none';
+                pendingDeletePhotoId = null;
+            };
+        }
+        if (confirmDeletePhotoBtn) {
+            confirmDeletePhotoBtn.onclick = async () => {
+                if (!pendingDeletePhotoId) return;
                 const token = localStorage.getItem('gymAdminToken');
-                const photoId = document.getElementById('editPhotoId').value;
-                if (!photoId) {
-                    alert('Photo ID missing. Cannot update.');
-                    return;
-                }
-                const title = document.getElementById('editPhotoTitle').value;
-                const description = document.getElementById('editPhotoDescription').value;
-                const fileInput = document.getElementById('editPhotoFile');
-                const formData = new FormData();
-                formData.append('title', title);
-                formData.append('description', description);
-                if (fileInput.files[0]) {
-                    formData.append('photo', fileInput.files[0]);
-                }
                 try {
-                    const res = await fetch(`http://localhost:5000/api/gyms/photos/${photoId}`, {
-                        method: 'PATCH',
+                    const res = await fetch(`http://localhost:5000/api/gyms/photos/${pendingDeletePhotoId}`, {
+                        method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${token}`
-                        },
-                        body: formData
+                        }
                     });
                     const data = await res.json();
-                    if (res.status === 404) {
-                        alert('Photo not found. It may have been deleted or does not exist.');
-                        document.getElementById('editPhotoModal').style.display = 'none';
-                        fetchGymPhotos();
-                        return;
-                    }
                     if (res.ok && data.success) {
-                        const msgDiv = document.getElementById('editPhotoMsg');
-                        msgDiv.textContent = 'Photo updated successfully!';
-                        msgDiv.style.color = 'green';
-                        setTimeout(() => {
-                            msgDiv.textContent = '';
-                            document.getElementById('editPhotoModal').style.display = 'none';
-                        }, 1500);
+                        alert('Photo removed successfully!');
                         fetchGymPhotos();
                     } else {
-                        const msgDiv = document.getElementById('editPhotoMsg');
-                        msgDiv.textContent = data.message || 'Update failed';
-                        msgDiv.style.color = 'red';
+                        alert(data.message || 'Failed to remove photo');
                     }
                 } catch (err) {
+                    alert('Network error while removing photo');
+                }
+                deletePhotoConfirmModal.style.display = 'none';
+                pendingDeletePhotoId = null;
+            };
+        }
+    }
+
+    function wirePhotoFilePreview() {
+        document.getElementById('editPhotoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('editPhotoPreview');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    preview.innerHTML = `<img src="${evt.target.result}" style="max-width:180px;max-height:120px;border-radius:6px;">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+    }
+
+    function wireEditPhotoForm() {
+        document.getElementById('editPhotoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const token = localStorage.getItem('gymAdminToken');
+            const photoId = document.getElementById('editPhotoId').value;
+            if (!photoId) {
+                alert('Photo ID missing. Cannot update.');
+                return;
+            }
+            const title = document.getElementById('editPhotoTitle').value;
+            const description = document.getElementById('editPhotoDescription').value;
+            const fileInput = document.getElementById('editPhotoFile');
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            if (fileInput.files[0]) {
+                formData.append('photo', fileInput.files[0]);
+            }
+            try {
+                const res = await fetch(`http://localhost:5000/api/gyms/photos/${photoId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.status === 404) {
+                    alert('Photo not found. It may have been deleted or does not exist.');
+                    document.getElementById('editPhotoModal').style.display = 'none';
+                    fetchGymPhotos();
+                    return;
+                }
+                if (res.ok && data.success) {
                     const msgDiv = document.getElementById('editPhotoMsg');
-                    msgDiv.textContent = 'Network error';
+                    msgDiv.textContent = 'Photo updated successfully!';
+                    msgDiv.style.color = 'green';
+                    setTimeout(() => {
+                        msgDiv.textContent = '';
+                        document.getElementById('editPhotoModal').style.display = 'none';
+                    }, 1500);
+                    fetchGymPhotos();
+                } else {
+                    const msgDiv = document.getElementById('editPhotoMsg');
+                    msgDiv.textContent = data.message || 'Update failed';
                     msgDiv.style.color = 'red';
                 }
-            });
+            } catch (err) {
+                const msgDiv = document.getElementById('editPhotoMsg');
+                if (msgDiv) {
+                    msgDiv.textContent = 'Network error. Please try again.';
+                    msgDiv.style.color = 'red';
+                }
+                console.error('Error updating photo:', err);
+            }
+        });
+    }
+
+    // Wire up all handlers
+    document.getElementById('photoGridSection').addEventListener('click', handlePhotoGridClick);
+    wireModalCloseButtons();
+    wirePhotoFilePreview();
+    wireEditPhotoForm();
+});
 // --- Unified Add Member Modal Logic (Dashboard & Member Tab) ---
 const addMemberBtn = document.getElementById('addMemberBtn'); // Dashboard quick action
 const addMemberBtnTab = document.getElementById('addMemberBtnTab'); // Member tab button
@@ -663,33 +1197,13 @@ if (addMemberForm) {
       alert('You must be logged in as a gym admin.');
       return;
     }
-    // Gather form data
     const formData = new FormData(addMemberForm); // includes file
-    // Generate membership ID and valid date
-    const gymName = (currentGymProfile && (currentGymProfile.gymName || currentGymProfile.name)) ? (currentGymProfile.gymName || currentGymProfile.name) : 'GYM';
-    const plan = formData.get('planSelected') || 'PLAN';
-    const monthlyPlan = formData.get('monthlyPlan') || '';
-    const memberEmail = formData.get('memberEmail') || '';
-    const memberName = formData.get('memberName') || '';
-    // Membership ID: GYMNAME-YYYYMM-PLAN-UNIQUE
-    const now = new Date();
-    const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
-    const random = Math.floor(1000 + Math.random() * 9000);
-    const gymShort = gymName.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
-    const planShort = plan.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
-    const membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
+
+    // Extract meta and generate membership ID/valid date
+    const { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate } = getMemberFormMeta(formData, currentGymProfile);
     formData.append('membershipId', membershipId);
-    // Calculate valid date (add months)
-    let validDate = '';
-    let months = 1;
-    if (/1\s*Month/i.test(monthlyPlan)) months = 1;
-    else if (/3\s*Month/i.test(monthlyPlan)) months = 3;
-    else if (/6\s*Month/i.test(monthlyPlan)) months = 6;
-    else if (/12\s*Month/i.test(monthlyPlan)) months = 12;
-    const validUntil = new Date(now);
-    validUntil.setMonth(validUntil.getMonth() + months);
-    validDate = validUntil.toISOString().split('T')[0];
     formData.append('membershipValidUntil', validDate);
+
     try {
       // 1. Add member to backend
       const res = await fetch('http://localhost:5000/api/members', {
@@ -736,12 +1250,38 @@ if (addMemberForm) {
         }
       }
     } catch (err) {
+      console.error('Error while adding member:', err);
       if (addMemberSuccessMsg) {
         addMemberSuccessMsg.textContent = 'Server error. Please try again.';
         addMemberSuccessMsg.style.display = 'block';
       }
     }
   };
+
+  // Helper to extract meta and generate membershipId/validDate
+  function getMemberFormMeta(formData, currentGymProfile) {
+    const gymName = (currentGymProfile && (currentGymProfile.gymName || currentGymProfile.name)) ? (currentGymProfile.gymName || currentGymProfile.name) : 'GYM';
+    const plan = formData.get('planSelected') || 'PLAN';
+    const monthlyPlan = formData.get('monthlyPlan') || '';
+    const memberEmail = formData.get('memberEmail') || '';
+    const memberName = formData.get('memberName') || '';
+    const now = new Date();
+    const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+    const random = Math.floor(1000 + Math.random() * 9000);
+    const gymShort = gymName.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
+    const planShort = plan.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
+    const membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
+    let validDate = '';
+    let months = 1;
+    if (/1\s*Month/i.test(monthlyPlan)) months = 1;
+    else if (/3\s*Month/i.test(monthlyPlan)) months = 3;
+    else if (/6\s*Month/i.test(monthlyPlan)) months = 6;
+    else if (/12\s*Month/i.test(monthlyPlan)) months = 12;
+    const validUntil = new Date(now);
+    validUntil.setMonth(validUntil.getMonth() + months);
+    validDate = validUntil.toISOString().split('T')[0];
+    return { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate };
+  }
 }
             // --- Gym Photo Upload Logic ---
             const uploadGymPhotoForm = document.getElementById('uploadGymPhotoForm');
@@ -776,13 +1316,16 @@ if (addMemberForm) {
                         }
                     } catch (err) {
                         const msgDiv = document.getElementById('editPhotoMsg');
-                        msgDiv.textContent = 'Network error';
-                        msgDiv.style.color = 'red';
+                        if (msgDiv) {
+                            msgDiv.textContent = 'Network error';
+                            msgDiv.style.color = 'red';
+                        }
+                        console.error('Error uploading photo:', err);
                     }
                 });
             }
 
-        });
+        
         // Profile Dropdown Toggle Functionality
         const userProfileToggle = document.getElementById('userProfileToggle');
         const profileDropdownMenu = document.getElementById('profileDropdownMenu');
@@ -797,7 +1340,7 @@ if (addMemberForm) {
         }
 
         window.addEventListener('click', function(event) {
-            if (profileDropdownMenu && profileDropdownMenu.classList.contains('show')) {
+            if (profileDropdownMenu?.classList.contains('show')) {
                 if (!userProfileToggle.contains(event.target) && !profileDropdownMenu.contains(event.target)) {
                     profileDropdownMenu.classList.remove('show');
                 }
@@ -886,6 +1429,13 @@ if (addMemberForm) {
         if (uploadPhotoBtn && uploadPhotoModal) {
             uploadPhotoBtn.addEventListener('click', () => uploadPhotoModal.style.display = 'flex');
         }
+        // Add interactive cancel for upload photo modal
+        const cancelUploadPhotoBtn = document.getElementById('cancelUploadPhotoBtn');
+        if (cancelUploadPhotoBtn && uploadPhotoModal) {
+            cancelUploadPhotoBtn.onclick = function() {
+                uploadPhotoModal.style.display = 'none';
+            };
+        }
 
         const addEquipmentBtn = document.getElementById('uploadEquipmentBtn');
         const addEquipmentModal = document.getElementById('addEquipmentModal');
@@ -915,7 +1465,6 @@ if (addMemberForm) {
         // Edit Profile Form Submission
         if (editProfileForm) {
             let pendingFormData = null;
-            let pendingPasswordChange = false;
 
             // Password confirmation modal elements
             const passwordConfirmDialog = document.getElementById('passwordConfirmDialog');
@@ -1210,7 +1759,7 @@ document.addEventListener('click', (event) => {
         window.innerWidth <= 900 &&
         sidebar.classList.contains('sidebar-open') &&
         !sidebar.contains(event.target) &&
-        (!mobileMenuBtn || !mobileMenuBtn.contains(event.target))
+        !mobileMenuBtn?.contains(event.target)
     ) {
         sidebar.classList.remove('sidebar-open');
     }
@@ -1281,6 +1830,7 @@ async function updateMembersStatsCard() {
     // Optionally, you can show month growth in a tooltip or elsewhere
     membersStatChange.title = `Monthly growth: ${monthGrowth >= 0 ? '+' : '-'}${Math.abs(monthGrowth).toFixed(1)}% from last month`;
   } catch (err) {
+    console.error('Error updating members stats card:', err);
     membersStatValue.textContent = '--';
     membersStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
     membersStatChange.classList.remove('positive', 'negative');
@@ -1315,7 +1865,12 @@ async function updatePaymentsStatsCard() {
       if (typeof m.paymentAmount === 'number') {
         totalPayments += m.paymentAmount;
         // Check payment date (use joinDate as fallback)
-        let payDate = m.paymentDate ? new Date(m.paymentDate) : (m.joinDate ? new Date(m.joinDate) : null);
+        let payDate = null;
+        if (m.paymentDate) {
+          payDate = new Date(m.paymentDate);
+        } else if (m.joinDate) {
+          payDate = new Date(m.joinDate);
+        }
         if (payDate) {
           if (payDate.getMonth() === thisMonth && payDate.getFullYear() === thisYear) {
             paymentsThisMonth += m.paymentAmount;
@@ -1339,6 +1894,7 @@ async function updatePaymentsStatsCard() {
     paymentsStatChange.classList.add(growthClass);
     paymentsStatChange.title = `This month: ₹${paymentsThisMonth.toLocaleString('en-IN')} | Last month: ₹${paymentsLastMonth.toLocaleString('en-IN')}`;
   } catch (err) {
+    console.error('Error updating payments stats card:', err);
     paymentsStatValue.innerHTML = '<i class="fas fa-indian-rupee-sign"></i> --';
     paymentsStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
     paymentsStatChange.classList.remove('positive', 'negative');
@@ -1418,9 +1974,10 @@ async function fetchAndDisplayMembers() {
     });
     if (!res.ok) throw new Error('Failed to fetch members');
     const members = await res.json();
-    allMembersCache = Array.isArray(members) ? members : [];
+    let allMembersCache = Array.isArray(members) ? members : [];
     renderMembersTable(allMembersCache);
   } catch (err) {
+    console.error('Error loading members:', err);
     membersTableBody.innerHTML = `<tr><td colspan="10" style="color:red;text-align:center;">Error loading members</td></tr>`;
   }
 }
@@ -1438,8 +1995,12 @@ function renderMembersTable(members) {
     const membershipId = member.membershipId || '';
     const validUntil = member.membershipValidUntil ? new Date(member.membershipValidUntil).toLocaleDateString() : '';
     const amountPaid = member.paymentAmount !== undefined ? member.paymentAmount : '';
+    // Try both address and memberAddress for compatibility
+    const address = member.address || member.memberAddress || '';
+    // Store the MongoDB _id as a data attribute
+    const rowId = member._id ? `data-member-id="${member._id}"` : '';
     membersTableBody.innerHTML += `
-      <tr>
+      <tr ${rowId}>
         <td style="text-align:center;"><img src="${imgSrc}" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;"></td>
         <td>${member.memberName || ''}</td>
          <td>${membershipId}</td>
@@ -1447,6 +2008,7 @@ function renderMembersTable(members) {
         <td>${member.gender || ''}</td>
         <td>${member.phone || ''}</td>
         <td>${member.email || ''}</td>
+        <td>${address}</td>
         <td>${member.planSelected || ''}</td>
         <td>${member.monthlyPlan || ''}</td>
         <td>${member.activityPreference || ''}</td>
@@ -1472,6 +2034,43 @@ function openMembersDetailCard() {
     if (membersDetailContent) membersDetailContent.style.display = 'none';
     fetchAndRenderMembersDetail();
   }
+  // Helper to split members into new and existing
+  function splitMembersByJoinDate(members, days = 30) {
+    const now = new Date();
+    const newMembers = [];
+    const existingMembers = [];
+    members.forEach(member => {
+      if (!member.joinDate) {
+        existingMembers.push(member);
+        return;
+      }
+      const join = new Date(member.joinDate);
+      const diffDays = (now - join) / (1000 * 60 * 60 * 24);
+      if (diffDays <= days) newMembers.push(member);
+      else existingMembers.push(member);
+    });
+    return { newMembers, existingMembers };
+  }
+
+  // Helper to render member list HTML
+  function renderMemberList(members, renderItem, emptyMsg) {
+    return members.length
+      ? members.map(renderItem).join('')
+      : `<li style="color:#888;">${emptyMsg}</li>`;
+  }
+
+  // Helper to render a member list item
+  function renderMemberListItem(member) {
+    const img = member.profileImageUrl
+      ? `<img src="${member.profileImageUrl}" alt="${member.name || member.memberName || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:10px;">`
+      : `<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#eee;margin-right:10px;"></span>`;
+    const name = member.name || member.memberName || 'Member';
+    const plan = member.planSelected || member.plan || '';
+    const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
+    return `<li style="display:flex;align-items:center;margin-bottom:10px;">${img}<div><div style="font-weight:500;">${name}</div><div style="font-size:0.95em;color:#888;">${plan}${joinDate ? ' | Joined: ' + joinDate : ''}</div></div></li>`;
+  }
+
+  // Refactored: fetch and render members detail with reduced complexity and unique log
   async function fetchAndRenderMembersDetail() {
     if (membersDetailLoading) membersDetailLoading.style.display = 'block';
     if (membersDetailError) membersDetailError.style.display = 'none';
@@ -1481,28 +2080,30 @@ function openMembersDetailCard() {
     const token = localStorage.getItem('gymAdminToken');
     try {
       const res = await fetch('http://localhost:5000/api/members', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (!res.ok || !Array.isArray(data.members)) {
         throw new Error(data.message || 'Failed to fetch members');
       }
-      const now = new Date();
-      const newMembers = [];
-      const existingMembers = [];
-      data.members.forEach(member => {
-        if (!member.joinDate) return existingMembers.push(member);
-        const join = new Date(member.joinDate);
-        const diffDays = (now - join) / (1000 * 60 * 60 * 24);
-        if (diffDays <= 30) newMembers.push(member);
-        else existingMembers.push(member);
-      });
-      if (newMembersList) newMembersList.innerHTML = newMembers.length ? newMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No new members in last 30 days.</li>';
-      if (existingMembersList) existingMembersList.innerHTML = existingMembers.length ? existingMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No existing members.</li>';
+      // Use helper to split members
+      const { newMembers, existingMembers } = splitMembersByJoinDate(data.members, 30);
+      if (newMembersList)
+        newMembersList.innerHTML = renderMemberList(
+          newMembers,
+          renderMemberListItem,
+          'No new members in last 30 days.'
+        );
+      if (existingMembersList)
+        existingMembersList.innerHTML = renderMemberList(
+          existingMembers,
+          renderMemberListItem,
+          'No existing members.'
+        );
       if (membersDetailLoading) membersDetailLoading.style.display = 'none';
       if (membersDetailContent) membersDetailContent.style.display = 'block';
+      // Unique log for this instance
+      console.log('[fetchAndRenderMembersDetail] (mobile sidebar version) rendered at', new Date().toISOString());
     } catch (err) {
       if (membersDetailLoading) membersDetailLoading.style.display = 'none';
       if (membersDetailError) {
@@ -1510,13 +2111,6 @@ function openMembersDetailCard() {
         membersDetailError.style.display = 'block';
       }
     }
-  }
-  function renderMemberListItem(member) {
-    const img = member.profileImageUrl ? `<img src="${member.profileImageUrl}" alt="${member.name || member.memberName || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:10px;">` : `<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#eee;margin-right:10px;"></span>`;
-    const name = member.name || member.memberName || 'Member';
-    const plan = member.planSelected || member.plan || '';
-    const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
-    return `<li style="display:flex;align-items:center;margin-bottom:10px;">${img}<div><div style="font-weight:500;">${name}</div><div style="font-size:0.95em;color:#888;">${plan}${joinDate ? ' | Joined: ' + joinDate : ''}</div></div></li>`;
   }
 }
 window.openMembersDetailCard = openMembersDetailCard;
@@ -1531,6 +2125,7 @@ if (membersTableBody) {
       const cells = tr.querySelectorAll('td');
       // Extract member info from the row (order must match table columns)
       const member = {
+        _id: tr.getAttribute('data-member-id') || '',
         profileImage: cells[0]?.querySelector('img')?.src || '',
         memberName: cells[1]?.textContent.trim() || '',
         membershipId: cells[2]?.textContent.trim() || '',
@@ -1538,12 +2133,13 @@ if (membersTableBody) {
         gender: cells[4]?.textContent.trim() || '',
         phone: cells[5]?.textContent.trim() || '',
         email: cells[6]?.textContent.trim() || '',
-        planSelected: cells[7]?.textContent.trim() || '',
-        monthlyPlan: cells[8]?.textContent.trim() || '',
-        activityPreference: cells[9]?.textContent.trim() || '',
-        joinDate: cells[10]?.textContent.trim() || '',
-        validUntil: cells[11]?.textContent.trim() || '',
-        paymentAmount: cells[12]?.textContent.trim() || ''
+        address: cells[7]?.textContent.trim() || '',
+        planSelected: cells[8]?.textContent.trim() || '',
+        monthlyPlan: cells[9]?.textContent.trim() || '',
+        activityPreference: cells[10]?.textContent.trim() || '',
+        joinDate: cells[11]?.textContent.trim() || '',
+        validUntil: cells[12]?.textContent.trim() || '',
+        paymentAmount: cells[13]?.textContent.trim() || ''
       };
       showMemberDetailCard(member);
     }
@@ -1573,14 +2169,14 @@ function showMemberDetailCard(member) {
         </div>
         <ul class="info-list" id="memberDetailInfoList">
           <li><i class="fas fa-crown"></i> <span class="member-detail-label">Plan:</span> <span class="plan-badge">${member.planSelected} (${member.monthlyPlan})</span></li>
-          <li><i class="fas fa-dumbbell"></i> <span class="member-detail-label">Activity:</span> <span id="memberDetailActivity">${member.activityPreference}</span></li>
-          <li><i class="fas fa-phone"></i> <span class="member-detail-label">Phone:</span> <span id="memberDetailPhone">${member.phone}</span></li>
-          <li><i class="fas fa-envelope"></i> <span class="member-detail-label">Email:</span> <span id="memberDetailEmail">${member.email}</span></li>
+          <li><i class="fas fa-dumbbell"></i> <span class="member-detail-label">Activity:</span> <span id="memberDetailActivity">${member.activityPreference || ''}</span></li>
+          <li><i class="fas fa-phone"></i> <span class="member-detail-label">Phone:</span> <span id="memberDetailPhone">${member.phone || ''}</span></li>
+          <li><i class="fas fa-envelope"></i> <span class="member-detail-label">Email:</span> <span id="memberDetailEmail">${member.email || ''}</span></li>
           <li><i class="fas fa-map-marker-alt"></i> <span class="member-detail-label">Address:</span> <span id="memberDetailAddress">${member.address || ''}</span></li>
-          <li><i class="fas fa-venus-mars"></i> <span class="member-detail-label">Gender:</span> ${member.gender} <span class="member-detail-label">Age:</span> ${member.age}</li>
-          <li><i class="fas fa-calendar-plus"></i> <span class="member-detail-label">Join Date:</span> ${member.joinDate}</li>
-          <li><i class="fas fa-calendar-check"></i> <span class="member-detail-label">Valid Until:</span> ${member.validUntil}</li>
-          <li><i class="fas fa-rupee-sign"></i> <span class="member-detail-label">Amount Paid:</span> ${member.paymentAmount}</li>
+          <li><i class="fas fa-venus-mars"></i> <span class="member-detail-label">Gender:</span> ${member.gender || ''} <span class="member-detail-label">Age:</span> ${member.age || ''}</li>
+          <li><i class="fas fa-calendar-plus"></i> <span class="member-detail-label">Join Date:</span> ${member.joinDate || ''}</li>
+          <li><i class="fas fa-calendar-check"></i> <span class="member-detail-label">Valid Until:</span> ${member.validUntil || ''}</li>
+          <li><i class="fas fa-rupee-sign"></i> <span class="member-detail-label">Amount Paid:</span> ${member.paymentAmount || ''}</li>
         </ul>
       </div>
     </div>
@@ -1682,10 +2278,10 @@ async function submitMemberDetailEdit(originalMember) {
   if (!modal) return;
   const form = document.getElementById('memberDetailEditForm');
   if (!form) return;
-  // Find memberId (from membershipId cell, which should be unique)
-  const memberId = originalMember.membershipId;
-  if (!memberId) {
-    alert('Member ID not found. Cannot update.');
+  // Use the MongoDB _id for updates
+  const memberObjectId = originalMember._id;
+  if (!memberObjectId) {
+    alert('Member record ID not found. Cannot update.');
     return;
   }
   const formData = new FormData();
@@ -1695,13 +2291,13 @@ async function submitMemberDetailEdit(originalMember) {
   formData.append('address', form.address.value);
   // Profile image
   const fileInput = form.profileImage;
-  if (fileInput && fileInput.files && fileInput.files[0]) {
+  if (fileInput?.files?.[0]) {
     formData.append('profileImage', fileInput.files[0]);
   }
   try {
     const token = localStorage.getItem('gymAdminToken');
-    // Use the backend API: PUT /api/members/:memberId
-    const response = await fetch(`http://localhost:5000/api/members/${memberId}`,
+    // Use the backend API: PUT /api/members/:_id
+    const response = await fetch(`http://localhost:5000/api/members/${memberObjectId}`,
       {
         method: 'PUT',
         headers: {
@@ -1843,50 +2439,90 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   async function fetchAndRenderMembersDetail() {
+    showMembersDetailLoading();
+    clearMembersDetailLists();
+    const token = localStorage.getItem('gymAdminToken');
+    try {
+      const members = await fetchMembers(token);
+      const { newMembers, existingMembers } = splitMembersByJoinDate(members, 30);
+      renderMembersDetailLists(newMembers, existingMembers);
+      showMembersDetailContent();
+    } catch (err) {
+      showMembersDetailError(err);
+    }
+  }
+
+  function showMembersDetailLoading() {
     if (membersDetailLoading) membersDetailLoading.style.display = 'block';
     if (membersDetailError) membersDetailError.style.display = 'none';
     if (membersDetailContent) membersDetailContent.style.display = 'none';
+  }
+
+  function clearMembersDetailLists() {
     if (newMembersList) newMembersList.innerHTML = '';
     if (existingMembersList) existingMembersList.innerHTML = '';
-    const token = localStorage.getItem('gymAdminToken');
-    try {
-      const res = await fetch('http://localhost:5000/api/members', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      if (!res.ok || !Array.isArray(data.members)) {
-        throw new Error(data.message || 'Failed to fetch members');
-      }
-      const now = new Date();
-      const newMembers = [];
-      const existingMembers = [];
-      data.members.forEach(member => {
-        if (!member.joinDate) return existingMembers.push(member);
-        const join = new Date(member.joinDate);
-        const diffDays = (now - join) / (1000 * 60 * 60 * 24);
-        if (diffDays <= 30) newMembers.push(member);
-        else existingMembers.push(member);
-      });
-      if (newMembersList) newMembersList.innerHTML = newMembers.length ? newMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No new members in last 30 days.</li>';
-      if (existingMembersList) existingMembersList.innerHTML = existingMembers.length ? existingMembers.map(m => renderMemberListItem(m)).join('') : '<li style="color:#888;">No existing members.</li>';
-      if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-      if (membersDetailContent) membersDetailContent.style.display = 'block';
-    } catch (err) {
-      if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-      if (membersDetailError) {
-        membersDetailError.textContent = err.message || 'Failed to load members.';
-        membersDetailError.style.display = 'block';
-      }
+  }
+
+  async function fetchMembers(token) {
+    const res = await fetch('http://localhost:5000/api/members', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok || !Array.isArray(data.members)) {
+      throw new Error(data.message || 'Failed to fetch members');
+    }
+    return data.members;
+  }
+
+  function splitMembersByJoinDate(members, days = 30) {
+    const now = new Date();
+    const newMembers = [];
+    const existingMembers = [];
+    members.forEach(member => {
+      if (!member.joinDate) return existingMembers.push(member);
+      const join = new Date(member.joinDate);
+      const diffDays = (now - join) / (1000 * 60 * 60 * 24);
+      if (diffDays <= days) newMembers.push(member);
+      else existingMembers.push(member);
+    });
+    return { newMembers, existingMembers };
+  }
+
+  function renderMembersDetailLists(newMembers, existingMembers) {
+    if (newMembersList) {
+      newMembersList.innerHTML = newMembers.length
+        ? newMembers.map(m => renderMemberListItem(m)).join('')
+        : '<li style="color:#888;">No new members in last 30 days.</li>';
+    }
+    if (existingMembersList) {
+      existingMembersList.innerHTML = existingMembers.length
+        ? existingMembers.map(m => renderMemberListItem(m)).join('')
+        : '<li style="color:#888;">No existing members.</li>';
+    }
+  }
+
+  function showMembersDetailContent() {
+    if (membersDetailLoading) membersDetailLoading.style.display = 'none';
+    if (membersDetailContent) membersDetailContent.style.display = 'block';
+  }
+
+  function showMembersDetailError(err) {
+    if (membersDetailLoading) membersDetailLoading.style.display = 'none';
+    if (membersDetailError) {
+      membersDetailError.textContent = err.message || 'Failed to load members.';
+      membersDetailError.style.display = 'block';
     }
   }
   function renderMemberListItem(member) {
-    const img = member.profileImageUrl ? `<img src="${member.profileImageUrl}" alt="${member.name || member.memberName || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:10px;">` : `<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#eee;margin-right:10px;"></span>`;
+    // Mobile sidebar version: show plan as a badge and add member's email if available
+    const img = member.profileImageUrl
+      ? `<img src="${member.profileImageUrl}" alt="${member.name || member.memberName || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:10px;">`
+      : `<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#eee;margin-right:10px;"></span>`;
     const name = member.name || member.memberName || 'Member';
     const plan = member.planSelected || member.plan || '';
     const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
-    return `<li style="display:flex;align-items:center;margin-bottom:10px;">${img}<div><div style="font-weight:500;">${name}</div><div style="font-size:0.95em;color:#888;">${plan}${joinDate ? ' | Joined: ' + joinDate : ''}</div></div></li>`;
+    const email = member.email ? `<div style="font-size:0.90em;color:#1976d2;">${member.email}</div>` : '';
+    return `<li style="display:flex;align-items:center;margin-bottom:10px;">${img}<div><div style="font-weight:500;">${name} <span style="background:#e3f2fd;color:#1976d2;border-radius:4px;padding:2px 6px;font-size:0.85em;margin-left:6px;">${plan}</span></div>${email}<div style="font-size:0.95em;color:#888;">${joinDate ? 'Joined: ' + joinDate : ''}</div></div></li>`;
   }
 });
   // --- Mobile Sidebar Menu Link Logic ---
