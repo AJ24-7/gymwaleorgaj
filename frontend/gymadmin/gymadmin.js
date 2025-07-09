@@ -1,3 +1,195 @@
+// === Dynamic Activities Offered Section ===
+document.addEventListener('DOMContentLoaded', function() {
+  // --- State ---
+  let allPossibleActivities = [
+    { name: 'Yoga', icon: 'fa-person-praying', description: 'Improve flexibility, balance, and mindfulness.' },
+    { name: 'Zumba', icon: 'fa-music', description: 'Fun dance-based cardio workout.' },
+    { name: 'CrossFit', icon: 'fa-dumbbell', description: 'High-intensity functional training.' },
+    { name: 'Weight Training', icon: 'fa-weight-hanging', description: 'Strength and muscle building.' },
+    { name: 'Cardio', icon: 'fa-heartbeat', description: 'Endurance and heart health.' },
+    { name: 'Pilates', icon: 'fa-child', description: 'Core strength and flexibility.' },
+    { name: 'HIIT', icon: 'fa-bolt', description: 'High-Intensity Interval Training.' },
+    { name: 'Aerobics', icon: 'fa-running', description: 'Rhythmic aerobic exercise.' },
+    { name: 'Martial Arts', icon: 'fa-hand-fist', description: 'Self-defense and discipline.' },
+    { name: 'Spin Class', icon: 'fa-bicycle', description: 'Indoor cycling workout.' },
+    { name: 'Swimming', icon: 'fa-person-swimming', description: 'Full-body low-impact exercise.' },
+    { name: 'Boxing', icon: 'fa-hand-rock', description: 'Cardio and strength with boxing.' },
+    { name: 'Personal Training', icon: 'fa-user-tie', description: '1-on-1 customized fitness.' },
+    { name: 'Bootcamp', icon: 'fa-shoe-prints', description: 'Group-based intense training.' },
+    { name: 'Stretching', icon: 'fa-arrows-up-down', description: 'Mobility and injury prevention.' }
+  ];
+  let selectedActivities = [];
+  let currentActivities = [];
+
+  // --- DOM Elements ---
+  const activitiesList = document.getElementById('activitiesList');
+  const addActivitiesBtn = document.getElementById('addActivitiesBtn');
+  const addActivitiesModal = document.getElementById('addActivitiesModal');
+  const closeAddActivitiesModal = document.getElementById('closeAddActivitiesModal');
+  const allActivitiesGrid = document.getElementById('allActivitiesGrid');
+  const saveActivitiesBtn = document.getElementById('saveActivitiesBtn');
+  const cancelAddActivitiesBtn = document.getElementById('cancelAddActivitiesBtn');
+  const saveActivitiesConfirmDialog = document.getElementById('saveActivitiesConfirmDialog');
+  const confirmSaveActivitiesBtn = document.getElementById('confirmSaveActivitiesBtn');
+  const cancelSaveActivitiesConfirmBtn = document.getElementById('cancelSaveActivitiesConfirmBtn');
+  const closeSaveActivitiesConfirmDialog = document.getElementById('closeSaveActivitiesConfirmDialog');
+
+  // --- Fetch and Render Activities ---
+  async function fetchAndRenderActivities() {
+    // Fetch gym profile (with activities)
+    const token = localStorage.getItem('gymAdminToken');
+    if (!token) return;
+    try {
+      const res = await fetch('http://localhost:5000/api/gyms/profile/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      currentActivities = Array.isArray(data.activities) ? data.activities : [];
+      selectedActivities = currentActivities.map(a => a.name);
+      renderActivitiesList();
+    } catch (err) {
+      if (activitiesList) activitiesList.innerHTML = '<div style="color:#b71c1c;">Failed to load activities.</div>';
+    }
+  }
+
+  // --- Render Activities in Dashboard ---
+  function renderActivitiesList() {
+    if (!activitiesList) return;
+    if (!currentActivities.length) {
+      activitiesList.innerHTML = '<div style="color:#888;font-size:1em;">No activities added yet.</div>';
+      return;
+    }
+    activitiesList.innerHTML = '<div class="activities-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;">' +
+      currentActivities.map(a => `
+        <div class="activity-badge" tabindex="0" style="background:#f5f5f5;border-radius:10px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:box-shadow 0.2s;" title="${a.description}">
+          <i class="fas ${a.icon}" style="font-size:1.7em;color:#1976d2;margin-bottom:6px;"></i>
+          <span style="font-size:1em;font-weight:600;">${a.name}</span>
+        </div>
+      `).join('') + '</div>';
+    // Show description on click
+    Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach((el, idx) => {
+      el.onclick = () => {
+        showDialog({
+          title: currentActivities[idx].name,
+          message: currentActivities[idx].description,
+          iconHtml: `<i class='fas ${currentActivities[idx].icon}' style='font-size:2em;color:#1976d2;'></i>`
+        });
+      };
+    });
+  }
+
+  // --- Open Add Activities Modal ---
+  if (addActivitiesBtn && addActivitiesModal) {
+    addActivitiesBtn.onclick = () => {
+      renderAllActivitiesGrid();
+      addActivitiesModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    };
+  }
+  if (closeAddActivitiesModal && addActivitiesModal) {
+    closeAddActivitiesModal.onclick = () => {
+      addActivitiesModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+  if (cancelAddActivitiesBtn && addActivitiesModal) {
+    cancelAddActivitiesBtn.onclick = () => {
+      addActivitiesModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+
+  // --- Render All Activities Grid in Modal ---
+  function renderAllActivitiesGrid() {
+    if (!allActivitiesGrid) return;
+    allActivitiesGrid.innerHTML = allPossibleActivities.map(a => {
+      const isSelected = selectedActivities.includes(a.name);
+      return `
+        <div class="activity-select-card" data-activity="${a.name}" style="background:${isSelected ? '#e3f2fd' : '#fff'};border:2px solid ${isSelected ? '#1976d2' : '#eee'};border-radius:12px;padding:18px 8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:box-shadow 0.2s;position:relative;min-height:120px;">
+          <i class="fas ${a.icon}" style="font-size:2em;color:#1976d2;margin-bottom:8px;"></i>
+          <span style="font-size:1.08em;font-weight:600;">${a.name}</span>
+          <span class="activity-desc" style="font-size:0.95em;color:#666;margin-top:4px;text-align:center;">${a.description}</span>
+          <span class="activity-select-icon" style="position:absolute;top:10px;right:12px;font-size:1.3em;color:${isSelected ? '#1976d2' : '#bbb'};">${isSelected ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-plus-circle"></i>'}</span>
+        </div>
+      `;
+    }).join('');
+    // Add click handlers
+    Array.from(allActivitiesGrid.querySelectorAll('.activity-select-card')).forEach(card => {
+      card.onclick = () => {
+        const name = card.getAttribute('data-activity');
+        if (selectedActivities.includes(name)) {
+          selectedActivities = selectedActivities.filter(n => n !== name);
+        } else {
+          selectedActivities.push(name);
+        }
+        renderAllActivitiesGrid();
+      };
+    });
+  }
+
+  // --- Save Activities Button (opens confirm dialog) ---
+  if (saveActivitiesBtn && saveActivitiesConfirmDialog) {
+    saveActivitiesBtn.onclick = () => {
+      saveActivitiesConfirmDialog.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    };
+  }
+  if (closeSaveActivitiesConfirmDialog && saveActivitiesConfirmDialog) {
+    closeSaveActivitiesConfirmDialog.onclick = () => {
+      saveActivitiesConfirmDialog.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+  if (cancelSaveActivitiesConfirmBtn && saveActivitiesConfirmDialog) {
+    cancelSaveActivitiesConfirmBtn.onclick = () => {
+      saveActivitiesConfirmDialog.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+
+  // --- Confirm Save Activities (send to backend) ---
+  if (confirmSaveActivitiesBtn) {
+    confirmSaveActivitiesBtn.onclick = async () => {
+      // Compose selected activity objects
+      const activitiesToSave = allPossibleActivities.filter(a => selectedActivities.includes(a.name));
+      // Save to backend
+      const token = localStorage.getItem('gymAdminToken');
+      if (!token) return showDialog({ title: 'Not Authenticated', message: 'Please log in again.' });
+      try {
+        const res = await fetch('http://localhost:5000/api/gyms/activities', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ activities: activitiesToSave })
+        });
+        if (!res.ok) throw new Error('Failed to save activities');
+        // Success
+        saveActivitiesConfirmDialog.style.display = 'none';
+        addActivitiesModal.style.display = 'none';
+        document.body.style.overflow = '';
+        showDialog({
+          title: 'Activities Saved',
+          message: 'Your activities have been updated.',
+          iconHtml: '<i class="fas fa-check-circle" style="color:#43a047;font-size:2em;"></i>'
+        });
+        // Refresh dashboard activities
+        fetchAndRenderActivities();
+      } catch (err) {
+        console.error('Error saving activities:', err);
+        showDialog({
+          title: 'Error',
+          message: 'Could not save activities. Please try again.',
+          iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#b71c1c;font-size:2em;"></i>'
+        });
+      }
+    };
+  }
+
+  // Initial render
+  fetchAndRenderActivities();
+});
 // --- Dialog Utility (Global) ---
 function showDialog({ title = '', message = '', confirmText = 'OK', iconHtml = '', onConfirm = null }) {
   // Remove any existing dialog

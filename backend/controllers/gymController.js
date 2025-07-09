@@ -1,3 +1,4 @@
+
 const Gym = require('../models/gym');
 const Notification = require('../models/Notification');
 const TrialBooking = require('../models/TrialBooking');
@@ -305,20 +306,124 @@ exports.registerGym = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
+
     // File handling (gymImages is an array of uploaded files)
-    const gymImages = req.files?.gymImages?.map(file => file.filename) || ['default-gym.jpg'];
+    // --- Updated: Parse gymImagesMeta for title, description, category ---
+    let gymPhotos = [];
+    if (req.files && req.files.gymImages && req.body.gymImagesMeta) {
+      // gymImagesMeta is sent as indexed fields: gymImagesMeta[0][title], etc.
+      const files = req.files.gymImages;
+      // Parse meta fields
+      let metaArr = [];
+      // Find max index
+      let maxIdx = -1;
+      Object.keys(req.body).forEach(key => {
+        const match = key.match(/^gymImagesMeta\[(\d+)\]\[title\]$/);
+        if (match) {
+          const idx = parseInt(match[1], 10);
+          if (idx > maxIdx) maxIdx = idx;
+        }
+      });
+      for (let i = 0; i <= maxIdx; i++) {
+        metaArr[i] = {
+          title: req.body[`gymImagesMeta[${i}][title]`] || '',
+          description: req.body[`gymImagesMeta[${i}][description]`] || '',
+          category: req.body[`gymImagesMeta[${i}][category]`] || '',
+        };
+      }
+      gymPhotos = files.map((file, i) => ({
+        title: metaArr[i]?.title || '',
+        description: metaArr[i]?.description || '',
+        category: metaArr[i]?.category || '',
+        imageUrl: `uploads/gymImages/${file.filename}`,
+        uploadedAt: new Date()
+      }));
+    } else if (req.files && req.files.gymImages) {
+      // Fallback: just filenames
+      gymPhotos = req.files.gymImages.map(file => ({
+        title: '',
+        description: '',
+        category: '',
+        imageUrl: `uploads/gymImages/${file.filename}`,
+        uploadedAt: new Date()
+      }));
+    } else {
+      gymPhotos = [];
+    }
+
+    // Handle gym logo upload (single file, field name: 'logo')
+    let logoUrl = '';
+    if (req.files && req.files.logo && req.files.logo.length > 0) {
+      logoUrl = `uploads/gymImages/${req.files.logo[0].filename}`;
+    } else {
+      logoUrl = '';
+    }
 
     // Parse repeated fields (ensure arrays)
-    const parseArray = (field) => {
-      if (!field) return [];
-      if (Array.isArray(field)) return field;
-      if (typeof field === 'string') return field.split(',').map(f => f.trim());
-      return [];
-    };
+
+    // Parse activities as array of objects: [{ name, icon, description }]
+    let activities = [];
+    if (Array.isArray(req.body.activities)) {
+      activities = req.body.activities.map(a => {
+        if (typeof a === 'object' && a !== null && a.name) {
+          // Already correct format
+          return {
+            name: a.name,
+            icon: a.icon || 'fa-dumbbell',
+            description: a.description || ''
+          };
+        } else if (typeof a === 'string') {
+          // If string, treat as name only
+          return { name: a, icon: 'fa-dumbbell', description: '' };
+        } else if (typeof a === 'object' && a !== null) {
+          // If object but not with .name, try to join values (fixes broken spread)
+          const name = Object.values(a).filter(v => typeof v === 'string').join('').trim();
+          return {
+            name: name,
+            icon: a.icon || 'fa-dumbbell',
+            description: a.description || ''
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    } else if (typeof req.body.activities === 'string') {
+      // Accept JSON string or comma-separated
+      try {
+        const arr = JSON.parse(req.body.activities);
+        if (Array.isArray(arr)) {
+          activities = arr.map(a =>
+            typeof a === 'object' && a !== null
+              ? { name: a.name || '', icon: a.icon || 'fa-dumbbell', description: a.description || '' }
+              : { name: a, icon: 'fa-dumbbell', description: '' }
+          ).filter(Boolean);
+        }
+      } catch {
+        // fallback: comma-separated string
+        activities = req.body.activities.split(',').map(s => ({ name: s.trim(), icon: 'fa-dumbbell', description: '' }));
+      }
+    }
+
+
+    // Parse membership plans (array of objects)
+    let membershipPlans = [];
+    if (Array.isArray(req.body.planName)) {
+      for (let i = 0; i < req.body.planName.length; i++) {
+        membershipPlans.push({
+          name: req.body.planName[i],
+          price: req.body.planPrice[i],
+          discount: req.body.planDiscount[i],
+          discountMonths: req.body.planDiscountMonths[i],
+          benefits: req.body.planBenefits[i]?.split(',').map(b => b.trim()),
+          note: req.body.planNote[i],
+          icon: req.body.planIcon[i],
+          color: req.body.planColor[i]
+        });
+      }
+    }
 
     const newGym = new Gym({
       gymName: req.body.gymName,
-       admin: req.admin ? req.admin.id : null, 
+      admin: req.admin ? req.admin.id : null,
       email: req.body.email,
       phone: req.body.phone,
       password: hashedPassword,
@@ -330,41 +435,38 @@ exports.registerGym = async (req, res) => {
         landmark: req.body.landmark
       },
       description: req.body.description,
-      gymImages,
-      equipment: parseArray(req.body.equipment),
+      gymPhotos,
+      logoUrl,
+      equipment: Array.isArray(req.body.equipment) ? req.body.equipment : (typeof req.body.equipment === 'string' ? req.body.equipment.split(',').map(e => e.trim()) : []),
       otherEquipment: req.body.otherEquipment || '',
-      activities: parseArray(req.body.activities),
+      activities,
       otherActivities: req.body.otherActivities || '',
-
-      membershipPlans: {
-        basic: {
-          price: req.body.basicPlanPrice || '',
-          features: parseArray(req.body.basicPlanFeatures)
-        },
-        standard: {
-          price: req.body.standardPlanPrice || '',
-          features: parseArray(req.body.standardPlanFeatures)
-        },
-        premium: {
-          price: req.body.premiumPlanPrice || '',
-          features: parseArray(req.body.premiumPlanFeatures)
-        },
-        other: req.body.otherPlans || ''
-      },
-
-      contactPerson: req.body.contactPerson,  // Owner's name stored in contactPerson
+      membershipPlans,
+      contactPerson: req.body.contactPerson,
       supportEmail: req.body.supportEmail,
       supportPhone: req.body.supportPhone,
       openingTime: req.body.openingTime,
       closingTime: req.body.closingTime,
-
-      // membersCount is defaulted to 0 in the model
+      membersCount: req.body.currentMembers,
       status: 'pending',
     });
 
-    // Save the new gym to the database
     await newGym.save();
-    console.log("✅ Gym saved successfully to DB (according to Mongoose):", newGym); // ADD THIS LINE
+    console.log("✅ Gym saved successfully to DB (according to Mongoose):", newGym);
+
+    // Send confirmation email
+    try {
+      await sendEmail(
+        newGym.email,
+        'Your Gym Registration is Received - Fit-verse',
+        `<h2>Thank you for registering your gym on Fit-verse!</h2>
+        <p>Dear ${newGym.contactPerson || newGym.gymName},</p>
+        <p>Your registration has been received and is under review. Our team will contact you soon.</p>
+        <p>Regards,<br/>Fit-verse Team</p>`
+      );
+    } catch (mailErr) {
+      console.error('Error sending registration email:', mailErr);
+    }
 
     res.status(201).json({
       status: "pending",
@@ -383,16 +485,13 @@ exports.getMyProfile = async (req, res) => {
   try {
     // req.gym is set by the authMiddleware
     const gym = await Gym.findById(req.gym.id).select('-password');
-    
     if (!gym) {
       return res.status(404).json({ message: 'Gym profile not found' });
     }
-
     // Construct logo URL
     let logoUrl = gym.gymImages && gym.gymImages.length > 0 
       ? `/uploads/gymImages/${gym.gymImages[0]}` 
       : null;
-
     // Debug: Log the logoUrl being returned
     console.log('[getMyProfile] Returning logoUrl:', logoUrl);
     res.json({
@@ -401,7 +500,8 @@ exports.getMyProfile = async (req, res) => {
       phone: gym.phone,
       logoUrl: logoUrl,
       location: gym.location,
-      description: gym.description
+      description: gym.description,
+      activities: gym.activities || []
     });
   } catch (error) {
     console.error('Error fetching gym profile:', error);
@@ -703,5 +803,36 @@ exports.getGymById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching gym by ID:", error);
     res.status(500).json({ message: 'Server error while fetching gym details' });
+  }
+};
+// Update Activities for the logged-in gym admin
+exports.updateActivities = async (req, res) => {
+  const adminId = req.admin && req.admin.id;
+  if (!adminId) {
+    return res.status(401).json({ message: 'Not authorized, no admin ID found' });
+  }
+  try {
+    const { activities } = req.body;
+    if (!Array.isArray(activities)) {
+      return res.status(400).json({ message: 'Activities must be an array.' });
+    }
+    // Validate each activity object
+    for (const act of activities) {
+      if (!act.name || !act.icon || !act.description) {
+        return res.status(400).json({ message: 'Each activity must have name, icon, and description.' });
+      }
+    }
+    const gym = await Gym.findOneAndUpdate(
+      { admin: adminId },
+      { $set: { activities } },
+      { new: true }
+    );
+    if (!gym) {
+      return res.status(404).json({ message: 'Gym not found for this admin.' });
+    }
+    res.status(200).json({ message: 'Activities updated successfully.', activities: gym.activities });
+  } catch (error) {
+    console.error('Error updating activities:', error);
+    res.status(500).json({ message: 'Server error while updating activities.' });
   }
 };

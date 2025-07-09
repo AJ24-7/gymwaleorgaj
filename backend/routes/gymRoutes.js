@@ -1,3 +1,5 @@
+// --- Activities API ---
+const gymController = require('../controllers/gymController');
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -248,5 +250,5 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
+router.put('/activities', gymadminAuth, gymController.updateActivities);
 module.exports = router;

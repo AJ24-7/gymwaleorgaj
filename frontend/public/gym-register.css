@@ -1,0 +1,685 @@
+/* Ensure success and pending messages never cover the form by default */
+.success-message,
+.pending-message {
+  display: none !important;
+  position: static !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+/* --- Gym Photo Add/Remove Buttons --- */
+#addGymPhotoCardBtn {
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-size: 1em;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #0001;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+}
+#addGymPhotoCardBtn:hover {
+  background: linear-gradient(to right, var(--primary-dark), var(--secondary));
+  box-shadow: 0 4px 16px #4895ef33;
+  transform: translateY(-2px) scale(1.04);
+}
+
+.remove-gym-photo-card {
+  background: var(--warning);
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 4px 14px;
+  font-size: 1em;
+  font-weight: 500;
+  box-shadow: 0 2px 8px #0001;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+  outline: none;
+}
+.remove-gym-photo-card:hover {
+  background: #d90429;
+  box-shadow: 0 4px 16px #f7258533;
+  transform: scale(1.08);
+}
+:root {
+      --primary: #4361ee;
+      --primary-dark: #3a56d4;
+      --secondary: #3f37c9;
+      --accent: #4895ef;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --gray: #adb5bd;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f5f7ff;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    
+    .fit-verse-container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    
+    .form-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: linear-gradient(to right, #3f51b5, #5a55ae);
+  color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.form-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.form-header p {
+  font-size: 1.2rem;
+  font-weight: 400;
+  margin-top: 0;
+  opacity: 0.9;
+}
+
+    
+    .gym-registration-form {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(67, 97, 238, 0.1);
+      animation: fadeIn 0.8s 0.2s both;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .gym-registration-form::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--primary), var(--accent));
+    }
+    
+    .form-section {
+      margin-bottom: 30px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s forwards;
+    }
+    
+    .form-section:nth-child(1) { animation-delay: 0.3s; }
+    .form-section:nth-child(2) { animation-delay: 0.4s; }
+    .form-section:nth-child(3) { animation-delay: 0.5s; }
+    .form-section:nth-child(4) { animation-delay: 0.6s; }
+    .form-section:nth-child(5) { animation-delay: 0.7s; }
+    
+    .section-title {
+      font-family: 'Montserrat', sans-serif;
+      color: var(--primary);
+      margin-bottom: 20px;
+      font-size: 1.4rem;
+      position: relative;
+      display: inline-block;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark);
+      transition: all 0.3s;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s;
+      background-color: #f8f9fa;
+    }
+    
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(72, 149, 239, 0.2);
+      outline: none;
+      background-color: white;
+    }
+    
+    textarea.form-control {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+    
+    .checkbox-label:hover {
+      background-color: #e9ecef;
+      transform: translateY(-2px);
+    }
+    
+    .checkbox-label input {
+      margin-right: 10px;
+      accent-color: var(--primary);
+    }
+    
+/* --- Membership Plans Grid --- */
+
+.membership-plans-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.plan-editor-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px 18px 18px 18px;
+  flex: 1 1 300px;
+  min-width: 260px;
+  max-width: 340px;
+  box-shadow: 0 2px 8px #0001;
+  border: 2px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.22s, border-color 0.22s, transform 0.18s;
+  position: relative;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.plan-editor-card:focus-within, .plan-editor-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px #4361ee22;
+  transform: translateY(-3px) scale(1.03);
+}
+.plan-editor-card input:focus, .plan-editor-card textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #4895ef33;
+  outline: none;
+  background: #fff;
+}
+.plan-editor-card .plan-name-input[readonly] {
+  background: #e3eafc;
+  color: #222;
+  border: none;
+  font-weight: 700;
+  font-size: 1.08em;
+  letter-spacing: 0.5px;
+  padding-left: 6px;
+}
+.plan-editor-card .plan-name-input {
+  cursor: not-allowed;
+}
+.plan-editor-card textarea {
+  font-size: 1em;
+  border-radius: 7px;
+  border: 2px solid #e9ecef;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.plan-editor-card input[type="number"],
+.plan-editor-card input[type="text"] {
+  border-radius: 7px;
+  border: 2px solid #e9ecef;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  font-size: 1em;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.plan-editor-card input[type="number"]:focus,
+.plan-editor-card input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #4895ef33;
+  background: #fff;
+}
+.plan-editor-card .plan-note-input {
+  margin-top: 6px;
+}
+.plan-editor-card .plan-benefits-input {
+  margin-top: 8px;
+}
+.plan-editor-card .plan-icon {
+  font-size: 1.6em;
+  margin-right: 10px;
+}
+@media (max-width: 1100px) {
+  .membership-plans-grid {
+    gap: 14px;
+  }
+  .plan-editor-card {
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .membership-plans-grid {
+    flex-direction: column;
+    gap: 18px;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .plan-editor-card {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+    
+    .image-upload {
+      border: 2px dashed #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 15px;
+    }
+    
+    .image-upload:hover {
+      border-color: var(--accent);
+      background-color: #f8faff;
+    }
+    
+    .image-upload i {
+      font-size: 40px;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: block;
+    }
+    
+    .image-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .preview-image {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s;
+      position: relative;
+    }
+    
+    .preview-image:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .remove-image {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 25px;
+      height: 25px;
+      background: var(--warning);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    
+    .preview-image:hover .remove-image {
+      opacity: 1;
+    }
+    
+    .form-footer {
+      text-align: center;
+      margin-top: 40px;
+      animation: fadeIn 0.8s 0.8s both;
+    }
+    
+    .submit-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .submit-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+    }
+    
+    .submit-btn:active {
+      transform: translateY(1px);
+    }
+    
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to right, var(--primary-dark), var(--secondary));
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    
+    .submit-btn:hover::after {
+      opacity: 1;
+    }
+    .form-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.5s ease-in-out;
+}
+    .support-info {
+      margin-top: 20px;
+      color: var(--gray);
+      font-size: 14px;
+    }
+    
+    .support-info a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .support-info a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Validation styles */
+    .error {
+      color: var(--warning);
+      font-size: 14px;
+      margin-top: 5px;
+      display: none;
+    }
+    
+    .form-control.error-border {
+      border-color: var(--warning);
+    }
+    /* Loading animation */
+.loading-animation {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loader-circle {
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success animation */
+.success-animation {
+  text-align: center;
+  padding: 2rem;
+}
+
+.checkmark {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: #4CAF50;
+  fill: none;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark__check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #4CAF50;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Error message */
+.error-message {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-message svg {
+  width: 50px;
+  height: 50px;
+  color: #e74c3c;
+  margin-bottom: 1rem;
+}
+
+#tryAgainBtn {
+  margin-top: 1rem;
+  background-color: #e74c3c;
+  color: white;
+}
+    /* Loading animation */
+    .loader {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Success message */
+    .success-message {
+      display: none;
+      background-color: rgba(76, 201, 240, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      animation: fadeIn 0.5s;
+    }
+    .pending-message {
+    background-color: #fff3cd; /* Light yellow */
+    color: #856404; /* Dark yellow */
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+    text-align: center;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .gym-registration-form {
+        padding: 30px 20px;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .plan-cards {
+        grid-template-columns: 1fr;
+      }
+      
+      .checkbox-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .checkbox-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-header h1 {
+        font-size: 2rem;
+      }
+    }
+    /* --- Activities Interactive Grid --- */
+.activities-interactive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+.activity-card {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  padding: 18px 10px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 2px 8px #0001;
+  position: relative;
+  min-height: 120px;
+  outline: none;
+}
+.activity-card.selected {
+  border-color: var(--primary);
+  background: linear-gradient(120deg, #e3eafc 60%, #f8f9fa 100%);
+  box-shadow: 0 4px 16px #4361ee22;
+}
+.activity-card:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #4895ef33;
+}
+.activity-icon {
+  font-size: 2.1em;
+  color: var(--primary);
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px #4361ee11;
+  /* fallback for missing icons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1em;
+}
+.activity-card.selected .activity-icon {
+  color: var(--secondary);
+}
+.activity-name {
+  font-size: 1.08em;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.activity-info-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: color 0.2s;
+  outline: none;
+}
+.activity-info-btn:hover {
+  color: var(--primary-dark);
+}

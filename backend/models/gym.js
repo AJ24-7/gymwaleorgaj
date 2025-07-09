@@ -17,7 +17,7 @@ passwordResetOTPExpiry: { type: Date },
     landmark: { type: String }
   },
 
-  description: { type: String },
+  description: { type: String, required: true },
   gymPhotos: [{
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -27,10 +27,13 @@ passwordResetOTPExpiry: { type: Date },
   }],
   logoUrl: { type: String },
 
-  equipment: [String],
+  equipment: { type: [String], required: true },
   otherEquipment: { type: String },
-  activities: [String],
-  otherActivities: { type: String },
+  activities: [{
+    name: { type: String, required: true },
+    icon: { type: String, default: 'fa-dumbbell' }, // FontAwesome icon class
+    description: { type: String, default: '' }
+  }],
 
   membershipPlans: [
     {
@@ -46,12 +49,12 @@ passwordResetOTPExpiry: { type: Date },
   ],
 
   contactPerson: { type: String, required: true },  // Use contactPerson for the owner's name
-  supportEmail: { type: String },
-  supportPhone: { type: String },
-  openingTime: { type: String },
-  closingTime: { type: String },
+  supportEmail: { type: String, required: true },
+  supportPhone: { type: String, required: true },
+  openingTime: { type: String, required: true },
+  closingTime: { type: String, required: true },
 
-  membersCount: { type: Number, default: 0 }, // added new field
+  membersCount: { type: Number, required: true, default: 0 }, // added new field
   status: { type: String, default: 'pending' },
   rejectionReason: { type: String },
 

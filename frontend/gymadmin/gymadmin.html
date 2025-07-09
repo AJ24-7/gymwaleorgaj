@@ -189,15 +189,34 @@
                       <h2 class="card-title">Activities Offered</h2>
                     </div>
                     <div class="activities-list" id="activitiesList">
-                      <!-- Example static activities, replace or populate by JS as needed -->
-                      <span class="activity-badge">Yoga</span>
-                      <span class="activity-badge">Cardio</span>
-                      <span class="activity-badge">Zumba</span>
-                      <span class="activity-badge">Weight Training</span>
-                      <span class="activity-badge">CrossFit</span>
-                      <span class="activity-badge">Aerobics</span>
-                      <span class="activity-badge">Pilates</span>
-                      <span class="activity-badge">HIIT</span>
+                      <!-- Activities will be rendered dynamically here -->
+                    </div>
+                    <button id="addActivitiesBtn" class="btn btn-primary" style="margin-top:16px;">Add Activities</button>
+                    <!-- Add Activities Modal -->
+                    <div class="modal" id="addActivitiesModal" style="display:none;z-index:10001;align-items:flex-start;">
+                      <div class="modal-content" style="max-width:700px;margin-top:48px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                          <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-plus-circle" style="color:#1976d2;"></i> Add Activities</h3>
+                          <button class="modal-close" id="closeAddActivitiesModal" style="font-size:1.5rem;">&times;</button>
+                        </div>
+                        <div id="allActivitiesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:18px;margin-top:18px;"></div>
+                        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+                          <button type="button" class="btn btn-secondary" id="cancelAddActivitiesBtn">Cancel</button>
+                          <button type="button" class="btn btn-primary" id="saveActivitiesBtn">Save</button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Save Confirmation Dialog -->
+                    <div class="modal" id="saveActivitiesConfirmDialog" style="display:none;z-index:10002;align-items:center;">
+                      <div class="modal-content" style="max-width:350px;text-align:center;">
+                        <span class="modal-close" id="closeSaveActivitiesConfirmDialog" style="float:right;cursor:pointer;">&times;</span>
+                        <h3 style="margin-bottom:18px;">Save Activities</h3>
+                        <p>Are you sure you want to save the selected activities?</p>
+                        <div style="margin-top:18px;">
+                          <button id="confirmSaveActivitiesBtn" class="btn btn-primary" style="margin-right:10px;">Save</button>
+                          <button id="cancelSaveActivitiesConfirmBtn" class="btn btn-secondary">Cancel</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -478,7 +497,7 @@
           <div id="editPhotoPreview" style="margin: 10px 0;"></div>
           <div id="editPhotoMsg" style="margin-bottom: 10px; color: green; text-align: center;"></div>
            <button type="submit" style="background:#1976d2; color:#fff; border:none; padding:8px 20px; border-radius:4px; margin-right:8px;">Save</button>
-          <button type="button" id="cancelEditPhotoBtn" class="btn btn-primary" style="margin-right:8px;">Cancel</button>
+          <button type="button" id="cancelEditPhotoBtn" class="btn btn-secondary" style="margin-right:8px;">Cancel</button>
         </form>
       </div>
     </div>
