@@ -172,7 +172,7 @@ exports.getAdminProfile = async (req, res) => {
         }
         const logoUrl = admin.logoUrl ? 
             (admin.logoUrl.startsWith('http') ? admin.logoUrl : 
-                (admin.logoUrl.startsWith('uploads/') ? `/${admin.logoUrl}` : `/uploads/gymimages/${admin.logoUrl}`)) : 
+                (admin.logoUrl.startsWith('uploads/') ? `/${admin.logoUrl}` : `/uploads/gymPhotos/${admin.logoUrl}`)) : 
             null;
         const profileResponse = {
             gymName: admin.gymName || 'Gym Admin',
@@ -334,7 +334,7 @@ exports.registerGym = async (req, res) => {
         title: metaArr[i]?.title || '',
         description: metaArr[i]?.description || '',
         category: metaArr[i]?.category || '',
-        imageUrl: `uploads/gymImages/${file.filename}`,
+        imageUrl: `uploads/gymPhotos/${file.filename}`,
         uploadedAt: new Date()
       })).filter(photo => photo.title && photo.description && photo.category);
     }
@@ -342,7 +342,7 @@ exports.registerGym = async (req, res) => {
     // Handle gym logo upload (single file, field name: 'logo')
     let logoUrl = '';
     if (req.files && req.files.logo && req.files.logo.length > 0) {
-      logoUrl = `/uploads/gymImages/${req.files.logo[0].filename}`;
+      logoUrl = `/uploads/gymPhotos/${req.files.logo[0].filename}`;
     } else {
       logoUrl = '';
     }
@@ -353,21 +353,23 @@ exports.registerGym = async (req, res) => {
     let activities = [];
     if (Array.isArray(req.body.activities)) {
       activities = req.body.activities.map(a => {
-        if (typeof a === 'object' && a !== null && a.name) {
+        if (typeof a === 'string') {
+          // Check if string is JSON
+          try {
+            const parsed = JSON.parse(a);
+            return {
+              name: parsed.name || '',
+              icon: parsed.icon || 'fa-dumbbell',
+              description: parsed.description || ''
+            };
+          } catch {
+            // If not JSON, treat as plain name
+            return { name: a, icon: 'fa-dumbbell', description: '' };
+          }
+        } else if (typeof a === 'object' && a !== null && a.name) {
           // Already correct format
           return {
             name: a.name,
-            icon: a.icon || 'fa-dumbbell',
-            description: a.description || ''
-          };
-        } else if (typeof a === 'string') {
-          // If string, treat as name only
-          return { name: a, icon: 'fa-dumbbell', description: '' };
-        } else if (typeof a === 'object' && a !== null) {
-          // If object but not with .name, try to join values (fixes broken spread)
-          const name = Object.values(a).filter(v => typeof v === 'string').join('').trim();
-          return {
-            name: name,
             icon: a.icon || 'fa-dumbbell',
             description: a.description || ''
           };
@@ -406,34 +408,70 @@ exports.registerGym = async (req, res) => {
         planMap[idx][field] = req.body[key];
       }
     });
-    // Convert planMap to array, parse benefits as array
+    // Convert planMap to array, parse benefits as array, ensure proper data types
     membershipPlans = Object.keys(planMap).sort((a,b)=>a-b).map(idx => {
       const plan = planMap[idx];
       return {
         name: plan.name || '',
-        price: plan.price || '',
-        discount: plan.discount || '',
-        discountMonths: plan.discountMonths || '',
+        price: parseFloat(plan.price) || 0,
+        discount: parseFloat(plan.discount) || 0,
+        discountMonths: parseInt(plan.discountMonths) || 0,
         benefits: plan.benefits ? plan.benefits.split(',').map(b => b.trim()).filter(Boolean) : [],
         note: plan.note || '',
-        icon: plan.icon || '',
-        color: plan.color || ''
+        icon: plan.icon || 'fa-leaf',
+        color: plan.color || '#38b000'
       };
     });
     // Fallback: legacy array style (for backward compatibility)
     if (membershipPlans.length === 0 && Array.isArray(req.body.planName)) {
       for (let i = 0; i < req.body.planName.length; i++) {
         membershipPlans.push({
-          name: req.body.planName[i],
-          price: req.body.planPrice[i],
-          discount: req.body.planDiscount[i],
-          discountMonths: req.body.planDiscountMonths[i],
-          benefits: req.body.planBenefits[i]?.split(',').map(b => b.trim()),
-          note: req.body.planNote[i],
-          icon: req.body.planIcon[i],
-          color: req.body.planColor[i]
+          name: req.body.planName[i] || '',
+          price: parseFloat(req.body.planPrice[i]) || 0,
+          discount: parseFloat(req.body.planDiscount[i]) || 0,
+          discountMonths: parseInt(req.body.planDiscountMonths[i]) || 0,
+          benefits: req.body.planBenefits[i]?.split(',').map(b => b.trim()).filter(Boolean) || [],
+          note: req.body.planNote[i] || '',
+          icon: req.body.planIcon[i] || 'fa-leaf',
+          color: req.body.planColor[i] || '#38b000'
         });
       }
+    }
+    
+    // Ensure we have default membership plans if none were provided
+    if (membershipPlans.length === 0) {
+      membershipPlans = [
+        { 
+          name: 'Basic', 
+          price: 800, 
+          discount: 0, 
+          discountMonths: 0, 
+          benefits: ['Gym Access', 'Group Classes'], 
+          note: 'Best for beginners', 
+          icon: 'fa-leaf', 
+          color: '#38b000' 
+        },
+        { 
+          name: 'Standard', 
+          price: 1200, 
+          discount: 10, 
+          discountMonths: 6, 
+          benefits: ['All Basic Benefits', 'Diet Plan', 'Locker Facility'], 
+          note: 'Most Popular', 
+          icon: 'fa-star', 
+          color: '#3a86ff' 
+        },
+        { 
+          name: 'Premium', 
+          price: 1800, 
+          discount: 15, 
+          discountMonths: 12, 
+          benefits: ['All Standard Benefits', 'Personal Trainer', 'Spa & Sauna'], 
+          note: 'For serious fitness', 
+          icon: 'fa-gem', 
+          color: '#8338ec' 
+        }
+      ];
     }
 
     const newGym = new Gym({
@@ -493,39 +531,49 @@ exports.registerGym = async (req, res) => {
 };
 
 
-// Get Gym Profile for Logged-in Gym Admin
+// Get Gym Profile for Logged-in Admin
 exports.getMyProfile = async (req, res) => {
+  const adminId = req.admin && req.admin.id;
+  if (!adminId) {
+    return res.status(401).json({ message: 'Not authorized, no admin ID found' });
+  }
   try {
-    // req.gym is set by the authMiddleware
-    const gym = await Gym.findById(req.gym.id).select('-password');
+    // Find gym by its own ID, since the gym admin is the gym itself
+    const gym = await Gym.findById(adminId).select('-password');
     if (!gym) {
-      return res.status(404).json({ message: 'Gym profile not found' });
+      return res.status(404).json({ message: 'Gym profile not found for this admin' });
     }
-    // Use the correct logoUrl field
-    let logoUrl = gym.logoUrl
-      ? (gym.logoUrl.startsWith('/') ? gym.logoUrl : `/${gym.logoUrl}`)
-      : null;
-    // Debug: Log the logoUrl being returned
-    console.log('[getMyProfile] Returning logoUrl:', logoUrl);
-    // Ensure activities are returned as array of objects with name, icon, description
-    const activities = Array.isArray(gym.activities)
-      ? gym.activities.map(a => ({
-          name: a.name || '',
-          icon: a.icon || 'fa-dumbbell',
-          description: a.description || ''
-        }))
-      : [];
-    res.json({
-      gymName: gym.gymName,
-      email: gym.email,
-      phone: gym.phone,
-      logoUrl: logoUrl,
-      location: gym.location,
-      description: gym.description,
-      activities: activities
-    });
+    
+    // Ensure proper data formatting for frontend
+    const gymProfile = gym.toObject();
+    
+    // Ensure logoUrl is properly formatted
+    if (gymProfile.logoUrl && !gymProfile.logoUrl.startsWith('http')) {
+      gymProfile.logoUrl = gymProfile.logoUrl.startsWith('/') ? gymProfile.logoUrl : `/${gymProfile.logoUrl}`;
+    }
+    
+    // Ensure activities are properly structured
+    if (Array.isArray(gymProfile.activities)) {
+      gymProfile.activities = gymProfile.activities.map(activity => {
+        if (typeof activity === 'string') {
+          return { name: activity, icon: 'fa-dumbbell', description: '' };
+        } else if (typeof activity === 'object' && activity !== null) {
+          return {
+            name: activity.name || '',
+            icon: activity.icon || 'fa-dumbbell',
+            description: activity.description || ''
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    } else {
+      gymProfile.activities = [];
+    }
+    
+    console.log('[getMyProfile] Returning gym profile:', gymProfile);
+    res.status(200).json(gymProfile);
   } catch (error) {
-    console.error('Error fetching gym profile:', error);
+    console.error('Error fetching gym profile for admin:', error);
     res.status(500).json({ message: 'Server error while fetching profile' });
   }
 };
@@ -570,7 +618,7 @@ function updateLocation(gym, { address, city, state, pincode, landmark }) {
 // Helper: Handle logo upload
 function handleLogoUpload(gym, file, gymLogo) {
   if (file?.filename) {
-    gym.logoUrl = `uploads/gymImages/${file.filename}`;
+    gym.logoUrl = `uploads/gymPhotos/${file.filename}`;
   } else if (gymLogo === null) {
     gym.logoUrl = undefined;
   }
@@ -645,22 +693,6 @@ exports.updateMyProfile = async (req, res) => {
   }
 };
 
-// Get Gym Profile for Logged-in Admin
-exports.getMyProfile = async (req, res) => {
-  const adminId = req.admin && req.admin.id;
-  if (!adminId) {
-    return res.status(401).json({ message: 'Not authorized, no admin ID found' });
-  }
-  try {
-    const gym = await Gym.findOne({ admin: adminId }).select('-password');
-    if (!gym) {
-      return res.status(404).json({ message: 'Gym profile not found for this admin' });
-    }
-    res.status(200).json(gym.toObject());
-  } catch (error) {
-    res.status(500).json({ message: 'Server error while fetching profile' });
-  }
-};
 // Fetch gyms by a list of cities
 exports.getGymsByCities = async (req, res) => {
   try {
@@ -800,11 +832,15 @@ exports.getAllGymPhotos = async (req, res) => {
     if (!adminId) {
       return res.status(401).json({ success: false, message: 'Not authorized, no admin ID found' });
     }
-    const gym = await Gym.findOne({ admin: adminId });
+    
+    // Look for gym by its own ID (adminId is actually the gym's ID from JWT token)
+    const gym = await Gym.findById(adminId);
     if (!gym) {
       return res.status(404).json({ success: false, message: 'Gym not found for this admin.' });
     }
-    res.json({ success: true, photos: gym.gymPhotos });
+    
+    console.log('DEBUG: Found gym:', gym.gymName, 'Photos count:', gym.gymPhotos?.length || 0);
+    res.json({ success: true, photos: gym.gymPhotos || [] });
   } catch (err) {
     console.error('Get Gym Photos Error:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch gym photos', error: err.message });
@@ -855,5 +891,118 @@ exports.updateActivities = async (req, res) => {
   } catch (error) {
     console.error('Error updating activities:', error);
     res.status(500).json({ message: 'Server error while updating activities.' });
+  }
+};
+
+// Get membership plans for the logged-in gym admin
+exports.getMembershipPlans = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    if (!adminId) {
+      return res.status(401).json({ message: 'Not authorized, no admin ID found' });
+    }
+    
+    const gym = await Gym.findOne({ admin: adminId });
+    if (!gym) {
+      return res.status(404).json({ message: 'Gym not found for this admin.' });
+    }
+    
+    // Return membership plans or default plans if none exist
+    let membershipPlans = gym.membershipPlans || [];
+    
+    // If no membership plans exist, return default plans
+    if (membershipPlans.length === 0) {
+      membershipPlans = [
+        { 
+          name: 'Basic', 
+          price: 800, 
+          discount: 0, 
+          discountMonths: 0, 
+          benefits: ['Gym Access', 'Group Classes'], 
+          note: 'Best for beginners', 
+          icon: 'fa-leaf', 
+          color: '#38b000' 
+        },
+        { 
+          name: 'Standard', 
+          price: 1200, 
+          discount: 10, 
+          discountMonths: 6, 
+          benefits: ['All Basic Benefits', 'Diet Plan', 'Locker Facility'], 
+          note: 'Most Popular', 
+          icon: 'fa-star', 
+          color: '#3a86ff' 
+        },
+        { 
+          name: 'Premium', 
+          price: 1800, 
+          discount: 15, 
+          discountMonths: 12, 
+          benefits: ['All Standard Benefits', 'Personal Trainer', 'Spa & Sauna'], 
+          note: 'For serious fitness', 
+          icon: 'fa-gem', 
+          color: '#8338ec' 
+        }
+      ];
+    }
+    
+    res.status(200).json(membershipPlans);
+  } catch (error) {
+    console.error('Error fetching membership plans:', error);
+    res.status(500).json({ message: 'Server error while fetching membership plans' });
+  }
+};
+
+// Update membership plans for the logged-in gym admin
+exports.updateMembershipPlans = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    if (!adminId) {
+      return res.status(401).json({ message: 'Not authorized, no admin ID found' });
+    }
+    
+    const membershipPlans = req.body;
+    
+    // Validate membership plans structure
+    if (!Array.isArray(membershipPlans) || membershipPlans.length !== 3) {
+      return res.status(400).json({ message: 'Membership plans must be an array of 3 plans.' });
+    }
+    
+    // Validate each plan
+    for (const plan of membershipPlans) {
+      if (!plan.name || typeof plan.price !== 'number' || !Array.isArray(plan.benefits)) {
+        return res.status(400).json({ message: 'Each plan must have name, price, and benefits array.' });
+      }
+    }
+    
+    // Ensure proper data types and structure
+    const processedPlans = membershipPlans.map(plan => ({
+      name: plan.name,
+      price: parseFloat(plan.price) || 0,
+      discount: parseFloat(plan.discount) || 0,
+      discountMonths: parseInt(plan.discountMonths) || 0,
+      benefits: Array.isArray(plan.benefits) ? plan.benefits : [],
+      note: plan.note || '',
+      icon: plan.icon || 'fa-leaf',
+      color: plan.color || '#38b000'
+    }));
+    
+    const gym = await Gym.findOneAndUpdate(
+      { admin: adminId },
+      { $set: { membershipPlans: processedPlans } },
+      { new: true }
+    );
+    
+    if (!gym) {
+      return res.status(404).json({ message: 'Gym not found for this admin.' });
+    }
+    
+    res.status(200).json({ 
+      message: 'Membership plans updated successfully.', 
+      membershipPlans: gym.membershipPlans 
+    });
+  } catch (error) {
+    console.error('Error updating membership plans:', error);
+    res.status(500).json({ message: 'Server error while updating membership plans' });
   }
 };

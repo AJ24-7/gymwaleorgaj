@@ -18,6 +18,15 @@ exports.addMember = async (req, res) => {
       // Save relative path for frontend use
       profileImagePath = '/uploads/profile-pics/' + req.file.filename;
     }
+
+    // Helper function to extract string value from potential array
+    const extractStringValue = (value) => {
+      if (Array.isArray(value)) {
+        return value[0]; // Take first value if array
+      }
+      return value;
+    };
+
     const member = new Member({
       gym: gymId,
       memberName: req.body.memberName,
@@ -32,14 +41,17 @@ exports.addMember = async (req, res) => {
       monthlyPlan: req.body.monthlyPlan,
       activityPreference: req.body.activityPreference,
       profileImage: profileImagePath,
-      membershipId: req.body.membershipId,
-      membershipValidUntil: req.body.membershipValidUntil
+      membershipId: extractStringValue(req.body.membershipId),
+      membershipValidUntil: extractStringValue(req.body.membershipValidUntil)
     });
     await member.save();
 
     // Send membership email if all required fields are present
     try {
-      if (req.body.memberEmail && req.body.memberName && req.body.membershipId && req.body.planSelected && req.body.monthlyPlan && req.body.membershipValidUntil && gym.name) {
+      const membershipId = extractStringValue(req.body.membershipId);
+      const membershipValidUntil = extractStringValue(req.body.membershipValidUntil);
+      
+      if (req.body.memberEmail && req.body.memberName && membershipId && req.body.planSelected && req.body.monthlyPlan && membershipValidUntil && gym.name) {
         // Use the same HTML as in memberRoutes.js for consistency
         const html = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background: #f6f8fa; padding: 32px 0;">
@@ -52,9 +64,9 @@ exports.addMember = async (req, res) => {
               <div style="background: linear-gradient(90deg,#e3f2fd 60%,#fceabb 100%); border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; box-shadow: 0 2px 8px #1976d220;">
                 <div style="font-size: 1.1rem; margin-bottom: 10px; color:#333;">🎉 <b>Your membership has been <span style='color:#43e97b;'>created</span> successfully!</b></div>
                 <ul style="list-style:none;padding:0;margin:0;font-size:1.08rem;">
-                  <li style="margin-bottom:8px;"><span style='font-weight:600;color:#1976d2;'>Membership ID:</span> <span style='background:#e3f2fd;padding:2px 8px;border-radius:6px;font-weight:500;letter-spacing:1px;'>${req.body.membershipId}</span></li>
+                  <li style="margin-bottom:8px;"><span style='font-weight:600;color:#1976d2;'>Membership ID:</span> <span style='background:#e3f2fd;padding:2px 8px;border-radius:6px;font-weight:500;letter-spacing:1px;'>${membershipId}</span></li>
                   <li style="margin-bottom:8px;"><span style='font-weight:600;color:#1976d2;'>Plan:</span> <span style='background:#fceabb;padding:2px 8px;border-radius:6px;font-weight:500;'>${req.body.planSelected} <span style='color:#1976d2;'>(${req.body.monthlyPlan})</span></span></li>
-                  <li><span style='font-weight:600;color:#1976d2;'>Valid Until:</span> <span style='background:#e3f2fd;padding:2px 8px;border-radius:6px;font-weight:500;'>${req.body.membershipValidUntil}</span></li>
+                  <li><span style='font-weight:600;color:#1976d2;'>Valid Until:</span> <span style='background:#e3f2fd;padding:2px 8px;border-radius:6px;font-weight:500;'>${membershipValidUntil}</span></li>
                 </ul>
               </div>
               <div style="text-align:center;margin:24px 0 12px 0;">

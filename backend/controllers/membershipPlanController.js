@@ -14,7 +14,7 @@ toPlanResponse = (plan) => ({
 
 exports.getMembershipPlans = async (req, res) => {
   try {
-    const gym = await Gym.findById(req.admin.id);
+    const gym = await Gym.findOne({ admin: req.admin.id });
     if (!gym) return res.status(404).json({ message: 'Gym not found' });
     // Always return exactly 3 plans (Basic, Standard, Premium)
     let plans = gym.membershipPlans || [];
@@ -37,7 +37,7 @@ exports.getMembershipPlans = async (req, res) => {
 // Update all membership plans for the logged-in gym admin
 exports.updateMembershipPlans = async (req, res) => {
   try {
-    const gym = await Gym.findById(req.admin.id);
+    const gym = await Gym.findOne({ admin: req.admin.id });
     if (!gym) return res.status(404).json({ message: 'Gym not found' });
     const plans = req.body;
     if (!Array.isArray(plans) || plans.length !== 3) {

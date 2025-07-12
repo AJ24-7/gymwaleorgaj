@@ -1,3 +1,20 @@
+// === Profile Dropdown Menu Toggle ===
+document.addEventListener('DOMContentLoaded', function() {
+  const userProfileToggle = document.getElementById('userProfileToggle');
+  const profileDropdownMenu = document.getElementById('profileDropdownMenu');
+  if (userProfileToggle && profileDropdownMenu) {
+    userProfileToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      profileDropdownMenu.classList.toggle('open');
+    });
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!profileDropdownMenu.contains(e.target) && !userProfileToggle.contains(e.target)) {
+        profileDropdownMenu.classList.remove('open');
+      }
+    });
+  }
+});
 // === Dynamic Activities Offered Section ===
 document.addEventListener('DOMContentLoaded', function() {
   // --- State ---
@@ -45,11 +62,88 @@ document.addEventListener('DOMContentLoaded', function() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      // Only set selected/current activities from backend, not allPossibleActivities
-      currentActivities = Array.isArray(data.activities) ? data.activities : [];
+      console.log('Activities fetch - Full profile data:', data);
+      console.log('Activities raw data:', data.activities);
+      console.log('Activities type:', typeof data.activities);
+      
+      // Handle activities data - ensure proper structure
+      let activities = [];
+      if (Array.isArray(data.activities)) {
+        activities = data.activities.map(activity => {
+          console.log('Processing activity:', activity, 'Type:', typeof activity);
+          
+          // Handle different activity formats
+          if (typeof activity === 'string') {
+            // If activity is just a string, try to parse as JSON first
+            try {
+              const parsedActivity = JSON.parse(activity);
+              console.log('Successfully parsed JSON string activity:', parsedActivity);
+              return {
+                name: parsedActivity.name || '',
+                icon: parsedActivity.icon || 'fa-dumbbell',
+                description: parsedActivity.description || ''
+              };
+            } catch (parseErr) {
+              console.log('Failed to parse as JSON, treating as plain string:', activity);
+              // If not JSON, find matching activity from predefined list
+              const matchedActivity = allPossibleActivities.find(a => a.name === activity);
+              const result = matchedActivity || { name: activity, icon: 'fa-dumbbell', description: '' };
+              console.log('String activity matched to:', result);
+              return result;
+            }
+          } else if (typeof activity === 'object' && activity !== null) {
+            // Check if the object has a stringified JSON in the name field
+            if (activity.name && typeof activity.name === 'string' && activity.name.startsWith('{')) {
+              try {
+                const parsedActivity = JSON.parse(activity.name);
+                console.log('Successfully parsed JSON from name field:', parsedActivity);
+                return {
+                  name: parsedActivity.name || '',
+                  icon: parsedActivity.icon || 'fa-dumbbell',
+                  description: parsedActivity.description || ''
+                };
+              } catch (parseErr) {
+                console.log('Failed to parse JSON from name field, using original activity');
+              }
+            }
+            
+            // If activity is an object, ensure it has required fields
+            const result = {
+              name: activity.name || '',
+              icon: activity.icon || 'fa-dumbbell',
+              description: activity.description || ''
+            };
+            console.log('Object activity processed to:', result);
+            return result;
+          }
+          console.log('Unrecognized activity format:', activity);
+          return null;
+        }).filter(Boolean);
+      } else if (typeof data.activities === 'string') {
+        // Handle case where activities might be stored as a JSON string
+        try {
+          const parsedActivities = JSON.parse(data.activities);
+          console.log('Parsed activities from JSON string:', parsedActivities);
+          if (Array.isArray(parsedActivities)) {
+            activities = parsedActivities.map(activity => {
+              if (typeof activity === 'string') {
+                const matchedActivity = allPossibleActivities.find(a => a.name === activity);
+                return matchedActivity || { name: activity, icon: 'fa-dumbbell', description: '' };
+              }
+              return activity;
+            });
+          }
+        } catch (parseErr) {
+          console.error('Failed to parse activities JSON string:', parseErr);
+        }
+      }
+      
+      console.log('Final processed activities:', activities);
+      currentActivities = activities;
       selectedActivities = currentActivities.map(a => a.name);
       renderActivitiesList();
     } catch (err) {
+      console.error('Error fetching activities:', err);
       if (activitiesList) activitiesList.innerHTML = '<div style="color:#b71c1c;">Failed to load activities.</div>';
     }
   }
@@ -57,24 +151,55 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- Render Activities in Dashboard ---
   function renderActivitiesList() {
     if (!activitiesList) return;
-    if (!currentActivities.length) {
-      activitiesList.innerHTML = '<div style="color:#888;font-size:1em;">No activities added yet.</div>';
+    
+    console.log('Rendering activities list. Current activities:', currentActivities);
+    
+    if (!currentActivities || !currentActivities.length) {
+      activitiesList.innerHTML = '<div style="color:#888;font-size:1em;text-align:center;padding:20px;">No activities added yet.</div>';
       return;
     }
+    
+    // Filter out any invalid activities
+    const validActivities = currentActivities.filter(a => a && a.name && typeof a.name === 'string');
+    
+    if (!validActivities.length) {
+      activitiesList.innerHTML = '<div style="color:#888;font-size:1em;text-align:center;padding:20px;">No valid activities found.</div>';
+      return;
+    }
+    
+    console.log('Rendering valid activities:', validActivities);
+    
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
     activitiesList.innerHTML = '<div class="activities-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;">' +
-      currentActivities.map(a => `
-        <div class="activity-badge" tabindex="0" style="background:#f5f5f5;border-radius:10px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:box-shadow 0.2s;" title="${a.description}">
-          <i class="fas ${a.icon}" style="font-size:1.7em;color:#1976d2;margin-bottom:6px;"></i>
-          <span style="font-size:1em;font-weight:600;">${a.name}</span>
+      validActivities.map(a => `
+        <div class="activity-badge" tabindex="0" style="background:${isDark ? 'var(--primary)' : '#f5f5f5'};border-radius:12px;width:110px;height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:box-shadow 0.2s;aspect-ratio:1/1;overflow:hidden;${isDark ? 'color:#fff!important;' : ''}" title="${a.description || a.name}">
+          <i class="fas ${a.icon || 'fa-dumbbell'} activity-icon" style="font-size:1.7em;${isDark ? 'color:#fff!important;' : 'color:var(--primary);'}margin-bottom:6px;transition:color 0.2s;"></i>
+          <span style="font-size:1em;font-weight:600;${isDark ? 'color:#fff!important;' : ''}">${a.name}</span>
         </div>
       `).join('') + '</div>';
+    // Add hover effect for activity icons using --primaryDark (only in light mode)
+    if (!isDark) {
+      Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach(badge => {
+        const icon = badge.querySelector('.activity-icon');
+        if (icon) {
+          badge.addEventListener('mouseenter', () => {
+            icon.style.color = 'var(--primaryDark)';
+          });
+          badge.addEventListener('mouseleave', () => {
+            icon.style.color = 'var(--primary)';
+          });
+        }
+      });
+    }
+      
     // Show description on click
     Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach((el, idx) => {
       el.onclick = () => {
+        const activity = validActivities[idx];
         showDialog({
-          title: currentActivities[idx].name,
-          message: currentActivities[idx].description,
-          iconHtml: `<i class='fas ${currentActivities[idx].icon}' style='font-size:2em;color:#1976d2;'></i>`
+          title: activity.name,
+          message: activity.description || 'No description available.',
+          iconHtml: `<i class='fas ${activity.icon || 'fa-dumbbell'}' style='font-size:2em;color:#1976d2;'></i>`
         });
       };
     });
@@ -1361,8 +1486,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       const formData = new FormData(addMemberForm);
       const { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate } = getMemberFormMeta(formData);
-      formData.append('membershipId', membershipId);
-      formData.append('membershipValidUntil', validDate);
+      // Use set() instead of append() to avoid duplicates
+      formData.set('membershipId', membershipId);
+      formData.set('membershipValidUntil', validDate);
 
       try {
         const res = await fetch('http://localhost:5000/api/members', {
@@ -1404,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const gymShort = gymName.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       const planShort = plan.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       const membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
-      formData.append('membershipId', membershipId);
+      formData.set('membershipId', membershipId);
       let validDate = '';
       let months = 1;
       if (/3\s*Month/i.test(monthlyPlan)) months = 3;
@@ -1413,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const validUntil = new Date(now);
       validUntil.setMonth(validUntil.getMonth() + months);
       validDate = validUntil.toISOString().split('T')[0];
-      formData.append('membershipValidUntil', validDate);
+      formData.set('membershipValidUntil', validDate);
       return { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate };
     }
 
@@ -1520,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', function() {
             token: !!localStorage.getItem('token'),
             authToken: !!localStorage.getItem('authToken')
         });
-        console.log('Sending profile request to:', 'http://localhost:5000/api/gym/profile/me');
+        console.log('Sending profile request to:', 'http://localhost:5000/api/gyms/profile/me');
         const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
             method: 'GET',
             headers: {
@@ -1548,23 +1674,130 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateAdminProfileUI(adminNameElement, adminAvatarElement, profile) {
+        // Store the complete profile data globally
+        currentGymProfile = profile;
+        window.currentGymProfile = profile; // Also set on window for global access
+        
         if (adminNameElement) {
             adminNameElement.textContent = profile.gymName || profile.name || 'Gym Admin';
             console.log('Updated admin name:', adminNameElement.textContent);
         }
         if (adminAvatarElement) {
-            if (profile.logoUrl) {
-                let logoPath = profile.logoUrl;
-                if (!logoPath.startsWith('http')) {
-                    logoPath = `http://localhost:5000${logoPath.startsWith('/') ? logoPath : '/' + logoPath}`;
+            let logoUrl = profile.logoUrl || profile.logo || profile.logoURL || profile.logo_path || '';
+            
+            // Debug: Log the raw logoUrl value
+            console.log('[DEBUG] Raw logoUrl from gym profile:', logoUrl);
+            console.log('[DEBUG] Profile object keys:', Object.keys(profile));
+            
+            if (logoUrl && !logoUrl.startsWith('http')) {
+                if (logoUrl.startsWith('/')) {
+                    logoUrl = `http://localhost:5000${logoUrl}`;
+                } else {
+                    logoUrl = `http://localhost:5000/${logoUrl}`;
                 }
-                adminAvatarElement.src = logoPath;
-                console.log('Updated admin logo:', logoPath);
+            }
+            
+            if (!logoUrl) logoUrl = `http://localhost:5000/uploads/images/default-logo.png`;
+            
+            console.log('[DEBUG] Final processed logoUrl:', logoUrl);
+            
+            // Auto-fix logo path if it's using wrong directory
+            if (logoUrl && logoUrl.includes('/uploads/gymImages/')) {
+                const filename = logoUrl.split('/').pop();
+                const altUrl = `http://localhost:5000/uploads/gymPhotos/${filename}`;
+                console.log('[DEBUG] Auto-correcting logo path from gymImages to gymPhotos:', altUrl);
+                logoUrl = altUrl;
+            }
+            
+            console.log('[DEBUG] Final corrected logoUrl:', logoUrl);
+            
+            adminAvatarElement.src = logoUrl;
+            adminAvatarElement.onerror = function() {
+                console.log('[ERROR] Failed to load logo:', logoUrl);
+                console.log('[ERROR] Using default logo fallback');
+                this.onerror = null; // Prevent infinite loop
+                this.src = 'http://localhost:5000/uploads/images/default-logo.png';
+            };
+            adminAvatarElement.onload = function() {
+                console.log('[SUCCESS] Logo loaded successfully:', logoUrl);
+            };
+            console.log('Updated admin logo:', logoUrl);
+        }
+        
+        // Debug log to check profile structure
+        console.log('Complete profile data stored:', profile);
+        console.log('Profile location:', profile.location);
+        console.log('Profile activities:', profile.activities);
+        
+        // Update gym information section
+        updateGymInformationSection(profile);
+    }
+
+    // Function to update gym information section with profile data
+    function updateGymInformationSection(profile) {
+        console.log('Updating gym information section with profile:', profile);
+        
+        // Basic Information
+        const gymInfoName = document.getElementById('gymInfoName');
+        const gymInfoOwner = document.getElementById('gymInfoOwner');
+        const gymInfoEmail = document.getElementById('gymInfoEmail');
+        const gymInfoPhone = document.getElementById('gymInfoPhone');
+        const gymInfoSupportEmail = document.getElementById('gymInfoSupportEmail');
+        const gymInfoSupportPhone = document.getElementById('gymInfoSupportPhone');
+        
+        if (gymInfoName) gymInfoName.textContent = profile.gymName || 'N/A';
+        if (gymInfoOwner) gymInfoOwner.textContent = profile.contactPerson || 'N/A';
+        if (gymInfoEmail) gymInfoEmail.textContent = profile.email || 'N/A';
+        if (gymInfoPhone) gymInfoPhone.textContent = profile.phone || 'N/A';
+        if (gymInfoSupportEmail) gymInfoSupportEmail.textContent = profile.supportEmail || 'N/A';
+        if (gymInfoSupportPhone) gymInfoSupportPhone.textContent = profile.supportPhone || 'N/A';
+        
+        // Location Information
+        const gymInfoAddress = document.getElementById('gymInfoAddress');
+        const gymInfoCity = document.getElementById('gymInfoCity');
+        const gymInfoState = document.getElementById('gymInfoState');
+        const gymInfoPincode = document.getElementById('gymInfoPincode');
+        const gymInfoLandmark = document.getElementById('gymInfoLandmark');
+        
+        if (gymInfoAddress) gymInfoAddress.textContent = profile.location?.address || 'N/A';
+        if (gymInfoCity) gymInfoCity.textContent = profile.location?.city || 'N/A';
+        if (gymInfoState) gymInfoState.textContent = profile.location?.state || 'N/A';
+        if (gymInfoPincode) gymInfoPincode.textContent = profile.location?.pincode || 'N/A';
+        if (gymInfoLandmark) gymInfoLandmark.textContent = profile.location?.landmark || 'N/A';
+        
+        // Operational Information
+        const gymInfoOpeningTime = document.getElementById('gymInfoOpeningTime');
+        const gymInfoClosingTime = document.getElementById('gymInfoClosingTime');
+        const gymInfoCurrentMembers = document.getElementById('gymInfoCurrentMembers');
+        const gymInfoStatus = document.getElementById('gymInfoStatus');
+        
+        if (gymInfoOpeningTime) gymInfoOpeningTime.textContent = profile.openingTime || 'N/A';
+        if (gymInfoClosingTime) gymInfoClosingTime.textContent = profile.closingTime || 'N/A';
+        if (gymInfoCurrentMembers) gymInfoCurrentMembers.textContent = profile.membersCount || '0';
+        if (gymInfoStatus) {
+            gymInfoStatus.textContent = profile.status || 'Unknown';
+            gymInfoStatus.className = `gym-info-value gym-status ${profile.status || ''}`;
+        }
+        
+        // Description
+        const gymInfoDescription = document.getElementById('gymInfoDescription');
+        if (gymInfoDescription) {
+            gymInfoDescription.textContent = profile.description || 'No description available';
+        }
+        
+        // Equipment
+        const gymInfoEquipment = document.getElementById('gymInfoEquipment');
+        if (gymInfoEquipment) {
+            if (Array.isArray(profile.equipment) && profile.equipment.length > 0) {
+                gymInfoEquipment.innerHTML = profile.equipment.map(eq => 
+                    `<span class="gym-info-equipment-item">${eq}</span>`
+                ).join('');
             } else {
-                adminAvatarElement.src = 'https://via.placeholder.com/40';
-                console.log('Using default avatar');
+                gymInfoEquipment.innerHTML = '<span style="color:#888;">No equipment listed</span>';
             }
         }
+        
+        console.log('Gym information section updated successfully');
     }
     
     function handleProfileFetchException(error, adminNameElement, adminAvatarElement) {
@@ -1589,16 +1822,23 @@ document.addEventListener('DOMContentLoaded', function () {
     async function fetchGymPhotos() {
         const token = localStorage.getItem('gymAdminToken');
         try {
-            const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
+            console.log('Fetching gym photos from dedicated photos endpoint...');
+            const response = await fetch('http://localhost:5000/api/gyms/photos', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-            if (!response.ok) throw new Error('Failed to fetch gym profile/photos');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch gym photos: ${response.status} ${response.statusText}`);
+            }
             const data = await response.json();
-            const photos = (data.gymPhotos || data.data?.gymPhotos || []);
+            console.log('Fetched gym photos data:', data);
+            
+            // Extract photos from the response (registration photos are in the photos array)
+            const photos = data.photos || [];
+            console.log('Rendering', photos.length, 'gym photos');
             renderPhotoGrid(photos);
         } catch (err) {
             console.error('Error fetching gym photos:', err);
@@ -1618,13 +1858,26 @@ document.addEventListener('DOMContentLoaded', function () {
         // Store the last photo grid for edit/remove lookup
         window._lastPhotoGrid = photos;
         photos.forEach((photo, idx) => {
-            // Support both string and object with url
-            const url = typeof photo === 'string' ? photo : (photo.url || photo.path || photo.imageUrl || '');
+            // Support both string and object with url - handle registration photo structure
+            let url = typeof photo === 'string' ? photo : (photo.url || photo.path || photo.imageUrl || '');
             const title = typeof photo === 'object' ? (photo.title || '') : '';
             const description = typeof photo === 'object' ? (photo.description || '') : '';
             const category = typeof photo === 'object' ? (photo.category || '') : '';
             const id = typeof photo === 'object' ? (photo._id || photo.id || '') : '';
+            
             if (!url) return;
+            
+            // Convert relative path to full URL if needed (registration photos use relative paths)
+            if (url && !url.startsWith('http')) {
+                if (url.startsWith('/')) {
+                    url = `http://localhost:5000${url}`;
+                } else {
+                    url = `http://localhost:5000/${url}`;
+                }
+            }
+            
+            console.log(`[DEBUG] Rendering photo ${idx + 1}:`, { title, description, category, url });
+            
             const card = document.createElement('div');
             card.className = 'photo-grid-item';
             card.style.position = 'relative';
@@ -1637,8 +1890,8 @@ document.addEventListener('DOMContentLoaded', function () {
             card.style.alignItems = 'center';
             card.innerHTML = `
                 <img src="${url}" alt="Gym Photo" style="width:100%;height:140px;object-fit:cover;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:10px;" data-photo-idx="${idx}" />
-                <h3 style="margin:4px 0 2px 0;font-size:1.1em;">${title}</h3>
-                <p style="margin:0 0 6px 0;color:#666;font-size:0.95em;">${description}</p>
+                <h3 style="margin:4px 0 2px 0;font-size:1.1em;">${title || 'Untitled'}</h3>
+                <p style="margin:0 0 6px 0;color:#666;font-size:0.95em;">${description || 'No description'}</p>
                 <div style="font-size:0.95em;color:#1976d2;margin-bottom:6px;">${category ? `<i class='fas fa-tag'></i> ${category}` : ''}</div>
                 <div style="display:flex;gap:8px;justify-content:center;">
                     <button class="edit-photo-btn" data-photo-id="${id}" style="padding:4px 10px;border:none;background:#1976d2;color:#fff;border-radius:4px;cursor:pointer;">Edit</button>
@@ -1988,30 +2241,6 @@ if (addMemberForm) {
       }
     }
   };
-
-  // Helper to extract meta and generate membershipId/validDate
-  function getMemberFormMeta(formData, currentGymProfile) {
-    const gymName = (currentGymProfile && (currentGymProfile.gymName || currentGymProfile.name)) ? (currentGymProfile.gymName || currentGymProfile.name) : 'GYM';
-    const plan = formData.get('planSelected') || 'PLAN';
-    const monthlyPlan = formData.get('monthlyPlan') || '';
-    const memberEmail = formData.get('memberEmail') || '';
-    const memberName = formData.get('memberName') || '';
-    const now = new Date();
-    const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
-    const random = Math.floor(1000 + Math.random() * 9000);
-    const gymShort = gymName.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
-    const planShort = plan.replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
-    const membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
-    let validDate = '';
-    let months = 1;
-    if (/3\s*Month/i.test(monthlyPlan)) months = 3;
-    else if (/6\s*Month/i.test(monthlyPlan)) months = 6;
-    else if (/12\s*Month/i.test(monthlyPlan)) months = 12;
-    const validUntil = new Date(now);
-    validUntil.setMonth(validUntil.getMonth() + months);
-    validDate = validUntil.toISOString().split('T')[0];
-    return { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate };
-  }
 }
             // --- Gym Photo Upload Logic ---
             const uploadGymPhotoForm = document.getElementById('uploadGymPhotoForm');
@@ -2089,27 +2318,74 @@ function clearUploadPhotoMsgAndCloseModal() {
         const logoPreviewImage = document.getElementById('logoPreviewImage');
 
         function populateEditProfileModal() {
-            if (!currentGymProfile) return;
+            if (!currentGymProfile) {
+                console.warn('No currentGymProfile available for modal population');
+                return;
+            }
 
+            console.log('Populating edit profile modal with:', currentGymProfile);
+            
             document.getElementById('editGymName').value = currentGymProfile.gymName || '';
             document.getElementById('editGymEmail').value = currentGymProfile.email || '';
             document.getElementById('editGymPhone').value = currentGymProfile.phone || '';
-            document.getElementById('editGymAddress').value = currentGymProfile.address || '';
-            document.getElementById('editGymCity').value = currentGymProfile.location?.city || '';
-            document.getElementById('editGymPincode').value = currentGymProfile.location?.pincode || '';
+            
+            // Handle address fields - check both direct fields and location object
+            const address = currentGymProfile.address || currentGymProfile.location?.address || '';
+            const city = currentGymProfile.city || currentGymProfile.location?.city || '';
+            const state = currentGymProfile.state || currentGymProfile.location?.state || '';
+            const pincode = currentGymProfile.pincode || currentGymProfile.location?.pincode || '';
+            
+            document.getElementById('editGymAddress').value = address;
+            document.getElementById('editGymCity').value = city;
+            
+            // Add state field if it exists
+            const stateField = document.getElementById('editGymState');
+            if (stateField) {
+                stateField.value = state;
+            }
+            
+            document.getElementById('editGymPincode').value = pincode;
             document.getElementById('editGymDescription').value = currentGymProfile.description || '';
 
-            if (currentGymProfile.logoUrl) {
-                let logoPath = currentGymProfile.logoUrl;
-                if (!logoPath.startsWith('http')) {
-                    logoPath = `http://localhost:5000${logoPath.startsWith('/') ? logoPath : '/' + logoPath}`;
+            // Handle logo URL with improved logic
+            let logoUrl = currentGymProfile.logoUrl || currentGymProfile.logo || currentGymProfile.logoURL || currentGymProfile.logo_path || '';
+            
+            console.log('[DEBUG] Edit modal - Raw logoUrl from gym profile:', logoUrl);
+            
+            if (logoUrl && !logoUrl.startsWith('http')) {
+                if (logoUrl.startsWith('/')) {
+                    logoUrl = `http://localhost:5000${logoUrl}`;
+                } else {
+                    logoUrl = `http://localhost:5000/${logoUrl}`;
                 }
-                logoPreviewImage.src = `${logoPath}?${new Date().getTime()}`;
+            }
+            
+            // Auto-fix logo path if it's using wrong directory
+            if (logoUrl && logoUrl.includes('/uploads/gymImages/')) {
+                const filename = logoUrl.split('/').pop();
+                const altUrl = `http://localhost:5000/uploads/gymPhotos/${filename}`;
+                console.log('[DEBUG] Auto-correcting logo path from gymImages to gymPhotos:', altUrl);
+                logoUrl = altUrl;
+            }
+            
+            if (logoUrl) {
+                logoPreviewImage.src = `${logoUrl}?${new Date().getTime()}`;
                 logoPreviewImage.style.display = 'block';
+                console.log('Logo preview set to:', logoUrl);
+                
+                // Add error handling for logo preview
+                logoPreviewImage.onerror = function() {
+                    console.log('[ERROR] Failed to load logo preview:', logoUrl);
+                    this.onerror = null; // Prevent infinite loop
+                    this.src = 'http://localhost:5000/uploads/images/default-logo.png';
+                };
             } else {
                 logoPreviewImage.src = '#';
                 logoPreviewImage.style.display = 'none';
+                console.log('No logo URL found, hiding preview');
             }
+            
+            console.log('Modal populated with address:', { address, city, state, pincode });
         }
 
         if (editProfileLink) {
@@ -2500,19 +2776,22 @@ document.addEventListener('click', (event) => {
     }
 });
 
-// --- Member & Trainer Display Tab Logic ---
+// --- Display Tab Logic ---
 const sidebarMenuLinks = document.querySelectorAll('.sidebar .menu-link');
 const membersMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-users'));
 const trainersMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-user-tie'));
 const dashboardMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-tachometer-alt'));
+const settingsMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-cog'));
 const memberDisplayTab = document.getElementById('memberDisplayTab');
 const trainerTab = document.getElementById('trainerTab');
+const settingsTab = document.getElementById('settingsTab');
 const dashboardContent = document.querySelector('.content');
 
 function hideAllMainTabs() {
   if (dashboardContent) dashboardContent.style.display = 'none';
   if (memberDisplayTab) memberDisplayTab.style.display = 'none';
   if (trainerTab) trainerTab.style.display = 'none';
+  if (settingsTab) settingsTab.style.display = 'none';
 }
 
 if (trainersMenuLink && trainerTab) {
@@ -2547,6 +2826,8 @@ if (dashboardMenuLink && dashboardContent) {
     dashboardMenuLink.classList.add('active');
   });
 }
+
+// Settings navigation is now handled in the dynamic sidebar menu highlight section below
 // On page load, show only dashboard
 document.addEventListener('DOMContentLoaded', function() {
   hideAllMainTabs();
@@ -2755,7 +3036,7 @@ function updateMainContentMargins() {
   const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
   const dashboardTab = mainContent.querySelector('.content');
   const memberTab = document.getElementById('memberDisplayTab');
-  const trainerTab = document.getElementById('trainerTab');
+  // Use global trainerTab and settingsTab variables instead of redeclaring
 
   function setTabMargin(tab) {
     if (!tab || tab.style.display === 'none') return;
@@ -2769,6 +3050,7 @@ function updateMainContentMargins() {
   setTabMargin(dashboardTab);
   setTabMargin(memberTab);
   setTabMargin(trainerTab);
+  setTabMargin(settingsTab);
 }
 
 // Dynamic sidebar menu highlight
@@ -2777,16 +3059,16 @@ sidebarMenuLinks.forEach(link => {
     // Only handle tab switching links (not external/settings etc.)
     const menuText = link.querySelector('.menu-text')?.textContent.trim();
     if (menuText === 'Dashboard') {
-      // Show dashboard, hide members
+      // Show dashboard, hide others
+      hideAllMainTabs();
       dashboardContent.style.display = 'block';
-      memberDisplayTab.style.display = 'none';
       updateMainContentMargins();
       // Remove active from all, add to dashboard
       sidebarMenuLinks.forEach(l => l.classList.remove('active'));
       link.classList.add('active');
     } else if (menuText === 'Members') {
-      // Show members, hide dashboard
-      dashboardContent.style.display = 'none';
+      // Show members, hide others
+      hideAllMainTabs();
       memberDisplayTab.style.display = 'block';
       updateMainContentMargins();
       // Remove active from all, add to members
@@ -2794,6 +3076,14 @@ sidebarMenuLinks.forEach(link => {
       link.classList.add('active');
       // Fetch members if needed
       if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+    } else if (menuText === 'Settings') {
+      // Show settings, hide others
+      hideAllMainTabs();
+      settingsTab.style.display = 'block';
+      updateMainContentMargins();
+      // Remove active from all, add to settings
+      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
     } else {
       // For other tabs, just highlight
       sidebarMenuLinks.forEach(l => l.classList.remove('active'));
@@ -3416,6 +3706,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const tabMap = {
     'Dashboard': 'dashboardTab',
     'Members': 'memberDisplayTab',
+    'Settings': 'settingsTab',
     // Add more mappings as you implement more tabs
   };
   // Get all mobile menu links
@@ -3444,16 +3735,20 @@ document.addEventListener('DOMContentLoaded', function() {
       // Hide dashboard content if not dashboard
       const dashboardContent = document.querySelector('.content');
       if (tabName === 'Dashboard') {
+        hideAllMainTabs();
         if (dashboardContent) dashboardContent.style.display = 'block';
-        const memberTab = document.getElementById('memberDisplayTab');
-        if (memberTab) memberTab.style.display = 'none';
         updateMainContentMargins();
       } else if (tabName === 'Members') {
-        if (dashboardContent) dashboardContent.style.display = 'none';
+        hideAllMainTabs();
         const memberTab = document.getElementById('memberDisplayTab');
         if (memberTab) memberTab.style.display = 'block';
         updateMainContentMargins();
         if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+      } else if (tabName === 'Settings') {
+        hideAllMainTabs();
+        const settingsTab = document.getElementById('settingsTab');
+        if (settingsTab) settingsTab.style.display = 'block';
+        updateMainContentMargins();
       } else {
         updateMainContentMargins();
       }
@@ -3525,3 +3820,595 @@ document.addEventListener('DOMContentLoaded', function () {
       newMembersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:red;">Failed to load members.</td></tr>';
     });
 });
+
+// ===== SETTINGS TAB FUNCTIONALITY =====
+document.addEventListener('DOMContentLoaded', function() {
+  // Theme Management
+  const themeOptions = document.querySelectorAll('.theme-option');
+  const colorOptions = document.querySelectorAll('.color-option');
+
+  // Load saved theme and color
+  const savedTheme = localStorage.getItem('gymAdminTheme') || 'light';
+  const savedColor = localStorage.getItem('gymAdminColor') || 'blue';
+
+  // Apply saved theme and color
+  applyTheme(savedTheme);
+  applyColorScheme(savedColor);
+
+  // Update UI to reflect saved theme
+  themeOptions.forEach(option => {
+    option.classList.toggle('active', option.dataset.theme === savedTheme);
+    // Add click handler for theme selection
+    option.addEventListener('click', function() {
+      themeOptions.forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+      const theme = this.dataset.theme;
+      applyTheme(theme);
+      localStorage.setItem('gymAdminTheme', theme);
+    });
+  });
+
+  // --- Enhanced Color Scheme Selector: always visible, interactive, horizontal ---
+  const colorMap = {
+    blue: '#1976d2',
+    green: '#388e3c',
+    purple: '#7b1fa2',
+    orange: '#f57c00',
+    red: '#d32f2f'
+  };
+  colorOptions.forEach(option => {
+    const color = option.dataset.color;
+    const circle = option.querySelector('.color-circle');
+    if (circle) {
+      circle.style.background = colorMap[color] || '#1976d2';
+      circle.style.border = '2px solid #fff';
+      circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
+      circle.style.width = '28px';
+      circle.style.height = '28px';
+      circle.style.borderRadius = '50%';
+      circle.style.display = 'inline-block';
+      circle.style.transition = 'box-shadow 0.2s, border 0.2s';
+      option.style.display = 'inline-block';
+      option.style.marginRight = '18px';
+      option.style.cursor = 'pointer';
+      option.style.verticalAlign = 'middle';
+    }
+    // Set active state
+    if (color === savedColor) {
+      option.classList.add('active');
+      if (circle) {
+        circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
+        circle.style.border = '2px solid var(--primary, #1976d2)';
+      }
+    } else {
+      option.classList.remove('active');
+      if (circle) {
+        circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
+        circle.style.border = '2px solid #fff';
+      }
+    }
+    // Hover effect
+    option.addEventListener('mouseenter', function() {
+      if (circle) {
+        circle.style.boxShadow = '0 0 0 3px var(--primary-dark, #0056b3)';
+        circle.style.border = '2px solid var(--primary-dark, #0056b3)';
+      }
+    });
+    option.addEventListener('mouseleave', function() {
+      if (option.classList.contains('active')) {
+        if (circle) {
+          circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
+          circle.style.border = '2px solid var(--primary, #1976d2)';
+        }
+      } else {
+        if (circle) {
+          circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
+          circle.style.border = '2px solid #fff';
+        }
+      }
+    });
+    // Click handler
+    option.addEventListener('click', function() {
+      const color = this.dataset.color;
+      // Update active state
+      colorOptions.forEach(opt => {
+        opt.classList.remove('active');
+        const c = opt.querySelector('.color-circle');
+        if (c) {
+          c.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
+          c.style.border = '2px solid #fff';
+        }
+      });
+      this.classList.add('active');
+      if (circle) {
+        circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
+        circle.style.border = '2px solid var(--primary, #1976d2)';
+      }
+      // Apply color scheme
+      applyColorScheme(color);
+      // Save preference
+      localStorage.setItem('gymAdminColor', color);
+    });
+  });
+  
+  // Settings action handlers
+  document.getElementById('saveSettingsBtn')?.addEventListener('click', saveAllSettings);
+  document.getElementById('resetSettingsBtn')?.addEventListener('click', resetSettings);
+  document.getElementById('changePasswordBtn')?.addEventListener('click', openChangePasswordModal);
+  document.getElementById('updateProfileBtn')?.addEventListener('click', openUpdateProfileModal);
+  
+  // Data export handlers
+  document.getElementById('exportMembersBtn')?.addEventListener('click', () => exportData('members'));
+  document.getElementById('exportPaymentsBtn')?.addEventListener('click', () => exportData('payments'));
+  document.getElementById('exportAttendanceBtn')?.addEventListener('click', () => exportData('attendance'));
+  
+  // Operating hours handlers
+  setupOperatingHoursHandlers();
+  
+  // Load and apply saved settings
+  loadSavedSettings();
+});
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  
+  if (theme === 'dark') {
+    root.style.setProperty('--bg-primary', '#18191a');
+    root.style.setProperty('--bg-secondary', '#23272f');
+    root.style.setProperty('--card-bg', '#23272f');
+    root.style.setProperty('--text-primary', '#ffffff');
+    root.style.setProperty('--text-secondary', '#cccccc');
+    root.style.setProperty('--border-color', '#33363d');
+    root.style.setProperty('--border-light', '#23272f');
+    root.style.setProperty('--bg-light', '#23272f');
+    // Make all text white for visibility
+    document.body.style.background = '#18191a';
+    document.body.style.color = '#fff';
+    // Set all headings, paragraphs, links, labels, etc. to white
+    const allTextEls = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, label, li, th, td, .menu-text, .stat-title, .stat-value, .stat-change, .member-detail-label, .plan-badge, .edit-input, .sidebar, .sidebar .menu-link, .sidebar .menu-link .fa, .content, .modal-content, .modal, .tab-title, .tab-header, .tab-content, .quick-action, .info-list, .member-name, .member-id, .member-detail-title, .member-detail-modal, .profile-pic, .stat-card, .toggle-switch, .toggle-switch input, .toggle-switch label, .theme-option, .color-option, .settings-section, .settings-label, .settings-value, .settings-row, .settings-tab, .settings-content, .settings-header, .settings-title, .settings-description, .settings-group, .settings-btn, .settings-btn-primary, .settings-btn-secondary, .settings-btn-danger, .settings-btn-warning, .settings-btn-info, .settings-btn-success, .settings-btn-light, .settings-btn-dark, .settings-btn-outline, .settings-btn-link, .settings-btn-block, .settings-btn-lg, .settings-btn-sm, .settings-btn-xs, .settings-btn-icon, .settings-btn-circle, .settings-btn-square, .settings-btn-pill, .settings-btn-round, .settings-btn-flat, .settings-btn-ghost, .settings-btn-shadow, .settings-btn-gradient, .settings-btn-glow, .settings-btn-inverse, .settings-btn-transparent, .settings-btn-borderless, .settings-btn-text, .settings-btn-label, .settings-btn-value, .settings-btn-group, .settings-btn-toolbar, .settings-btn-dropdown, .settings-btn-toggle, .settings-btn-switch, .settings-btn-radio, .settings-btn-checkbox, .settings-btn-segment, .settings-btn-step, .settings-btn-progress, .settings-btn-spinner, .settings-btn-badge, .settings-btn-dot, .settings-btn-icon-left, .settings-btn-icon-right, .settings-btn-icon-top, .settings-btn-icon-bottom, .settings-btn-icon-only, .settings-btn-icon-text, .settings-btn-text-icon, .settings-btn-label-icon, .settings-btn-value-icon, .settings-btn-group-icon, .settings-btn-toolbar-icon, .settings-btn-dropdown-icon, .settings-btn-toggle-icon, .settings-btn-switch-icon, .settings-btn-radio-icon, .settings-btn-checkbox-icon, .settings-btn-segment-icon, .settings-btn-step-icon, .settings-btn-progress-icon, .settings-btn-spinner-icon, .settings-btn-badge-icon, .settings-btn-dot-icon');
+    allTextEls.forEach(el => {
+      el.style.color = '#fff';
+    });
+    // Set all links to white
+    const allLinks = document.querySelectorAll('a');
+    allLinks.forEach(a => {
+      a.style.color = '#fff';
+    });
+    // Set all dashboard containers, cards, and sections to dark backgrounds
+    const darkBgEls = document.querySelectorAll(`
+      .stat-card,
+      .content,
+      .modal-content,
+      .tab-content,
+      .settings-section,
+      .settings-tab,
+      .settings-content,
+      .settings-header,
+      .settings-row,
+      .settings-group,
+      .dashboard-section,
+      .dashboard-container,
+      .dashboard-card,
+      .card-bg,
+      .section-bg,
+      .admin-section,
+      .admin-container,
+      .admin-card,
+      .quick-actions,
+      .quick-action,
+      .activities-offered,
+      .activities-section,
+      .activities-list,
+      .gym-info,
+      .gym-info-section,
+      .membership-plan,
+      .membership-plan-section,
+      .membership-plans,
+      .new-members,
+      .new-members-section,
+      .recent-activity,
+      .recent-activity-section,
+      .attendance-chart,
+      .attendance-chart-section,
+      .equipment-gallery,
+      .equipment-gallery-section
+    `);
+    darkBgEls.forEach(el => {
+      // Use a lighter dark/greyish shade for all cards/sections for contrast
+      if (
+        el.classList.contains('stat-card') ||
+        el.classList.contains('dashboard-card') ||
+        el.classList.contains('card-bg') ||
+        el.classList.contains('modal-content') ||
+        el.classList.contains('tab-content') ||
+        el.classList.contains('settings-section') ||
+        el.classList.contains('admin-card') ||
+        el.classList.contains('quick-actions') ||
+        el.classList.contains('activities-offered') ||
+        el.classList.contains('activities-section') ||
+        el.classList.contains('activities-list') ||
+        el.classList.contains('quick-action-card') ||
+        el.classList.contains('activities-offered-card') ||
+        el.classList.contains('membership-plans-section') ||
+        el.classList.contains('membership-plans') ||
+        el.classList.contains('membership-plan-section') ||
+        el.classList.contains('membership-plan') ||
+        el.classList.contains('card') ||
+        el.classList.contains('card-header') ||
+        el.classList.contains('card-body') ||
+        el.classList.contains('gym-info-card') ||
+        el.classList.contains('gym-info-section') ||
+        el.classList.contains('plans-list') ||
+        el.classList.contains('main-content') ||
+        el.classList.contains('dashboard-row') ||
+        el.classList.contains('main-grid') ||
+        el.classList.contains('left-column') ||
+        el.classList.contains('right-column') ||
+        el.id === 'membershipPlansSection' ||
+        el.id === 'photoGridSection' ||
+        el.id === 'newMembersCard'
+      ) {
+        el.style.background = '#23262b'; // slightly lighter black for all cards/sections
+        el.style.backgroundColor = '#23262b';
+        el.style.boxShadow = '0 2px 16px 0 rgba(0,0,0,0.18)';
+        el.style.borderColor = '#3a3f4b';
+        el.style.color = '#fff';
+      } else {
+        el.style.background = '#18191a';
+        el.style.backgroundColor = '#18191a';
+        el.style.boxShadow = 'none';
+        el.style.borderColor = '#33363d';
+        el.style.color = '#fff';
+      }
+    });
+    // Force all card titles, headers, and section headings to white
+    const cardTitles = document.querySelectorAll('.card-title, .card-header h2, .card-header h1, .gym-info-section-title, .page-title, .card-header, .card-header h3');
+    cardTitles.forEach(h => { h.style.color = '#fff'; });
+    // Card header backgrounds
+    const cardHeaders = document.querySelectorAll('.card-header');
+    cardHeaders.forEach(h => { h.style.background = 'transparent'; h.style.backgroundColor = 'transparent'; });
+    // Card body backgrounds
+    const cardBodies = document.querySelectorAll('.card-body, .plans-list, .activities-list, .gym-info-content, .table-responsive, .equipment-gallery, .activity-list, .chart-container');
+    cardBodies.forEach(b => { b.style.background = 'transparent'; b.style.backgroundColor = 'transparent'; b.style.color = '#fff'; });
+    // Table backgrounds
+    const tables = document.querySelectorAll('table, thead, tbody, tr, th, td');
+    tables.forEach(t => { t.style.background = 'transparent'; t.style.backgroundColor = 'transparent'; t.style.color = '#fff'; });
+    // Modal backgrounds
+    const modals = document.querySelectorAll('.modal, .modal-content');
+    modals.forEach(m => { m.style.background = '#23262b'; m.style.backgroundColor = '#23262b'; m.style.color = '#fff'; });
+    // Button styles: use default (light) styles in dark mode for contrast
+    const allBtns = document.querySelectorAll('button, .btn, .upload-photo-btn');
+    allBtns.forEach(btn => {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.border = '';
+      btn.style.boxShadow = '';
+      btn.onmouseenter = null;
+      btn.onmouseleave = null;
+    });
+    // Quick action buttons: use primary color with white icons/text in dark mode
+    const qaBtns = document.querySelectorAll('.quick-action-btn');
+    qaBtns.forEach(btn => {
+      btn.style.background = 'var(--primary)';
+      btn.style.color = '#fff';
+      btn.style.border = 'none';
+      btn.style.boxShadow = '0 2px 8px 0 rgba(0,0,0,0.10)';
+      // Style icons inside button
+      const icon = btn.querySelector('i');
+      if (icon) icon.style.color = '#fff';
+      btn.onmouseenter = function() {
+        btn.style.background = 'var(--primary-dark)';
+      };
+      btn.onmouseleave = function() {
+        btn.style.background = 'var(--primary)';
+      };
+    });
+
+    // Activity badges: use primary color with white icon/text in dark mode
+    const activityBadges = document.querySelectorAll('.activity-badge');
+    activityBadges.forEach(badge => {
+      badge.style.setProperty('background', 'var(--primary)', 'important');
+      badge.style.setProperty('color', '#fff', 'important');
+      badge.style.setProperty('border', 'none', 'important');
+      badge.style.setProperty('box-shadow', '0 2px 8px 0 rgba(0,0,0,0.10)', 'important');
+      // Style icon inside badge
+      const icon = badge.querySelector('.activity-icon');
+      if (icon) icon.style.setProperty('color', '#fff', 'important');
+      badge.onmouseenter = function() {
+        badge.style.setProperty('background', 'var(--primary-dark)', 'important');
+        if (icon) icon.style.setProperty('color', '#fff', 'important');
+      };
+      badge.onmouseleave = function() {
+        badge.style.setProperty('background', 'var(--primary)', 'important');
+        if (icon) icon.style.setProperty('color', '#fff', 'important');
+      };
+    });
+    // Inputs and selects
+    const allInputs = document.querySelectorAll('input, select, textarea');
+    allInputs.forEach(inp => {
+      inp.style.background = '#23262b';
+      inp.style.color = '#fff';
+      inp.style.border = '1px solid #3a3f4b';
+    });
+    // Misc: Remove any white backgrounds from .card, .modal, .main-content, .dashboard, .dashboard-row, .main-grid, .left-column, .right-column
+    const miscBgEls = document.querySelectorAll('.card, .modal, .main-content, .dashboard, .dashboard-row, .main-grid, .left-column, .right-column');
+    miscBgEls.forEach(el => {
+      el.style.background = '#23262b';
+      el.style.backgroundColor = '#23262b';
+      el.style.color = '#fff';
+    });
+    // Extra: force quick action and activities headings to white
+    const qaHeadings = document.querySelectorAll('.quick-actions h2, .quick-action h2, .activities-offered h2, .activities-section h2, .activities-list h2');
+    qaHeadings.forEach(h => { h.style.color = '#fff'; });
+  } else if (theme === 'auto') {
+    // Auto theme based on system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark ? 'dark' : 'light');
+    return;
+  } else {
+    // Light theme (default)
+    root.style.setProperty('--bg-primary', '#ffffff');
+    root.style.setProperty('--bg-secondary', '#f8f9fa');
+    root.style.setProperty('--card-bg', '#ffffff');
+    root.style.setProperty('--text-primary', '#333333');
+    root.style.setProperty('--text-secondary', '#666666');
+    root.style.setProperty('--border-color', '#e0e0e0');
+    root.style.setProperty('--border-light', '#f0f0f0');
+    root.style.setProperty('--bg-light', '#f8f9fa');
+    // Reset text color for all elements
+    document.body.style.background = '#fff';
+    document.body.style.color = '#333';
+    const allTextEls = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, label, li, th, td, .menu-text, .stat-title, .stat-value, .stat-change, .member-detail-label, .plan-badge, .edit-input, .sidebar, .sidebar .menu-link, .sidebar .menu-link .fa, .content, .modal-content, .modal, .tab-title, .tab-header, .tab-content, .quick-action, .info-list, .member-name, .member-id, .member-detail-title, .member-detail-modal, .profile-pic, .stat-card, .toggle-switch, .toggle-switch input, .toggle-switch label, .theme-option, .color-option, .settings-section, .settings-label, .settings-value, .settings-row, .settings-tab, .settings-content, .settings-header, .settings-title, .settings-description, .settings-group, .settings-btn, .settings-btn-primary, .settings-btn-secondary, .settings-btn-danger, .settings-btn-warning, .settings-btn-info, .settings-btn-success, .settings-btn-light, .settings-btn-dark, .settings-btn-outline, .settings-btn-link, .settings-btn-block, .settings-btn-lg, .settings-btn-sm, .settings-btn-xs, .settings-btn-icon, .settings-btn-circle, .settings-btn-square, .settings-btn-pill, .settings-btn-round, .settings-btn-flat, .settings-btn-ghost, .settings-btn-shadow, .settings-btn-gradient, .settings-btn-glow, .settings-btn-inverse, .settings-btn-transparent, .settings-btn-borderless, .settings-btn-text, .settings-btn-label, .settings-btn-value, .settings-btn-group, .settings-btn-toolbar, .settings-btn-dropdown, .settings-btn-toggle, .settings-btn-switch, .settings-btn-radio, .settings-btn-checkbox, .settings-btn-segment, .settings-btn-step, .settings-btn-progress, .settings-btn-spinner, .settings-btn-badge, .settings-btn-dot, .settings-btn-icon-left, .settings-btn-icon-right, .settings-btn-icon-top, .settings-btn-icon-bottom, .settings-btn-icon-only, .settings-btn-icon-text, .settings-btn-text-icon, .settings-btn-label-icon, .settings-btn-value-icon, .settings-btn-group-icon, .settings-btn-toolbar-icon, .settings-btn-dropdown-icon, .settings-btn-toggle-icon, .settings-btn-switch-icon, .settings-btn-radio-icon, .settings-btn-checkbox-icon, .settings-btn-segment-icon, .settings-btn-step-icon, .settings-btn-progress-icon, .settings-btn-spinner-icon, .settings-btn-badge-icon, .settings-btn-dot-icon');
+    allTextEls.forEach(el => {
+      el.style.color = '';
+    });
+    const allLinks = document.querySelectorAll('a');
+    allLinks.forEach(a => {
+      a.style.color = '';
+    });
+  }
+  document.body.setAttribute('data-theme', theme);
+}
+
+function applyColorScheme(color) {
+  const root = document.documentElement;
+  const colorSchemes = {
+    blue: { primary: '#007bff', primaryDark: '#0056b3', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
+    green: { primary: '#28a745', primaryDark: '#1e7e34', success: '#20c997', warning: '#ffc107', danger: '#dc3545' },
+    purple: { primary: '#6f42c1', primaryDark: '#5a32a3', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
+    orange: { primary: '#fd7e14', primaryDark: '#e55a00', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
+    red: { primary: '#dc3545', primaryDark: '#c82333', success: '#28a745', warning: '#ffc107', danger: '#e74c3c' }
+  };
+  
+  const scheme = colorSchemes[color];
+  if (scheme) {
+    Object.entries(scheme).forEach(([key, value]) => {
+      // Use --primary for primary, --primary-dark for primaryDark, etc.
+      let cssVar = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      // Special case: primaryDark should be --primary-dark
+      if (key === 'primaryDark') cssVar = '--primary-dark';
+      root.style.setProperty(cssVar, value);
+    });
+  }
+}
+
+function saveAllSettings() {
+  const settings = {
+    theme: document.querySelector('.theme-option.active')?.dataset.theme || 'light',
+    color: document.querySelector('.color-option.active')?.dataset.color || 'blue',
+    notifications: {
+      newMembers: document.getElementById('newMemberNotif')?.checked || false,
+      payments: document.getElementById('paymentNotif')?.checked || false,
+      trainers: document.getElementById('trainerNotif')?.checked || false,
+      email: document.getElementById('emailNotif')?.checked || false
+    },
+    services: {
+      onlineBooking: document.getElementById('onlineBooking')?.checked || false,
+      personalTraining: document.getElementById('personalTraining')?.checked || false,
+      groupClasses: document.getElementById('groupClasses')?.checked || false,
+      equipmentReservation: document.getElementById('equipmentReservation')?.checked || false,
+      memberCheckin: document.getElementById('memberCheckin')?.checked || false
+    },
+    security: {
+      twoFactorAuth: document.getElementById('twoFactorAuth')?.checked || false,
+      loginAlerts: document.getElementById('loginAlerts')?.checked || false
+    },
+    operatingHours: getOperatingHours()
+  };
+  
+  // Save to localStorage
+  localStorage.setItem('gymAdminSettings', JSON.stringify(settings));
+  
+  // Show success message
+  showNotification('Settings saved successfully!', 'success');
+}
+
+function resetSettings() {
+  if (confirm('Are you sure you want to reset all settings to default?')) {
+    // Clear saved settings
+    localStorage.removeItem('gymAdminSettings');
+    localStorage.removeItem('gymAdminTheme');
+    localStorage.removeItem('gymAdminColor');
+    
+    // Reset UI to defaults
+    applyTheme('light');
+    applyColorScheme('blue');
+    
+    // Reset all toggles and inputs
+    document.querySelectorAll('.toggle-switch input').forEach(input => {
+      input.checked = input.id.includes('newMemberNotif') || 
+                      input.id.includes('paymentNotif') || 
+                      input.id.includes('trainerNotif') ||
+                      input.id.includes('onlineBooking') ||
+                      input.id.includes('personalTraining') ||
+                      input.id.includes('groupClasses') ||
+                      input.id.includes('memberCheckin') ||
+                      input.id.includes('loginAlerts');
+    });
+    
+    // Reset theme and color selections
+    document.querySelectorAll('.theme-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.theme === 'light');
+    });
+    
+    document.querySelectorAll('.color-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.color === 'blue');
+    });
+    
+    showNotification('Settings reset to defaults!', 'info');
+  }
+}
+
+function loadSavedSettings() {
+  const saved = localStorage.getItem('gymAdminSettings');
+  if (saved) {
+    try {
+      const settings = JSON.parse(saved);
+      
+      // Apply notification settings
+      if (settings.notifications) {
+        Object.entries(settings.notifications).forEach(([key, value]) => {
+          const element = document.getElementById(key === 'newMembers' ? 'newMemberNotif' : 
+                                              key === 'payments' ? 'paymentNotif' :
+                                              key === 'trainers' ? 'trainerNotif' : 'emailNotif');
+          if (element) element.checked = value;
+        });
+      }
+      
+      // Apply service settings
+      if (settings.services) {
+        Object.entries(settings.services).forEach(([key, value]) => {
+          const element = document.getElementById(key);
+          if (element) element.checked = value;
+        });
+      }
+      
+      // Apply security settings
+      if (settings.security) {
+        Object.entries(settings.security).forEach(([key, value]) => {
+          const element = document.getElementById(key);
+          if (element) element.checked = value;
+        });
+      }
+      
+      // Apply operating hours
+      if (settings.operatingHours) {
+        setOperatingHours(settings.operatingHours);
+      }
+      
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }
+}
+
+function getOperatingHours() {
+  const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const hours = {};
+  
+  days.forEach(day => {
+    const openTime = document.getElementById(`${day}Open`)?.value;
+    const closeTime = document.getElementById(`${day}Close`)?.value;
+    const isClosed = document.getElementById(`${day}Closed`)?.checked;
+    
+    hours[day] = {
+      open: openTime,
+      close: closeTime,
+      closed: isClosed
+    };
+  });
+  
+  return hours;
+}
+
+function setOperatingHours(hours) {
+  Object.entries(hours).forEach(([day, schedule]) => {
+    const openInput = document.getElementById(`${day}Open`);
+    const closeInput = document.getElementById(`${day}Close`);
+    const closedInput = document.getElementById(`${day}Closed`);
+    
+    if (openInput) openInput.value = schedule.open || '06:00';
+    if (closeInput) closeInput.value = schedule.close || '22:00';
+    if (closedInput) closedInput.checked = schedule.closed || false;
+  });
+}
+
+function setupOperatingHoursHandlers() {
+  const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  
+  days.forEach(day => {
+    const closedCheckbox = document.getElementById(`${day}Closed`);
+    const openInput = document.getElementById(`${day}Open`);
+    const closeInput = document.getElementById(`${day}Close`);
+    
+    if (closedCheckbox) {
+      closedCheckbox.addEventListener('change', function() {
+        if (openInput) openInput.disabled = this.checked;
+        if (closeInput) closeInput.disabled = this.checked;
+      });
+    }
+  });
+}
+
+function exportData(type) {
+  // Placeholder for data export functionality
+  showNotification(`Exporting ${type} data...`, 'info');
+  
+  // In a real implementation, this would call an API endpoint
+  setTimeout(() => {
+    showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`, 'success');
+  }, 2000);
+}
+
+function openChangePasswordModal() {
+  // Placeholder for change password modal
+  alert('Change password functionality would be implemented here');
+}
+
+function openUpdateProfileModal() {
+  // Placeholder for update profile modal
+  alert('Update profile functionality would be implemented here');
+}
+
+function showNotification(message, type = 'info') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  `;
+  
+  // Set background color based on type
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    warning: '#ffc107',
+    info: '#007bff'
+  };
+  notification.style.backgroundColor = colors[type] || colors.info;
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  // Animate in
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.style.transform = 'translateX(400px)';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 300);
+  }, 3000);
+}

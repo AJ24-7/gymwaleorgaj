@@ -714,47 +714,92 @@ function initFormSubmissionModule() {
 
   console.log('initFormSubmissionModule: submit event listener attached');
 
-  form.addEventListener('submit', async function(e) {
-    console.log('Form submit event fired');
+  // Disable form's default submission behavior
+  form.setAttribute('novalidate', 'true');
+  if (form.hasAttribute('action')) {
+    form.removeAttribute('action');
+  }
+  if (form.hasAttribute('method')) {
+    form.removeAttribute('method');
+  }
+
+  // Global flag to control form submission
+  let isFormSubmissionBlocked = false;
+  
+  // Add debugging to track all form events
+  form.addEventListener('submit', function(e) {
+    console.log('🔍 Form submit event detected:', {
+      isBlocked: isFormSubmissionBlocked,
+      eventType: e.type,
+      target: e.target,
+      defaultPrevented: e.defaultPrevented
+    });
+  }, true);
+
+  // Main form submission handler
+  async function handleFormSubmission(e) {
+    console.log('🚀 handleFormSubmission called:', {
+      isBlocked: isFormSubmissionBlocked,
+      eventType: e.type
+    });
+    
     e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    
+    // Check if form submission is blocked
+    if (isFormSubmissionBlocked) {
+      console.log('❌ Form submission blocked by error dialog');
+      return false;
+    }
+    
+    // Prevent HTML5 form reset on error
+    form.noValidate = true;
+    console.log('✅ Form submit event processing started');
 
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
     const loader = document.getElementById('loader');
     const formContainer = document.querySelector('.form-container');
-    const successModal = document.getElementById('registrationSuccessModal');
 
     if (!submitBtn) {
       console.error('Submit button not found');
-      return;
+      return false;
     }
 
     try {
       // Validate form before submission
-      if (!window.validateForm || !validateForm()) {
-        console.log('Form validation failed');
+      if (!window.validateForm || !window.validateForm()) {
+        console.log('❌ Form validation failed');
         // Show error visually, not alert
         const errorSummary = document.getElementById('formErrorSummary');
         if (errorSummary) {
           errorSummary.textContent = 'Please fix the errors above and try again.';
           errorSummary.style.display = 'block';
         }
-        return;
+        return false;
       }
+      
+      console.log('✅ Form validation passed');
 
       // Prepare form data
       const formData = prepareFormData();
+      console.log('📝 Form data prepared');
 
       // Show loading state
       if (btnText) btnText.textContent = 'Submitting...';
       if (loader) loader.style.display = 'inline-block';
       submitBtn.disabled = true;
+      console.log('⏳ Loading state activated');
 
       // Submit to server
+      console.log('🌐 Sending request to server...');
       const response = await fetch('http://localhost:5000/api/gyms/register', {
         method: 'POST',
         body: formData
       });
+      
+      console.log('📡 Server response received:', response.status, response.statusText);
 
       if (!response.ok) {
         let errorMsg = 'Server responded with error';
@@ -763,29 +808,131 @@ function initFormSubmissionModule() {
           if (data && (data.message || data.error)) {
             errorMsg = data.message || data.error;
           }
-        } catch (e) {}
-        throw new Error(errorMsg);
+        } catch (e) {
+          console.error('Error parsing server response:', e);
+        }
+        // Make error dialog modal and block all interaction
+        console.log('🔥 Showing error dialog and blocking form submission');
+        showSubmissionErrorDialog(errorMsg);
+        // Focus the error dialog's OK button
+        setTimeout(() => {
+          const btn = document.getElementById('closeRegistrationErrorDialogBtn');
+          if (btn) btn.focus();
+        }, 100);
+        return false;
       }
 
+      const responseData = await response.json();
+      console.log('✅ Registration successful:', responseData);
+
       // Show custom registration success dialog
-      if (formContainer) formContainer.style.display = 'none';
+      console.log('🎉 Showing success dialog');
+      if (formContainer) {
+        formContainer.style.display = 'none';
+        console.log('📦 Form container hidden');
+      }
       showRegistrationSuccessDialog();
+      console.log('✨ Success dialog should be visible now');
+      
+      // Don't return false here - let success flow continue
+      return true;
     } catch (error) {
       console.error('Submission error:', error);
-      showSubmissionErrorDialog(error.message);
+      
+      // Block form submission immediately on error
+      isFormSubmissionBlocked = true;
+      
+      // Prevent any further form submission attempts
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      
+      // Show error dialog with specific message for network errors
+      let errorMessage = error.message;
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      }
+      
+      showSubmissionErrorDialog(errorMessage);
+      setTimeout(() => {
+        const btn = document.getElementById('closeRegistrationErrorDialogBtn');
+        if (btn) btn.focus();
+      }, 100);
+      
+      return false;
     } finally {
       // Reset button state
       if (btnText) btnText.textContent = 'Register Gym';
       if (loader) loader.style.display = 'none';
       if (submitBtn) submitBtn.disabled = false;
     }
+    return false;
+  }
+
+  // Set up form submission prevention
+  form.onsubmit = function(e) { 
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    console.log('🛑 form.onsubmit: prevented default submission');
+    return false; 
+  };
+  
+  // Completely override form submission
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    console.log('🛑 submit event listener: prevented default submission');
+    return false;
+  }, true);
+  
+  // Add the main form submission handler
+  form.addEventListener('submit', handleFormSubmission, false); // Use bubbling phase after prevention
+
+  // Also add click handler to submit button to ensure it works
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('🔘 Submit button clicked - triggering form submission');
+      // Create a synthetic event for handleFormSubmission
+      const syntheticEvent = new Event('submit', { bubbles: true, cancelable: true });
+      handleFormSubmission(syntheticEvent);
+    });
+  }
+
+  // Prevent accidental reload on Enter key in any input
+  form.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.tagName.toLowerCase() !== 'textarea') {
+      // Only allow Enter for textarea (multi-line), not for form submit
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
   });
+
+  // Block any other submit attempts
+  form.addEventListener('reset', function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return false;
+  });
+  
+  // Additional prevention for any programmatic form submissions
+  form.submit = function() {
+    console.log('Form.submit() called - preventing');
+    return false;
+  };
 
   // Show a custom registration success dialog/modal
   function showRegistrationSuccessDialog() {
+    console.log('🎊 showRegistrationSuccessDialog called');
     // Remove any existing dialog
     let dialog = document.getElementById('registrationSuccessDialog');
-    if (dialog) dialog.remove();
+    if (dialog) {
+      console.log('🗑️ Removing existing dialog');
+      dialog.remove();
+    }
     dialog = document.createElement('div');
     dialog.id = 'registrationSuccessDialog';
     dialog.style.cssText = `
@@ -805,13 +952,17 @@ function initFormSubmissionModule() {
     `;
     document.body.appendChild(dialog);
     document.body.style.overflow = 'hidden';
+    console.log('✅ Success dialog created and added to body');
+    
     document.getElementById('closeRegistrationSuccessDialogBtn').onclick = function() {
+      console.log('👋 Success dialog OK button clicked');
       dialog.remove();
       document.body.style.overflow = '';
       window.location.reload();
     };
     dialog.addEventListener('mousedown', function(e) {
       if (e.target === dialog) {
+        console.log('🖱️ Success dialog backdrop clicked');
         dialog.remove();
         document.body.style.overflow = '';
         window.location.reload();
@@ -831,32 +982,115 @@ function showSubmissionErrorDialog(msg) {
     background: rgba(0,0,0,0.55);
     display: flex; align-items: center; justify-content: center;
     z-index: 10010;`;
+  
   // Special handling for duplicate email/phone error
   let isDuplicate = false;
-  if (msg && typeof msg === 'string' && msg.toLowerCase().includes('already exists')) {
+  let duplicateMsg = '';
+  if (msg && typeof msg === 'string' && msg.toLowerCase().includes('gym with this email or phone already exists')) {
     isDuplicate = true;
+    duplicateMsg = 'A Gym ADMIN already exists with this email or phone number.';
   }
+  
   dialog.innerHTML = `
     <div style="background: #fff; border-radius: 14px; box-shadow: 0 4px 32px #0002; padding: 32px 28px 22px 28px; max-width: 95vw; width: 370px; text-align: center; position: relative;">
       <div style="font-size:2.2em;${isDuplicate ? 'color:#f9a825;' : 'color:#e53935;'}margin-bottom:10px;"><i class='fas ${isDuplicate ? 'fa-user-times' : 'fa-times-circle'}'></i></div>
-      <h2 style="margin:0 0 10px 0;font-size:1.18em;${isDuplicate ? 'color:#f9a825;' : 'color:#b71c1c;'}">${isDuplicate ? 'Account Already Exists' : 'Submission Failed'}</h2>
-      <div style="font-size:1.05em;color:#333;margin-bottom:10px;">${msg ? msg : 'An error occurred during registration. Please try again.'}</div>
+      <h2 style="margin:0 0 10px 0;font-size:1.18em;${isDuplicate ? 'color:#f9a825;' : 'color:#b71c1c;'}">${isDuplicate ? 'Gym ADMIN Already Exists' : 'Submission Failed'}</h2>
+      <div style="font-size:1.05em;color:#333;margin-bottom:10px;">${isDuplicate ? duplicateMsg : (msg ? msg : 'An error occurred during registration. Please try again.')}</div>
       <button id="closeRegistrationErrorDialogBtn" style="margin-top:8px;padding:8px 28px;font-size:1.08em;${isDuplicate ? 'background:#f9a825;' : 'background:#b71c1c;'}color:#fff;border:none;border-radius:6px;cursor:pointer;">OK</button>
     </div>
   `;
+  
   document.body.appendChild(dialog);
   document.body.style.overflow = 'hidden';
+  
+  // Block form submission globally
+  isFormSubmissionBlocked = true;
+  console.log('🚫 Form submission blocked by error dialog - isFormSubmissionBlocked:', isFormSubmissionBlocked);
+  
+  // Prevent page navigation during error dialog
+  const preventNavigation = function(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  };
+  window.addEventListener('beforeunload', preventNavigation, true);
+  
+  // Additional safety: disable submit button completely
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.pointerEvents = 'none';
+    submitBtn.style.opacity = '0.5';
+    console.log('🔒 Submit button disabled');
+  }
+  
+  // Store prevention function for cleanup
+  dialog.preventNavigation = preventNavigation;
+  
+  // Handle OK button click
   document.getElementById('closeRegistrationErrorDialogBtn').onclick = function() {
+    // Remove navigation prevention
+    if (dialog.preventNavigation) {
+      window.removeEventListener('beforeunload', dialog.preventNavigation, true);
+    }
+    
+    // Unblock form submission
+    isFormSubmissionBlocked = false;
+    console.log('🔓 Form submission unblocked - isFormSubmissionBlocked:', isFormSubmissionBlocked);
+    
+    // Re-enable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.pointerEvents = 'auto';
+      submitBtn.style.opacity = '1';
+      console.log('🔓 Submit button re-enabled');
+    }
+    
+    // Remove dialog
     dialog.remove();
     document.body.style.overflow = '';
+    
+    // Clear any loading states
+    const btnText = document.getElementById('btnText');
+    const loader = document.getElementById('loader');
+    
+    if (btnText) btnText.textContent = 'Register Gym';
+    if (loader) loader.style.display = 'none';
   };
+  
+  // Handle backdrop click
   dialog.addEventListener('mousedown', function(e) {
     if (e.target === dialog) {
+      // Remove navigation prevention
+      if (dialog.preventNavigation) {
+        window.removeEventListener('beforeunload', dialog.preventNavigation, true);
+      }
+      
+      // Unblock form submission
+      isFormSubmissionBlocked = false;
+      console.log('Form submission unblocked');
+      
+      // Re-enable submit button
+      const submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.pointerEvents = 'auto';
+        submitBtn.style.opacity = '1';
+      }
+      
+      // Remove dialog
       dialog.remove();
       document.body.style.overflow = '';
+      
+      // Clear any loading states
+      const btnText = document.getElementById('btnText');
+      const loader = document.getElementById('loader');
+      
+      if (btnText) btnText.textContent = 'Register Gym';
+      if (loader) loader.style.display = 'none';
     }
   });
-}
 }
   // Prepare FormData object for submission
   function prepareFormData() {
@@ -967,6 +1201,7 @@ function showSubmissionErrorDialog(msg) {
 
     return formData;
   }
+}
 
 // ================ UTILITY FUNCTIONS ================
 function initScrollAnimations() {

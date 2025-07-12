@@ -3,6 +3,7 @@ const Gym = require('../models/gym');
 const Trainer = require('../models/trainerModel');
 const Membership = require('../models/Membership');
 const Notification = require('../models/Notification');
+const TrialBooking = require('../models/TrialBooking');
 const sendEmail = require('../utils/sendEmail');
 
 
@@ -49,12 +50,18 @@ exports.getDashboardData = async (req, res) => {
     const percent = (curr, prev) =>
       prev === 0 ? 100 : Math.round(((curr - prev) / prev) * 100);
 
+    // Trial Bookings
+    const totalTrialBookings = await TrialBooking.countDocuments();
+    const pendingTrialApprovals = await TrialBooking.countDocuments({ status: 'pending' });
+
     res.json({
       totalUsers,
       activeMembers,
       pendingGyms,
       pendingTrainers,
       totalRevenue: totalRevenue[0]?.total || 0,
+      totalTrialBookings,
+      pendingTrialApprovals,
       changes: {
         users: percent(thisMonthUsers, lastMonthUsers),
         members: percent(thisMonthMembers, lastMonthMembers),
@@ -75,10 +82,7 @@ exports.approveGym = async (req, res) => {
 
     if (!gym) return res.status(404).json({ error: 'Gym not found' });
 
-    // Assign admin id if not already set
-    if (!gym.admin) {
-      gym.admin = gym._id; // Use gym's own ObjectId as admin id (or replace with actual admin id logic)
-    }
+    // Set the gym as approved - the gym will use its own ID for authentication
     gym.status = 'approved';
     gym.approvedAt = new Date();
     await gym.save();
@@ -87,8 +91,11 @@ exports.approveGym = async (req, res) => {
       await sendEmail(
         gym.email,
         '🎉 Your Gym Registration is Approved!',
-        `<h3>Hello ${gym.ownerName || gym.name || 'Gym Owner'},</h3>
-        <p>Your gym has been approved by FIT-verse Admin. You can now <a href="http://localhost:5000/gym-login">log in</a> and manage your profile.</p>
+        `<h3>Hello ${gym.contactPerson || gym.gymName || 'Gym Owner'},</h3>
+        <p>Your gym "${gym.gymName}" has been approved by FIT-verse Admin. You can now <a href="http://localhost:5000/frontend/public/login.html">log in</a> and manage your profile.</p>
+        <p><strong>Login Details:</strong><br/>
+        Email: ${gym.email}<br/>
+        Use your registration password to log in.</p>
         <p>Thank you for choosing FIT-verse!</p>`
       );
       console.log(`✅ Approval email sent to ${gym.email}`);
@@ -208,5 +215,46 @@ exports.markNotificationRead = async (req, res) => {
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
     res.status(500).json({ message: 'Error marking notification as read' });
+  }
+};
+
+// Admin-specific: Get gym details by ID (regardless of status)
+exports.getGymById = async (req, res) => {
+  try {
+    const gym = await Gym.findById(req.params.id).select('-password');
+    if (!gym) {
+      return res.status(404).json({ message: 'Gym not found' });
+    }
+    console.log('[DEBUG] Admin getGymById - returning gym:', gym.gymName);
+    console.log('[DEBUG] Admin getGymById - gymPhotos:', gym.gymPhotos);
+    res.status(200).json(gym);
+  } catch (error) {
+    console.error("Error fetching gym by ID for admin:", error);
+    res.status(500).json({ message: 'Server error while fetching gym details' });
+  }
+};
+
+// Admin-specific: Get all gyms (regardless of status)
+exports.getAllGyms = async (req, res) => {
+  try {
+    const gyms = await Gym.find({}).select('-password');
+    console.log('[DEBUG] Admin getAllGyms - returning', gyms.length, 'gyms');
+    res.status(200).json(gyms);
+  } catch (error) {
+    console.error("Error fetching all gyms for admin:", error);
+    res.status(500).json({ message: 'Server error while fetching gyms' });
+  }
+};
+
+// Admin-specific: Get gyms by status
+exports.getGymsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+    const gyms = await Gym.find({ status }).select('-password');
+    console.log('[DEBUG] Admin getGymsByStatus - returning', gyms.length, 'gyms with status:', status);
+    res.status(200).json(gyms);
+  } catch (error) {
+    console.error("Error fetching gyms by status for admin:", error);
+    res.status(500).json({ message: 'Server error while fetching gyms' });
   }
 };

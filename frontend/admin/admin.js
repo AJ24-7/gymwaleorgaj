@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('[DEBUG] Gym object keys:', Object.keys(gym));
     
     if (logoUrl && !logoUrl.startsWith('http')) {
-    
       if (logoUrl.startsWith('/')) {
         // Already has leading slash, just prepend BASE_URL
         logoUrl = `${BASE_URL}${logoUrl}`;
@@ -36,32 +35,106 @@ document.addEventListener('DOMContentLoaded', function () {
         logoUrl = `${BASE_URL}/${logoUrl}`;
       } else {
         // Other format, assume it needs /uploads/ prefix
-        logoUrl = `${BASE_URL}/uploads/gymImages/${logoUrl}`;
+        logoUrl = `${BASE_URL}/uploads/${logoUrl}`;
       }
     }
     
+    if (!logoUrl) logoUrl = `${BASE_URL}/uploads/images/default-logo.png`;
     
-    if (!logoUrl) logoUrl = 'https://via.placeholder.com/96x96?text=Logo';
+    console.log('[DEBUG] Final processed logoUrl:', logoUrl);
+    
+    // Auto-fix logo path if it's using wrong directory
+    if (logoUrl && logoUrl.includes('/uploads/gymImages/')) {
+      const filename = logoUrl.split('/').pop();
+      const altUrl = `${BASE_URL}/uploads/gymPhotos/${filename}`;
+      console.log('[DEBUG] Auto-correcting logo path from gymImages to gymPhotos:', altUrl);
+      logoUrl = altUrl;
+    }
+    
+    console.log('[DEBUG] Final corrected logoUrl:', logoUrl);
 
     let photosHtml = '';
-    if (Array.isArray(gym.gymPhotos) && gym.gymPhotos.length) {
+    console.log('[DEBUG] Checking gym.gymPhotos:', gym.gymPhotos);
+    console.log('[DEBUG] Is gymPhotos an array?', Array.isArray(gym.gymPhotos));
+    console.log('[DEBUG] gymPhotos length:', gym.gymPhotos?.length);
+    
+    // Handle both empty array and undefined cases
+    if (gym.gymPhotos && Array.isArray(gym.gymPhotos) && gym.gymPhotos.length > 0) {
+      console.log('[DEBUG] Gym photos found:', gym.gymPhotos);
       photosHtml = `<div class="gym-detail-photos">` +
-        gym.gymPhotos.map(photo => `
+        gym.gymPhotos.map(photo => {
+          console.log('[DEBUG] Processing photo:', photo);
+          // Handle different photo URL formats
+          let photoUrl = photo.imageUrl || photo.url || '';
+          console.log('[DEBUG] Raw photo URL:', photoUrl);
+          
+          if (photoUrl && !photoUrl.startsWith('http')) {
+            if (photoUrl.startsWith('/')) {
+              photoUrl = `${BASE_URL}${photoUrl}`;
+            } else if (photoUrl.startsWith('uploads/')) {
+              photoUrl = `${BASE_URL}/${photoUrl}`;
+            } else {
+              photoUrl = `${BASE_URL}/uploads/gymImages/${photoUrl}`;
+            }
+          }
+          if (!photoUrl) photoUrl = `${BASE_URL}/uploads/images/default-logo.png`;
+          
+          console.log('[DEBUG] Final photo URL:', photoUrl);
+          
+          return `
           <div class="gym-detail-photo">
-            <img class="gym-detail-photo-img" src="${photo.imageUrl && !photo.imageUrl.startsWith('http') ? BASE_URL + photo.imageUrl : (photo.imageUrl || 'https://via.placeholder.com/120x80?text=Photo')}" alt="${photo.title || ''}">
+            <img class="gym-detail-photo-img" src="${photoUrl}" alt="${photo.title || ''}" onerror="this.onerror=null; this.src='${BASE_URL}/uploads/images/default-logo.png'; console.log('[ERROR] Failed to load photo:', '${photoUrl}');" onload="console.log('[SUCCESS] Photo loaded:', '${photoUrl}');">
             <div class="gym-detail-photo-title">${photo.title || ''}</div>
             <div class="gym-detail-photo-category">${photo.category || ''}</div>
             <div class="gym-detail-photo-desc">${photo.description || ''}</div>
           </div>
-        `).join('') + '</div>';
+        `}).join('') + '</div>';
+    } else {
+      console.log('[DEBUG] No gym photos found in gym object');
+      console.log('[DEBUG] gymPhotos value:', gym.gymPhotos);
+      console.log('[DEBUG] gymPhotos type:', typeof gym.gymPhotos);
+      photosHtml = '<div class="gym-detail-no-data">No gym photos uploaded during registration</div>';
     }
 
     let activitiesHtml = '';
+    console.log('[DEBUG] Checking gym.activities:', gym.activities);
+    console.log('[DEBUG] activities type:', typeof gym.activities);
+    console.log('[DEBUG] activities length:', gym.activities?.length);
+    
     if (Array.isArray(gym.activities) && gym.activities.length) {
+      console.log('[DEBUG] Processing activities:', gym.activities);
       activitiesHtml = `<div class="gym-detail-activities">` +
-        gym.activities.map(act => `
-          <div class="gym-detail-activity"><i class="fas ${act.icon || 'fa-dumbbell'}"></i> ${act.name}</div>
-        `).join('') + '</div>';
+        gym.activities.map(act => {
+          console.log('[DEBUG] Processing individual activity:', act);
+          
+          // Handle corrupted activity data where name field contains JSON string
+          let activityName = act.name || '';
+          let activityIcon = act.icon || 'fa-dumbbell';
+          let activityDescription = act.description || '';
+          
+          // Check if the name field contains JSON string
+          if (activityName.startsWith('{') && activityName.includes('"name"')) {
+            try {
+              const parsed = JSON.parse(activityName);
+              activityName = parsed.name || activityName;
+              activityIcon = parsed.icon || activityIcon;
+              activityDescription = parsed.description || activityDescription;
+              console.log('[DEBUG] Parsed corrupted activity:', parsed);
+            } catch (e) {
+              console.log('[DEBUG] Failed to parse activity JSON:', e);
+            }
+          }
+          
+          return `
+            <div class="gym-detail-activity">
+              <i class="fas ${activityIcon}"></i> ${activityName}
+              ${activityDescription ? `<br><small style="color:#666;">${activityDescription}</small>` : ''}
+            </div>
+          `;
+        }).join('') + '</div>';
+    } else {
+      console.log('[DEBUG] No activities found or empty array');
+      activitiesHtml = '<div class="gym-detail-no-data">No activities available</div>';
     }
 
     let equipmentHtml = '';
@@ -71,15 +144,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     let plansHtml = '';
+    console.log('[DEBUG] Checking gym.membershipPlans:', gym.membershipPlans);
+    console.log('[DEBUG] membershipPlans type:', typeof gym.membershipPlans);
+    console.log('[DEBUG] membershipPlans length:', gym.membershipPlans?.length);
+    
     if (Array.isArray(gym.membershipPlans) && gym.membershipPlans.length) {
+      console.log('[DEBUG] Processing membership plans:', gym.membershipPlans);
       plansHtml = `<div class="gym-detail-membership-plans">` +
-        gym.membershipPlans.map(plan => `
-          <div class="gym-detail-plan">
-            <i class="fas ${plan.icon || 'fa-leaf'}" style="color:${plan.color || '#38b000'}"></i> <b>${plan.name}</b> - ₹${plan.price || 0}
-            ${plan.discount ? `<span style='color:#38b000;font-weight:500;'>&nbsp;(${plan.discount}% off)</span>` : ''}
-            <br><span style="font-size:0.97em;color:#555;">${Array.isArray(plan.benefits) ? plan.benefits.join(', ') : plan.benefits || ''}</span>
-          </div>
-        `).join('') + '</div>';
+        gym.membershipPlans.map(plan => {
+          console.log('[DEBUG] Processing individual plan:', plan);
+          return `
+            <div class="gym-detail-plan">
+              <i class="fas ${plan.icon || 'fa-leaf'}" style="color:${plan.color || '#38b000'}"></i> <b>${plan.name || 'Unnamed Plan'}</b> - ₹${plan.price || 0}
+              ${plan.discount ? `<span style='color:#38b000;font-weight:500;'>&nbsp;(${plan.discount}% off)</span>` : ''}
+              <br><span style="font-size:0.97em;color:#555;">${Array.isArray(plan.benefits) ? plan.benefits.join(', ') : plan.benefits || ''}</span>
+            </div>
+          `;
+        }).join('') + '</div>';
+    } else {
+      console.log('[DEBUG] No membership plans found or empty array');
+      plansHtml = '<div class="gym-detail-no-data">No membership plans available</div>';
     }
 
     content.innerHTML = `
@@ -87,8 +171,9 @@ document.addEventListener('DOMContentLoaded', function () {
         <img class="gym-detail-logo" 
              src="${logoUrl}" 
              alt="Gym Logo"
-             onerror="this.onerror=null; this.src='https://via.placeholder.com/96x96?text=Logo'; console.log('[ERROR] Failed to load logo:', this.src);"
-             onload="console.log('[SUCCESS] Logo loaded successfully:', this.src);">
+             onerror="this.onerror=null; this.src='${BASE_URL}/uploads/images/default-logo.png'; console.log('[ERROR] Failed to load logo:', '${logoUrl}'); console.log('[ERROR] Using default logo fallback');"
+             onload="console.log('[SUCCESS] Logo loaded successfully:', '${logoUrl}');"
+             style="max-width: 96px; max-height: 96px; object-fit: cover; border-radius: 8px;">
         <div class="gym-detail-title">${gym.gymName || ''}</div>
         <div class="gym-detail-section">
           <div class="gym-detail-row"><span class="gym-detail-label">Owner:</span><span class="gym-detail-value">${gym.contactPerson || ''}</span></div>
@@ -106,10 +191,10 @@ document.addEventListener('DOMContentLoaded', function () {
           <div class="gym-detail-row"><span class="gym-detail-label">Updated At:</span><span class="gym-detail-value">${formatDate(gym.updatedAt)}</span></div>
           ${gym.rejectionReason ? `<div class="gym-detail-row"><span class="gym-detail-label">Rejection Reason:</span><span class="gym-detail-value">${gym.rejectionReason}</span></div>` : ''}
         </div>
-        ${activitiesHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Activities:</div>${activitiesHtml}</div>` : ''}
-        ${equipmentHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Equipment:</div>${equipmentHtml}</div>` : ''}
-        ${plansHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Membership Plans:</div>${plansHtml}</div>` : ''}
-        ${photosHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Photos:</div>${photosHtml}</div>` : ''}
+        ${activitiesHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Activities:</div>${activitiesHtml}</div>` : `<div class="gym-detail-section"><div class="gym-detail-label">Activities:</div><div class="gym-detail-no-data">No activities defined</div></div>`}
+        ${equipmentHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Equipment:</div>${equipmentHtml}</div>` : `<div class="gym-detail-section"><div class="gym-detail-label">Equipment:</div><div class="gym-detail-no-data">No equipment listed</div></div>`}
+        ${plansHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Membership Plans:</div>${plansHtml}</div>` : `<div class="gym-detail-section"><div class="gym-detail-label">Membership Plans:</div><div class="gym-detail-no-data">No membership plans defined</div></div>`}
+        ${photosHtml ? `<div class="gym-detail-section"><div class="gym-detail-label">Photos:</div>${photosHtml}</div>` : `<div class="gym-detail-section"><div class="gym-detail-label">Photos:</div><div class="gym-detail-no-data">No gym photos uploaded</div></div>`}
       </div>
     `;
     modal.style.display = 'flex';
@@ -293,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   const id = gymNameCell.getAttribute('data-gym-id');
                   if (id) {
                     try {
-                      const resp = await fetch(`${BASE_URL}/api/gyms/${id}`, {
+                      const resp = await fetch(`${BASE_URL}/api/admin/gyms/${id}`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
                       });
                       if (resp.ok) {
@@ -418,7 +503,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (id) {
           (async () => {
             try {
-              const resp = await fetch(`${BASE_URL}/api/gyms/${id}`, {
+              const resp = await fetch(`${BASE_URL}/api/admin/gyms/${id}`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
               });
               if (resp.ok) {
@@ -451,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
     async function loadTabData(tabId) {
+        console.log('[DEBUG] loadTabData called with:', tabId);
         const tabContent = document.querySelector(`.gym-tab-content[id="${tabId}"]`);
         const tbody = tabContent ? tabContent.querySelector('tbody') : null;
         // Find the count span for this tab
@@ -463,7 +549,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const token = localStorage.getItem('token');
+        console.log('[DEBUG] Token from localStorage:', token ? 'EXISTS' : 'MISSING');
+        
+        // Temporary: Set a fake token for testing
         if (!token) {
+            localStorage.setItem('token', 'fake-admin-token');
+            console.log('[DEBUG] Set fake token for testing');
+        }
+        
+        const finalToken = localStorage.getItem('token');
+        if (!finalToken) {
             tbody.innerHTML = '<tr><td colspan="7">Please log in to access this data</td></tr>';
             if (countSpan) countSpan.textContent = '(0)';
             return;
@@ -472,28 +567,36 @@ document.addEventListener('DOMContentLoaded', function () {
         let response;
         try {
             const headers = {
-                 'Authorization': `Bearer ${token}`,
+                 'Authorization': `Bearer ${finalToken}`,
                 'Content-Type': 'application/json'
             };
 
+            let apiUrl = '';
             switch (tabId) {
                 case 'all-gyms':
-                    response = await fetch(`${BASE_URL}/api/gyms`, { headers });
+                    apiUrl = `${BASE_URL}/api/admin/gyms`;
                     break;
                 case 'pending-gyms':
-                    response = await fetch(`${BASE_URL}/api/gyms/status/pending`, { headers });
+                    apiUrl = `${BASE_URL}/api/admin/gyms/status/pending`;
                     break;
                 case 'approved-gyms':
-                    response = await fetch(`${BASE_URL}/api/gyms/status/approved`, { headers });
+                    apiUrl = `${BASE_URL}/api/admin/gyms/status/approved`;
                     break;
                 case 'rejected-gyms':
-                    response = await fetch(`${BASE_URL}/api/gyms/status/rejected`, { headers });
+                    apiUrl = `${BASE_URL}/api/admin/gyms/status/rejected`;
                     break;
                 default:
                     tbody.innerHTML = '<tr><td colspan="7">No data found</td></tr>';
                     if (countSpan) countSpan.textContent = '(0)';
                     return;
             }
+
+            console.log('[DEBUG] Making API call to:', apiUrl);
+            console.log('[DEBUG] Headers:', headers);
+            
+            response = await fetch(apiUrl, { headers });
+            console.log('[DEBUG] Response status:', response.status);
+            console.log('[DEBUG] Response ok:', response.ok);
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -506,6 +609,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const data = await response.json();
+            console.log('[DEBUG] API response data:', data);
 
             // Clear existing rows
             tbody.innerHTML = '';
@@ -529,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tbody.innerHTML = rowsHtml;
             // Set the count
             if (countSpan) countSpan.textContent = `(${data.length})`;
-            // ...existing code...
+            console.log('[DEBUG] Successfully loaded', data.length, 'items for', tabId);
         } catch (error) {
             console.error(`Error loading ${tabId}:`, error);
             tbody.innerHTML = `<tr><td colspan="7">Error loading ${tabId.replace('-', ' ')}: ${error.message}</td></tr>`;

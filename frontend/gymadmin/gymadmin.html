@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -115,10 +114,11 @@
         <span class="user-name" id="adminName">Admin</span>
         <i class="fas fa-chevron-down"></i>
     </div>
-    <ul class="profile-dropdown-menu" id="profileDropdownMenu">
-        <li><a href="#" id="editProfileLink">Edit Profile</a></li>
-        <li><a href="#" id="logoutLink">Logout</a></li>
-    </ul>
+    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+        <button class="dropdown-item" id="editProfileLink" type="button"><i class="fas fa-user-edit"></i> Edit Profile</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" id="logoutLink" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
                 </div>
             </div>
 
@@ -196,7 +196,7 @@
                     <div class="modal" id="addActivitiesModal" style="display:none;z-index:10001;align-items:flex-start;">
                       <div class="modal-content" style="max-width:700px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;">
-                          <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-plus-circle" style="color:#1976d2;"></i> Add Activities</h3>
+                          <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-plus-circle" style="color:var(--primary);"></i> Add Activities</h3>
                           <button class="modal-close" id="closeAddActivitiesModal" style="font-size:1.5rem;">&times;</button>
                         </div>
                         <div id="allActivitiesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:18px;margin-top:18px;"></div>
@@ -220,6 +220,110 @@
                     </div>
                   </div>
                 </div>
+                 <!-- Gym Information Section -->
+                <div class="dashboard-row">
+                  <div class="card gym-info-card">
+                    <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i>Gym Information</h2>
+                      <button id="editGymInfoBtn" class="btn btn-secondary" style="font-size:0.9em;padding:6px 12px;"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                    <div class="gym-info-content" id="gymInfoContent">
+                      <!-- Basic Information -->
+                      <div class="gym-info-section">
+                        <h3 class="gym-info-section-title"><i class="fas fa-info-circle"></i> Basic Information</h3>
+                        <div class="gym-info-grid">
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Gym Name:</span>
+                            <span class="gym-info-value" id="gymInfoName">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Owner/Contact Person:</span>
+                            <span class="gym-info-value" id="gymInfoOwner">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Email:</span>
+                            <span class="gym-info-value" id="gymInfoEmail">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Phone:</span>
+                            <span class="gym-info-value" id="gymInfoPhone">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Support Email:</span>
+                            <span class="gym-info-value" id="gymInfoSupportEmail">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Support Phone:</span>
+                            <span class="gym-info-value" id="gymInfoSupportPhone">Loading...</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Location Information -->
+                      <div class="gym-info-section">
+                        <h3 class="gym-info-section-title"><i class="fas fa-map-marker-alt"></i> Location</h3>
+                        <div class="gym-info-grid">
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Address:</span>
+                            <span class="gym-info-value" id="gymInfoAddress">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">City:</span>
+                            <span class="gym-info-value" id="gymInfoCity">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">State:</span>
+                            <span class="gym-info-value" id="gymInfoState">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Pincode:</span>
+                            <span class="gym-info-value" id="gymInfoPincode">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Landmark:</span>
+                            <span class="gym-info-value" id="gymInfoLandmark">Loading...</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Operational Information -->
+                      <div class="gym-info-section">
+                        <h3 class="gym-info-section-title"><i class="fas fa-clock"></i> Operations</h3>
+                        <div class="gym-info-grid">
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Opening Time:</span>
+                            <span class="gym-info-value" id="gymInfoOpeningTime">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Closing Time:</span>
+                            <span class="gym-info-value" id="gymInfoClosingTime">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Current Members:</span>
+                            <span class="gym-info-value" id="gymInfoCurrentMembers">Loading...</span>
+                          </div>
+                          <div class="gym-info-item">
+                            <span class="gym-info-label">Status:</span>
+                            <span class="gym-info-value gym-status" id="gymInfoStatus">Loading...</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Description -->
+                      <div class="gym-info-section">
+                        <h3 class="gym-info-section-title"><i class="fas fa-align-left"></i> Description</h3>
+                        <div class="gym-info-description" id="gymInfoDescription">Loading...</div>
+                      </div>
+
+                      <!-- Equipment List -->
+                      <div class="gym-info-section">
+                        <h3 class="gym-info-section-title"><i class="fas fa-dumbbell"></i> Equipment Available</h3>
+                        <div class="gym-info-equipment" id="gymInfoEquipment">Loading...</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                  <!-- Interactive Gym Photos Grid -->
                 <section id="photoGridSection" class="card" style="margin-top: 24px;">
                   <div class="card-header">
@@ -838,5 +942,403 @@
    
   </div>
 </div>
+
+<!-- Settings Tab -->
+<div id="settingsTab" style="display:none; padding: 24px;">
+    <div class="page-header" style="margin-bottom: 30px;">
+      <h1 class="page-title">
+        <i class="fas fa-cog"></i> Settings
+      </h1>
+      <p style="color: var(--text-secondary); margin: 8px 0 0 0;">Customize your gym dashboard experience and manage preferences</p>
+    </div>
+
+    <div class="settings-container">
+      <!-- Theme Settings -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-palette"></i> Theme & Appearance</h3>
+            <p>Customize the look and feel of your dashboard</p>
+          </div>
+          <div class="settings-content">
+            <div class="theme-selector">
+              <div class="theme-option" data-theme="light">
+                <div class="theme-preview light-preview">
+                  <div class="preview-header"></div>
+                  <div class="preview-content">
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-main"></div>
+                  </div>
+                </div>
+                <span>Light</span>
+              </div>
+              <div class="theme-option" data-theme="dark">
+                <div class="theme-preview dark-preview">
+                  <div class="preview-header"></div>
+                  <div class="preview-content">
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-main"></div>
+                  </div>
+                </div>
+                <span>Dark</span>
+              </div>
+              <div class="theme-option" data-theme="auto">
+                <div class="theme-preview auto-preview">
+                  <div class="preview-header"></div>
+                  <div class="preview-content">
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-main"></div>
+                  </div>
+                </div>
+                <span>Auto</span>
+              </div>
+            </div>
+            
+            <div class="color-scheme-selector" style="margin-top: 20px;">
+              <h4>Color Scheme</h4>
+              <div class="color-options">
+                <div class="color-option active" data-color="blue"><div class="color-circle" style="background: #1976d2;"></div></div>
+                <div class="color-option" data-color="green"><div class="color-circle" style="background: #388e3c;"></div></div>
+                <div class="color-option" data-color="purple"><div class="color-circle" style="background: #7b1fa2;"></div></div>
+                <div class="color-option" data-color="orange"><div class="color-circle" style="background: #f57c00;"></div></div>
+                <div class="color-option" data-color="red"><div class="color-circle" style="background: #d32f2f;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <p>Control how and when you receive notifications</p>
+          </div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">New Member Alerts</div>
+                <div class="setting-description">Get notified when new members join</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="newMemberNotif" checked>
+                <label for="newMemberNotif" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Payment Notifications</div>
+                <div class="setting-description">Alerts for payment confirmations and due dates</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="paymentNotif" checked>
+                <label for="paymentNotif" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Trainer Updates</div>
+                <div class="setting-description">Notifications about trainer applications and updates</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="trainerNotif" checked>
+                <label for="trainerNotif" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Email Notifications</div>
+                <div class="setting-description">Receive notifications via email</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="emailNotif">
+                <label for="emailNotif" class="toggle-label"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Management -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-cogs"></i> Services & Features</h3>
+            <p>Enable or disable gym services</p>
+          </div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Online Booking</div>
+                <div class="setting-description">Allow members to book sessions online</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="onlineBooking" checked>
+                <label for="onlineBooking" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Personal Training</div>
+                <div class="setting-description">Offer personal training services</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="personalTraining" checked>
+                <label for="personalTraining" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Group Classes</div>
+                <div class="setting-description">Provide group fitness classes</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="groupClasses" checked>
+                <label for="groupClasses" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Equipment Reservation</div>
+                <div class="setting-description">Allow equipment booking in advance</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="equipmentReservation">
+                <label for="equipmentReservation" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Member Check-in</div>
+                <div class="setting-description">Digital check-in system for members</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="memberCheckin" checked>
+                <label for="memberCheckin" class="toggle-label"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operating Hours -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-clock"></i> Operating Hours</h3>
+            <p>Set your gym's operating schedule</p>
+          </div>
+          <div class="settings-content">
+            <div class="operating-hours-grid">
+              <div class="day-hours">
+                <label>Monday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="monClosed">
+                    <label for="monClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Tuesday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="tueClosed">
+                    <label for="tueClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Wednesday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="wedClosed">
+                    <label for="wedClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Thursday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="thuClosed">
+                    <label for="thuClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Friday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="friClosed">
+                    <label for="friClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Saturday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="satClosed">
+                    <label for="satClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+              <div class="day-hours">
+                <label>Sunday</label>
+                <div class="hours-input">
+                  <input type="time" value="06:00">
+                  <span>to</span>
+                  <input type="time" value="22:00">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="sunClosed">
+                    <label for="sunClosed" class="toggle-label"></label>
+                  </div>
+                  <span>Closed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Settings -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-shield-alt"></i> Security & Privacy</h3>
+            <p>Manage your account security settings</p>
+          </div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Two-Factor Authentication</div>
+                <div class="setting-description">Add an extra layer of security to your account</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="twoFactorAuth">
+                <label for="twoFactorAuth" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Login Notifications</div>
+                <div class="setting-description">Get notified of new login attempts</div>
+              </div>
+              <div class="toggle-switch">
+                <input type="checkbox" id="loginNotifications" checked>
+                <label for="loginNotifications" class="toggle-label"></label>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Session Timeout</div>
+                <div class="setting-description">Automatically log out after inactivity</div>
+              </div>
+              <select class="setting-select">
+                <option value="30">30 minutes</option>
+                <option value="60" selected>1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="240">4 hours</option>
+                <option value="0">Never</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h3><i class="fas fa-database"></i> Data Management</h3>
+            <p>Backup and export your gym data</p>
+          </div>
+          <div class="settings-content">
+            <div class="data-action">
+              <div class="action-info">
+                <h4>Export Member Data</h4>
+                <p>Download a CSV file with all member information</p>
+              </div>
+              <button class="action-btn secondary">
+                <i class="fas fa-download"></i>
+                Export CSV
+              </button>
+            </div>
+            
+            <div class="data-action">
+              <div class="action-info">
+                <h4>Backup Database</h4>
+                <p>Create a complete backup of your gym database</p>
+              </div>
+              <button class="action-btn secondary">
+                <i class="fas fa-save"></i>
+                Create Backup
+              </button>
+            </div>
+            
+            <div class="data-action">
+              <div class="action-info">
+                <h4>Clear Cache</h4>
+                <p>Clear temporary data to improve performance</p>
+              </div>
+              <button class="action-btn secondary">
+                <i class="fas fa-trash"></i>
+                Clear Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Settings -->
+      <div class="settings-actions">
+        <button class="save-settings-btn" id="saveSettingsBtn">
+          <i class="fas fa-save"></i>
+          Save All Settings
+        </button>
+        <button class="reset-settings-btn" id="resetSettingsBtn">
+          <i class="fas fa-undo"></i>
+          Reset to Defaults
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
+       

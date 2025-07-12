@@ -1673,3 +1673,15 @@ th {
     max-height: 85vh;
   }
 }
+
+/* No data message styling */
+.gym-detail-no-data {
+  color: #888;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin: 8px 0;
+}

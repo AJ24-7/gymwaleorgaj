@@ -33,6 +33,7 @@ app.get('/test-route', (req, res) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads/gymImages', express.static(path.join(__dirname, 'uploads/gymImages')));
+app.use('/uploads/gymPhotos', express.static(path.join(__dirname, 'uploads/gymPhotos')));
 
 
 const allowedOrigins = [
