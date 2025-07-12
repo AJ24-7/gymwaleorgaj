@@ -18,9 +18,12 @@ const gymRoutes = require('./backend/routes/gymRoutes');
 const trialBookingRoutes = require('./backend/routes/trialBookingRoutes');
 const reviewRoutes = require('./backend/routes/reviewRoutes');
 const dietRoutes = require('./backend/routes/dietRoutes');
-const memberRoutes = require('./backend/routes/memberRoutes');  
+const memberRoutes = require('./backend/routes/memberRoutes');
+const notificationRoutes = require('./backend/routes/notificationRoutes');
+const NotificationScheduler = require('./backend/services/notificationScheduler');  
 
 console.log("[DEBUG] server.js: trainerRoutes type is:", typeof trainerRoutes);
+console.log("[DEBUG] server.js: notificationRoutes type is:", typeof notificationRoutes);
 
 const app = express();
 
@@ -68,6 +71,7 @@ app.use('/api/trial-bookings', trialBookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/diet', dietRoutes);
 app.use('/api/members', memberRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ✅ Connect MongoDB and Start Server
 const startServer = async () => {
@@ -79,9 +83,13 @@ const startServer = async () => {
     });
     console.log("✅ MongoDB Connected");
 
+    // Initialize notification scheduler
+    const notificationScheduler = new NotificationScheduler();
+
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log("🔔 Notification system active");
     });
 
   } catch (err) {

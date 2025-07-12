@@ -69,10 +69,37 @@ router.get('/new', gymadminAuth, async (req, res) => {
 // Get all members for a gym (protected route)
 router.get('/', gymadminAuth, getMembers);
 
-module.exports = router;
-
-
 // Update member details (protected route, with image upload)
 router.put('/:memberId', gymadminAuth, memberImageUpload.single('profileImage'), updateMember);
+
+// Get members with expiring memberships
+router.get('/expiring', gymadminAuth, async (req, res) => {
+  try {
+    const Member = require('../models/Member');
+    const { days = 3 } = req.query;
+    const daysFromNow = new Date();
+    daysFromNow.setDate(daysFromNow.getDate() + parseInt(days));
+    
+    const expiringMembers = await Member.find({
+      gymId: req.gymId,
+      membershipValidUntil: {
+        $lte: daysFromNow,
+        $gte: new Date()
+      }
+    }).select('name email phone membershipValidUntil planSelected membershipId');
+    
+    res.json({
+      success: true,
+      members: expiringMembers,
+      count: expiringMembers.length
+    });
+  } catch (error) {
+    console.error('Error fetching expiring memberships:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching expiring memberships'
+    });
+  }
+});
 
 module.exports = router;

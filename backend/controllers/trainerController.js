@@ -128,6 +128,36 @@ exports.approveTrainer = async (req, res) => {
     trainer.status = 'approved';
     await trainer.save();
 
+    // Create notification for trainer approval
+    try {
+      const Notification = require('../models/Notification');
+      const displayName = (trainer.firstName || '') + (trainer.lastName ? ' ' + trainer.lastName : '');
+      const trainerName = displayName.trim() || 'Trainer';
+      
+      // Get gym admin for notification
+      const gymId = trainer.gym;
+      if (gymId) {
+        const notification = new Notification({
+          title: 'Trainer Approved',
+          message: `${trainerName}'s trainer application has been approved`,
+          type: 'trainer-approved',
+          priority: 'normal',
+          icon: 'fa-check-circle',
+          color: '#4caf50',
+          user: gymId,
+          metadata: {
+            trainerId: trainer._id,
+            trainerName: trainerName,
+            trainerEmail: trainer.email
+          }
+        });
+        await notification.save();
+      }
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // Don't block trainer approval if notification fails
+    }
+
     // Send approval email
     const subject = 'Trainer Approval - FIT-verse';
     // Use firstName and lastName for greeting, fallback to 'Trainer' if both missing
@@ -177,6 +207,37 @@ exports.rejectTrainer = async (req, res) => {
       trainer.rejectionReason = reason || '';
     }
     await trainer.save();
+
+    // Create notification for trainer rejection
+    try {
+      const Notification = require('../models/Notification');
+      const displayName = (trainer.firstName || '') + (trainer.lastName ? ' ' + trainer.lastName : '');
+      const trainerName = displayName.trim() || 'Trainer';
+      
+      // Get gym admin for notification
+      const gymId = trainer.gym;
+      if (gymId) {
+        const notification = new Notification({
+          title: 'Trainer Rejected',
+          message: `${trainerName}'s trainer application has been rejected`,
+          type: 'trainer-rejected',
+          priority: 'normal',
+          icon: 'fa-times-circle',
+          color: '#f44336',
+          user: gymId,
+          metadata: {
+            trainerId: trainer._id,
+            trainerName: trainerName,
+            trainerEmail: trainer.email,
+            rejectionReason: reason || 'No reason provided'
+          }
+        });
+        await notification.save();
+      }
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // Don't block trainer rejection if notification fails
+    }
 
     // Send rejection email
     try {

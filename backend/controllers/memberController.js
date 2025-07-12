@@ -1,4 +1,3 @@
-
 const Member = require('../models/Member');
 const Gym = require('../models/gym');
 const path = require('path');
@@ -46,6 +45,29 @@ exports.addMember = async (req, res) => {
     });
     await member.save();
 
+    // Create notification for new member
+    try {
+      const Notification = require('../models/Notification');
+      const notification = new Notification({
+        title: 'New Member Added',
+        message: `${req.body.memberName} has joined your gym with ${req.body.planSelected} plan`,
+        type: 'new-member',
+        priority: 'normal',
+        icon: 'fa-user-plus',
+        color: '#4caf50',
+        user: gymId,
+        metadata: {
+          memberName: req.body.memberName,
+          planSelected: req.body.planSelected,
+          membershipId: extractStringValue(req.body.membershipId)
+        }
+      });
+      await notification.save();
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // Don't block member creation if notification fails
+    }
+
     // Send membership email if all required fields are present
     try {
       const membershipId = extractStringValue(req.body.membershipId);
@@ -58,7 +80,7 @@ exports.addMember = async (req, res) => {
             <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0002; padding: 32px 28px;">
               <div style="text-align: center; margin-bottom: 24px;">
                 <img src='https://img.icons8.com/color/96/000000/gym.png' alt='Gym Logo' style='width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px #0001;'>
-                <h2 style="color: #1976d2; margin: 18px 0 0 0; font-size: 2rem; letter-spacing: 1px;">Welcome to <span style='background: linear-gradient(90deg,#1976d2,#43e97b 99%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">${gym.name}</span>!</h2>
+                <h2 style="color: #1976d2; margin: 18px 0 0 0; font-size: 2rem; letter-spacing: 1px;">Welcome to <span style='background: linear-gradient(90deg,#1976d2,#43e97b 99%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>${gym.name}</span>!</h2>
               </div>
               <p style="font-size: 1.1rem; color: #333; margin-bottom: 18px;">Hi <b style='color:#1976d2;'>${req.body.memberName}</b>,</p>
               <div style="background: linear-gradient(90deg,#e3f2fd 60%,#fceabb 100%); border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; box-shadow: 0 2px 8px #1976d220;">
@@ -89,6 +111,7 @@ exports.addMember = async (req, res) => {
     res.status(500).json({ message: 'Server error while adding member' });
   }
 };
+
 // Update member details
 exports.updateMember = async (req, res) => {
   try {
@@ -121,29 +144,36 @@ exports.updateMember = async (req, res) => {
     res.status(500).json({ message: 'Server error while updating member' });
   }
 };
+
 // Get all members for a gym
 exports.getMembers = async (req, res) => {
   try {
-   const gymId = (req.admin && (req.admin.gymId || req.admin.id)) || req.body.gymId;
+    const gymId = (req.admin && (req.admin.gymId || req.admin.id)) || req.body.gymId;
     if (!gymId) return res.status(400).json({ message: 'Gym ID is required.' });
-    const members = await Member.find({ gym: gymId }).sort({ joinDate: -1 });
-    res.status(200).json(members);
+    
+    const members = await Member.find({ gym: gymId });
+    res.status(200).json({ members });
   } catch (err) {
     console.error('Error fetching members:', err);
     res.status(500).json({ message: 'Server error while fetching members' });
   }
 };
-// Remove members by custom IDs (bulk delete)
+
+// Remove members by their custom membership IDs (bulk delete)
 exports.removeMembersByIds = async (req, res) => {
   try {
+    const { membershipIds } = req.body; // Array of custom membership IDs
     const gymId = (req.admin && (req.admin.gymId || req.admin.id)) || req.body.gymId;
-    if (!gymId) return res.status(400).json({ message: 'Gym ID is required.' });
-    const { memberIds } = req.body;
-    if (!Array.isArray(memberIds) || memberIds.length === 0) {
-      return res.status(400).json({ message: 'No member IDs provided.' });
+    
+    if (!membershipIds || membershipIds.length === 0) {
+      return res.status(400).json({ message: 'No membership IDs provided.' });
     }
-    // Only delete members belonging to this gym
-    const result = await Member.deleteMany({ _id: { $in: memberIds }, gym: gymId });
+    
+    const result = await Member.deleteMany({
+      gym: gymId,
+      membershipId: { $in: membershipIds }
+    });
+    
     res.status(200).json({ message: `Removed ${result.deletedCount} member(s).`, deletedCount: result.deletedCount });
   } catch (err) {
     console.error('Error removing members by IDs:', err);
@@ -156,18 +186,15 @@ exports.removeExpiredMembers = async (req, res) => {
   try {
     const gymId = (req.admin && (req.admin.gymId || req.admin.id)) || req.body.gymId;
     if (!gymId) return res.status(400).json({ message: 'Gym ID is required.' });
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    // Find and delete members whose membershipValidUntil is before sevenDaysAgo
-    const expiredMembers = await Member.find({
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const result = await Member.deleteMany({
       gym: gymId,
-      membershipValidUntil: { $exists: true, $ne: null, $lt: sevenDaysAgo }
+      membershipValidUntil: { $lt: sevenDaysAgo }
     });
-    if (!expiredMembers.length) {
-      return res.status(200).json({ message: 'No expired members found.', deletedCount: 0 });
-    }
-    const expiredIds = expiredMembers.map(m => m._id);
-    const result = await Member.deleteMany({ _id: { $in: expiredIds } });
+    
     res.status(200).json({ message: `Removed ${result.deletedCount} expired member(s).`, deletedCount: result.deletedCount });
   } catch (err) {
     console.error('Error removing expired members:', err);

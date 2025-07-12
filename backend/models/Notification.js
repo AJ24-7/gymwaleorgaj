@@ -20,13 +20,30 @@ const notificationSchema = new mongoose.Schema({
     default: false
   },
   type: {
-    type: String, // e.g., "gym-registration", "payment-received", "new-message"
+    type: String, // e.g., "new-member", "payment", "trainer-approved", "membership-expiry"
     required: true
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'normal', 'medium', 'high'],
+    default: 'normal'
+  },
+  icon: {
+    type: String,
+    default: 'fa-bell'
+  },
+  color: {
+    type: String,
+    default: '#1976d2'
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',  // This will reference the Admin model for notifications
     required: true
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 });
 
