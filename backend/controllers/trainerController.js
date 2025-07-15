@@ -2,7 +2,9 @@
 // backend/controllers/trainerController.js
 const Trainer = require('../models/trainerModel');
 const Gym = require('../models/gym');
+const Notification = require('../models/Notification');
 const sendEmail = require('../utils/sendEmail'); 
+const adminNotificationService = require('../services/adminNotificationService');
 const nodemailer = require('nodemailer'); 
 // GET /api/trainers/all?status=pending|approved|rejected
 exports.getAllTrainersForAdmin = async (req, res) => {
@@ -128,9 +130,8 @@ exports.approveTrainer = async (req, res) => {
     trainer.status = 'approved';
     await trainer.save();
 
-    // Create notification for trainer approval
+    // Create notification for trainer approval (for gym admin)
     try {
-      const Notification = require('../models/Notification');
       const displayName = (trainer.firstName || '') + (trainer.lastName ? ' ' + trainer.lastName : '');
       const trainerName = displayName.trim() || 'Trainer';
       
@@ -154,8 +155,14 @@ exports.approveTrainer = async (req, res) => {
         await notification.save();
       }
     } catch (notifError) {
-      console.error('Error creating notification:', notifError);
-      // Don't block trainer approval if notification fails
+      console.error('Error creating gym admin notification:', notifError);
+    }
+
+    // Create notification for admin dashboard
+    try {
+      await adminNotificationService.notifyTrainerApproval(trainer);
+    } catch (adminNotificationError) {
+      console.error('Error creating admin notification:', adminNotificationError);
     }
 
     // Send approval email

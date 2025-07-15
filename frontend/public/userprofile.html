@@ -57,37 +57,69 @@
     </div>
 
    <!-- Active Membership Info with Interactive Elements -->
-<div class="membership-card">
+<div class="membership-card loading">
   <div class="membership-header">
     <h3><i class="fas fa-id-card"></i> Membership Details</h3>
-    <div class="progress-ring" data-progress="80">
+    <div class="progress-ring" data-progress="0">
       <svg width="60" height="60">
         <circle class="progress-ring-circle" stroke-width="4" fill="transparent" r="24" cx="30" cy="30"/>
       </svg>
-      <span>12 left</span>
+      <span id="days-left-display">Loading...</span>
     </div>
+  </div>
+  
+  <div class="membership-status" id="membership-status">
+    <span class="status-badge loading">Loading...</span>
   </div>
   
   <div class="membership-details">
     <div class="detail-item">
+      <i class="fas fa-hashtag"></i>
+      <div>
+        <span class="label">Membership ID</span>
+        <span class="value" id="membership-id">Loading...</span>
+      </div>
+    </div>
+    <div class="detail-item">
       <i class="fas fa-dumbbell"></i>
       <div>
         <span class="label">Gym</span>
-        <span class="value">FIT-verse Premium, Delhi</span>
+        <span class="value" id="gym-name">Loading...</span>
       </div>
     </div>
     <div class="detail-item">
       <i class="fas fa-crown"></i>
       <div>
         <span class="label">Plan</span>
-        <span class="value">Gold (6 Months)</span>
+        <span class="value" id="plan-details">Loading...</span>
       </div>
     </div>
     <div class="detail-item">
       <i class="fas fa-calendar-alt"></i>
       <div>
-        <span class="label">Expires</span>
-        <span class="value">Dec 15, 2023</span>
+        <span class="label">Valid Till</span>
+        <span class="value" id="valid-till">Loading...</span>
+      </div>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-rupee-sign"></i>
+      <div>
+        <span class="label">Amount Paid</span>
+        <span class="value" id="amount-paid">Loading...</span>
+      </div>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-credit-card"></i>
+      <div>
+        <span class="label">Payment Method</span>
+        <span class="value" id="payment-method">Loading...</span>
+      </div>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-calendar-plus"></i>
+      <div>
+        <span class="label">Join Date</span>
+        <span class="value" id="join-date">Loading...</span>
       </div>
     </div>
   </div>

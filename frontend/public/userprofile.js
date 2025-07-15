@@ -107,6 +107,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
+      // === FETCH MEMBERSHIP DETAILS ===
+      fetchMembershipDetails(user.email.trim().toLowerCase());
+
       // === DIET PLAN ===
       if (user.dietPlan) {
         const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -128,6 +131,227 @@ document.addEventListener("DOMContentLoaded", function () {
       window.location.href = '/frontend/public/login.html';
     });
 
+  // === SHOW MOCK MEMBERSHIP DETAILS (Temporary Solution) ===
+  function showMockMembershipDetails(user) {
+    // Remove loading class
+    document.querySelector('.membership-card').classList.remove('loading');
+    
+    // Generate a realistic membership
+    const membershipId = `FIT-2025-PREM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const joinDate = new Date('2024-07-15'); // Mock join date
+    const validUntil = new Date('2025-01-15'); // Mock expiry (6 months)
+    const today = new Date();
+    const timeDiff = validUntil.getTime() - today.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    const mockMembership = {
+      membershipId: membershipId,
+      memberName: user.username || user.name,
+      email: user.email,
+      phone: user.phone || '9999999999',
+      planName: 'Premium',
+      monthlyPlan: '6 Months',
+      validUntil: '2025-01-15',
+      amountPaid: 8999,
+      paidVia: 'UPI',
+      joinDate: '2024-07-15',
+      daysLeft: daysLeft,
+      isActive: daysLeft > 0,
+      gym: {
+        name: 'FIT-verse Premium',
+        city: 'Delhi',
+        state: 'Delhi'
+      }
+    };
+    
+    populateMembershipDetails(mockMembership);
+  }
+
+  // === FETCH MEMBERSHIP DETAILS FUNCTION ===
+  async function fetchMembershipDetails(email) {
+    try {
+      const response = await fetch(`http://localhost:5000/api/members/membership-by-email/${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('Failed to parse membership API response:', text);
+        showMembershipError();
+        return;
+      }
+
+      if (!response.ok) {
+        console.error('Membership API error:', data);
+        showMembershipError();
+        return;
+      }
+
+      if (data.success && data.membership) {
+        populateMembershipDetails(data.membership);
+      } else {
+        console.warn('No membership found:', data);
+        showNoMembershipFound();
+      }
+    } catch (error) {
+      console.error('Network or server error fetching membership details:', error);
+      showMembershipError();
+    }
+  }
+
+  // === POPULATE MEMBERSHIP DETAILS ===
+  function populateMembershipDetails(membership) {
+    // Remove loading class
+    document.querySelector('.membership-card').classList.remove('loading');
+    
+    // Update membership ID
+    document.getElementById('membership-id').textContent = membership.membershipId || 'N/A';
+    
+    // Update gym name
+    const gymLocation = membership.gym.city && membership.gym.state 
+      ? `, ${membership.gym.city}, ${membership.gym.state}`
+      : '';
+    document.getElementById('gym-name').textContent = `${membership.gym.name}${gymLocation}`;
+    
+    // Update plan details (use planSelected)
+    document.getElementById('plan-details').textContent = `${membership.planSelected} (${membership.monthlyPlan})`;
+    
+    // Update valid till (use membershipValidUntil)
+    const validTillDate = new Date(membership.membershipValidUntil);
+    document.getElementById('valid-till').textContent = validTillDate.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    
+    // Update amount paid (use paymentAmount)
+    document.getElementById('amount-paid').textContent = `₹${membership.paymentAmount?.toLocaleString('en-IN') || 'N/A'}`;
+    
+    // Update payment method (use paymentMode)
+    document.getElementById('payment-method').textContent = membership.paymentMode || 'N/A';
+    
+    // Update join date
+    const joinDate = new Date(membership.joinDate);
+    document.getElementById('join-date').textContent = joinDate.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    
+    // Update days left and progress
+    updateDaysLeftDisplay(membership.daysLeft, membership.isActive);
+    
+    // Update membership status
+    updateMembershipStatus(membership.daysLeft, membership.isActive);
+  }
+
+  // === UPDATE DAYS LEFT DISPLAY ===
+  function updateDaysLeftDisplay(daysLeft, isActive) {
+    const daysLeftElement = document.getElementById('days-left-display');
+    const progressRing = document.querySelector('.progress-ring');
+    const progressCircle = document.querySelector('.progress-ring-circle');
+    
+    if (!isActive || daysLeft <= 0) {
+      daysLeftElement.textContent = 'Expired';
+      daysLeftElement.className = 'days-left-critical';
+      progressCircle.className = 'progress-ring-circle critical';
+      progressRing.setAttribute('data-progress', '0');
+    } else if (daysLeft <= 7) {
+      daysLeftElement.textContent = `${daysLeft} left`;
+      daysLeftElement.className = 'days-left-critical';
+      progressCircle.className = 'progress-ring-circle critical';
+      const progress = Math.max(10, (daysLeft / 30) * 100);
+      progressRing.setAttribute('data-progress', progress);
+    } else if (daysLeft <= 30) {
+      daysLeftElement.textContent = `${daysLeft} left`;
+      daysLeftElement.className = 'days-left-warning';
+      progressCircle.className = 'progress-ring-circle warning';
+      const progress = (daysLeft / 30) * 100;
+      progressRing.setAttribute('data-progress', progress);
+    } else {
+      daysLeftElement.textContent = `${daysLeft} left`;
+      daysLeftElement.className = 'days-left-good';
+      progressCircle.className = 'progress-ring-circle good';
+      const progress = Math.min(100, (daysLeft / 365) * 100 + 50);
+      progressRing.setAttribute('data-progress', progress);
+    }
+    
+    // Update progress ring
+    updateProgressRing(progressRing);
+  }
+
+  // === UPDATE MEMBERSHIP STATUS BADGE ===
+  function updateMembershipStatus(daysLeft, isActive) {
+    const statusElement = document.getElementById('membership-status');
+    const statusBadge = statusElement.querySelector('.status-badge');
+    
+    if (!isActive || daysLeft <= 0) {
+      statusBadge.textContent = 'Expired';
+      statusBadge.className = 'status-badge expired';
+    } else if (daysLeft <= 7) {
+      statusBadge.textContent = 'Expiring Soon';
+      statusBadge.className = 'status-badge expiring';
+    } else {
+      statusBadge.textContent = 'Active';
+      statusBadge.className = 'status-badge active';
+    }
+  }
+
+  // === UPDATE PROGRESS RING ===
+  function updateProgressRing(progressRing) {
+    const progress = progressRing.getAttribute('data-progress');
+    const circle = progressRing.querySelector('.progress-ring-circle');
+    const radius = circle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = circumference;
+    
+    const offset = circumference - (progress / 100) * circumference;
+    circle.style.strokeDashoffset = offset;
+  }
+
+  // === SHOW NO MEMBERSHIP FOUND ===
+  function showNoMembershipFound() {
+    document.querySelector('.membership-card').classList.remove('loading');
+    document.getElementById('membership-id').textContent = 'No Active Membership';
+    document.getElementById('gym-name').textContent = 'Please purchase a membership';
+    document.getElementById('plan-details').textContent = 'N/A';
+    document.getElementById('valid-till').textContent = 'N/A';
+    document.getElementById('amount-paid').textContent = 'N/A';
+    document.getElementById('payment-method').textContent = 'N/A';
+    document.getElementById('join-date').textContent = 'N/A';
+    document.getElementById('days-left-display').textContent = 'No membership';
+    
+    const statusElement = document.getElementById('membership-status');
+    const statusBadge = statusElement.querySelector('.status-badge');
+    statusBadge.textContent = 'No Membership';
+    statusBadge.className = 'status-badge expired';
+  }
+
+  // === SHOW MEMBERSHIP ERROR ===
+  function showMembershipError() {
+    document.querySelector('.membership-card').classList.remove('loading');
+    document.getElementById('membership-id').textContent = 'Error loading';
+    document.getElementById('gym-name').textContent = 'Unable to fetch membership details';
+    document.getElementById('plan-details').textContent = 'Please try again';
+    document.getElementById('valid-till').textContent = 'N/A';
+    document.getElementById('amount-paid').textContent = 'N/A';
+    document.getElementById('payment-method').textContent = 'N/A';
+    document.getElementById('join-date').textContent = 'N/A';
+    document.getElementById('days-left-display').textContent = 'Error';
+    
+    const statusElement = document.getElementById('membership-status');
+    const statusBadge = statusElement.querySelector('.status-badge');
+    statusBadge.textContent = 'Error';
+    statusBadge.className = 'status-badge loading';
+  }
   // Fetch user diet plan from dietController
   fetch('http://localhost:5000/api/diet/my-plan', {
   method: 'GET',

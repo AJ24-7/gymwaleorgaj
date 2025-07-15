@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="gymadmin.css">
     <script defer src="gymadmin.js"></script>
+    <script defer src="notification-modal.js"></script>
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
@@ -126,7 +127,7 @@
                 <div class="page-header">
                     <h1 class="page-title">Dashboard Overview</h1>
                     <div class="page-actions">
-                        <button id="sendNotificationBtn">
+                        <button id="openNotificationModalBtn">
                             <i class="fas fa-bell"></i> Send Notification
                         </button>
                         
@@ -513,35 +514,177 @@
         </div>
     </div>
 
-    <!-- Notification Modal -->
-    <div class="modal" id="notificationModal">
-        <div class="modal-content">
+    <!-- Enhanced Notification Modal -->
+    <div class="modal" id="notificationModal" style="display: none;">
+        <div class="modal-content" style="max-width: 650px;">
             <div class="modal-header">
-                <h3 class="modal-title">Send Notification</h3>
+                <h3 class="modal-title">
+                    <i class="fas fa-paper-plane"></i> Send Notification
+                </h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
+               <!-- Recipient Filter -->
                 <div class="form-group">
-                    <label class="form-label" for="notificationTitle">Notification Title</label>
-                    <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="notificationMessage">Message</label>
-                    <textarea class="form-control" id="notificationMessage" placeholder="Enter your message"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="notificationSendTo">Send To</label>
+                    <label class="form-label">
+                        <i class="fas fa-filter"></i> Send To
+                    </label>
                     <select class="form-control" id="notificationSendTo">
-                        <option>All Members</option>
-                        <option>Premium Members</option>
-                        <option>Basic Members</option>
-                        <option>Specific Group</option>
+                        <option value="all-members">All Members</option>
+                        <option value="active-members">Active Membership Members Only</option>
+                        <option value="expiring-members">Members with Expiring Membership (7 days)</option>
+                        <option value="expired-members">Members with Expired Membership</option>
+                        <option value="premium-members">Premium Members</option>
+                        <option value="standard-members">Standard Members</option>
+                        <option value="basic-members">Basic Members</option>
+                        <option value="trainers">Trainers Only</option>
+                        <option value="admin">Admin Only</option>
+                        <option value="new-members">New Members (Last 30 days)</option>
+                        <option value="custom">Custom Selection</option>
                     </select>
+                </div>
+
+                <!-- Quick Message Templates -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-bolt"></i> Quick Message Templates
+                    </label>
+                    <div class="quick-message-grid">
+                        <button type="button" class="quick-msg-btn" data-template="membership-expiry">
+                            <i class="fas fa-calendar-times"></i> Membership Expiry
+                        </button>
+                        <button type="button" class="quick-msg-btn" data-template="payment-reminder">
+                            <i class="fas fa-credit-card"></i> Payment Reminder
+                        </button>
+                        <button type="button" class="quick-msg-btn" data-template="new-class">
+                            <i class="fas fa-plus-circle"></i> New Class
+                        </button>
+                        <button type="button" class="quick-msg-btn" data-template="holiday-notice">
+                            <i class="fas fa-calendar-alt"></i> Holiday Notice
+                        </button>
+                        <button type="button" class="quick-msg-btn" data-template="maintenance">
+                            <i class="fas fa-tools"></i> Maintenance
+                        </button>
+                        <button type="button" class="quick-msg-btn" data-template="achievement">
+                            <i class="fas fa-trophy"></i> Achievement
+                        </button>
+                    </div>
+                </div>
+
+               
+                <!-- Custom Selection Area (hidden by default) -->
+                <div class="form-group" id="customSelectionArea" style="display: none;">
+                    <label class="form-label">Select Recipients</label>
+                    <div class="custom-selection-container">
+                        <div class="selection-search">
+                            <input type="text" id="recipientSearch" placeholder="Search members..." class="form-control">
+                        </div>
+                        <div class="selection-list" id="customRecipientList">
+                            <!-- Dynamic content will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notification Channels -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-share-alt"></i> Notification Channels
+                    </label>
+                    <div class="channel-options">
+                        <label class="channel-option">
+                            <input type="checkbox" id="systemNotification" checked>
+                            <span class="channel-icon"><i class="fas fa-bell"></i></span>
+                            <span class="channel-label">Notification sytem</span>
+                        </label>
+                        <label class="channel-option">
+                            <input type="checkbox" id="emailNotification">
+                            <span class="channel-icon"><i class="fas fa-envelope"></i></span>
+                            <span class="channel-label">Email</span>
+                        </label>
+                        <label class="channel-option">
+                            <input type="checkbox" id="whatsappNotification">
+                            <span class="channel-icon"><i class="fab fa-whatsapp"></i></span>
+                            <span class="channel-label">WhatsApp</span>
+                        </label>
+                        <label class="channel-option">
+    <input type="checkbox" id="mainAdminNotification">
+    <span class="channel-icon"><i class="fas fa-user-shield"></i></span>
+    <span class="channel-label">Send to Main Admin</span>
+</label>
+                    </div>
+                </div>
+
+                <!-- Message Content -->
+                <div class="form-group">
+                    <label class="form-label" for="notificationTitle">
+                        <i class="fas fa-heading"></i> Notification Title
+                    </label>
+                    <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title" maxlength="100">
+                    <small class="char-count">0/100</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="notificationMessage">
+                        <i class="fas fa-comment"></i> Message
+                    </label>
+                    <textarea class="form-control" id="notificationMessage" placeholder="Enter your message" rows="4" maxlength="500"></textarea>
+                    <small class="char-count">0/500</small>
+                </div>
+
+                <!-- Message Preview -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-eye"></i> Message Preview
+                    </label>
+                    <div class="message-preview" id="messagePreview">
+                        <div class="preview-title">Preview Title</div>
+                        <div class="preview-message">Preview message will appear here...</div>
+                    </div>
+                </div>
+
+                <!-- Delivery Options -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-clock"></i> Delivery Options
+                    </label>
+                    <div class="delivery-options">
+                        <label class="delivery-option">
+                            <input type="radio" name="deliveryTime" value="now" checked>
+                            <span>Send Now</span>
+                        </label>
+                        <label class="delivery-option">
+                            <input type="radio" name="deliveryTime" value="schedule">
+                            <span>Schedule for Later</span>
+                        </label>
+                    </div>
+                    <div class="schedule-container" id="scheduleContainer" style="display: none;">
+                        <input type="datetime-local" id="scheduleTime" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Send Status -->
+                <div class="send-status" id="sendStatus" style="display: none;">
+                    <div class="status-item">
+                        <i class="fas fa-bell"></i>
+                        <span>System: </span>
+                        <span class="status-text" id="systemStatus">Pending</span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email: </span>
+                        <span class="status-text" id="emailStatus">Pending</span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>WhatsApp: </span>
+                        <span class="status-text" id="whatsappStatus">Pending</span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary modal-close">Cancel</button>
-                <button class="btn btn-primary">Send Notification</button>
+                <button class="btn btn-primary" id="sendNotificationBtn">
+                    <i class="fas fa-paper-plane"></i> Send Notification
+                </button>
             </div>
         </div>
     </div>
@@ -1363,7 +1506,10 @@
   <!-- Include the notification system script -->
   <script src="notification-system.js"></script>
   <!-- Notification integration with enhanced form handler compatibility -->
-  <script src="notification-integration.js"></script> -->
+  <script src="notification-integration.js"></script>
+  <!-- Notification Configuration -->
+  <script src="notification-config.js"></script>
+ 
 </body>
 </html>
        

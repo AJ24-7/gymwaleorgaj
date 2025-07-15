@@ -19,6 +19,7 @@ const trialBookingRoutes = require('./backend/routes/trialBookingRoutes');
 const reviewRoutes = require('./backend/routes/reviewRoutes');
 const dietRoutes = require('./backend/routes/dietRoutes');
 const memberRoutes = require('./backend/routes/memberRoutes');
+console.log("[DEBUG] server.js: memberRoutes type is:", typeof memberRoutes);
 const notificationRoutes = require('./backend/routes/notificationRoutes');
 const NotificationScheduler = require('./backend/services/notificationScheduler');  
 
@@ -70,7 +71,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/trial-bookings', trialBookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/diet', dietRoutes);
-app.use('/api/members', memberRoutes);
+app.use('/api/members', (req, res, next) => {
+  console.log(`📋 Member route accessed: ${req.method} ${req.url}`);
+  next();
+}, memberRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // ✅ Connect MongoDB and Start Server

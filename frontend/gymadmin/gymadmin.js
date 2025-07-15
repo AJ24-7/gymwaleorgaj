@@ -3010,23 +3010,29 @@ function clearUploadPhotoMsgAndCloseModal() {
         closeButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const modalToClose = button.closest('.modal');
-                if (modalToClose) modalToClose.style.display = 'none';
+                if (modalToClose) modalToClose.classList.remove('show');
             });
         });
 
         window.addEventListener('click', (e) => {
             modals.forEach(modal => {
                 if (e.target === modal) {
-                    modal.style.display = 'none';
+                    modal.classList.remove('show');
                 }
             });
         });
 
         // Specific Modals (Notification, Upload Photo, Add Equipment)
-        const sendNotificationBtn = document.getElementById('sendNotificationBtn');
+        // Fix: Use unique IDs for open-modal button and send button
+        const openNotificationModalBtn = document.getElementById('openNotificationModalBtn');
         const notificationModal = document.getElementById('notificationModal');
-        if (sendNotificationBtn && notificationModal) {
-            sendNotificationBtn.addEventListener('click', () => notificationModal.style.display = 'flex');
+        if (openNotificationModalBtn && notificationModal) {
+            openNotificationModalBtn.addEventListener('click', () => {
+                notificationModal.classList.add('show');
+                if (window.resetNotificationForm) {
+                    window.resetNotificationForm();
+                }
+            });
         }
 
         const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');

@@ -1,52 +1,55 @@
-
 document.addEventListener("DOMContentLoaded", () => {
-const loginForm = document.getElementById("login-form");
-const signupForm = document.getElementById("signup-form");
-const errorMsg = document.getElementById("error-message");
-const showLoginBtn = document.getElementById("show-login");
-const showSignupBtn = document.getElementById("show-signup");
-const toggleButtons = document.querySelector('.toggle-buttons');
-const googleBtn = document.getElementById("google-signin-btn-login") || document.getElementById("google-signin-btn-signup");  
-const API_BASE_URL = "http://localhost:5000/api/users"; // Update with your actual API base URL
+  // DOM Elements
+  const loginForm = document.getElementById("login-form");
+  const signupForm = document.getElementById("signup-form");
+  const errorMsg = document.getElementById("error-message");
+  const showLoginBtn = document.getElementById("show-login");
+  const showSignupBtn = document.getElementById("show-signup");
+  
+  const API_BASE_URL = "http://localhost:5000/api/users";
 
- // Function to switch to login form
+  // Utility Functions
+  function showError(message) {
+    errorMsg.textContent = message;
+    errorMsg.style.display = 'block';
+    setTimeout(() => {
+      errorMsg.style.display = 'none';
+    }, 5000);
+  }
+
+  function hideError() {
+    errorMsg.style.display = 'none';
+  }
+
+  // Form Toggle Functions
   function showLoginForm() {
-    // Add/remove active class from buttons
     showLoginBtn.classList.add('active');
     showSignupBtn.classList.remove('active');
-    
-    // Show login form and hide signup form
     loginForm.classList.add('active');
     signupForm.classList.remove('active');
-    
-    // Hide any error messages
-    errorMsg.style.display = 'none'; // Fixed variable name
+    hideError();
   }
 
-  // Function to switch to signup form
   function showSignupForm() {
-    // Add/remove active class from buttons
     showSignupBtn.classList.add('active');
     showLoginBtn.classList.remove('active');
-    
-    // Show signup form and hide login form
     signupForm.classList.add('active');
     loginForm.classList.remove('active');
-    
-    // Hide any error messages
-    errorMsg.style.display = 'none'; // Fixed variable name
+    hideError();
   }
 
-  // Add event listeners to toggle buttons
- showLoginBtn.addEventListener('click', function(e) {
-  e.preventDefault();
-  showLoginForm();
-});
-showSignupBtn.addEventListener('click', function(e) {
-  e.preventDefault();
-  showSignupForm();
-});
-  // Initialize the form states
+  // Event Listeners for Toggle Buttons
+  showLoginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    showLoginForm();
+  });
+
+  showSignupBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSignupForm();
+  });
+
+  // Initialize
   showLoginForm(); 
    // === Forgot Password Logic ===
   const forgotPasswordLink = document.getElementById('forgotPasswordLink');
@@ -173,9 +176,10 @@ showSignupBtn.addEventListener('click', function(e) {
     });
   }
 
-  // Enhanced Login Handler with Animations
+  // Enhanced Login Handler
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    hideError();
 
     const email = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-password").value.trim();
@@ -185,10 +189,10 @@ showSignupBtn.addEventListener('click', function(e) {
       return showError("Please fill in both email and password.");
     }
 
-    // Add loading animation
+    // Loading state
     submitBtn.disabled = true;
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
     try {
       const res = await fetch(`${API_BASE_URL}/login`, {
@@ -200,31 +204,29 @@ showSignupBtn.addEventListener('click', function(e) {
       const data = await res.json();
 
       if (res.ok) {
-        // Success animation
         submitBtn.innerHTML = '<i class="fas fa-check"></i> Success!';
         localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.user.name);
+        localStorage.setItem("username", data.user.name || data.user.username);
         
-        // Delay redirect to show success state
         setTimeout(() => {
           window.location.href = "./userprofile.html";
         }, 1000);
       } else {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        showError(data.message || "Login failed.");
+        throw new Error(data.message || "Login failed.");
       }
     } catch (err) {
       console.error("Login error:", err);
+      showError(err.message || "Network error. Please check your connection.");
+    } finally {
       submitBtn.innerHTML = originalText;
       submitBtn.disabled = false;
-      showError("⚠️ Network error. Make sure the server is running.");
     }
   });
 
-  // 📝 Enhanced Signup Handler with Animations
+  // Enhanced Signup Handler
   signupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    hideError();
 
     const username = document.getElementById("username").value.trim();
     const email = document.getElementById("signup-email").value.trim();
@@ -233,10 +235,14 @@ showSignupBtn.addEventListener('click', function(e) {
     const submitBtn = signupForm.querySelector('button[type="submit"]');
 
     if (!username || !email || !phone || !password) {
-      return showError("Please fill in all signup fields.");
+      return showError("Please fill in all fields.");
     }
 
-    // Add loading animation
+    if (password.length < 6) {
+      return showError("Password must be at least 6 characters long.");
+    }
+
+    // Loading state
     submitBtn.disabled = true;
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
@@ -251,80 +257,135 @@ showSignupBtn.addEventListener('click', function(e) {
       const data = await res.json();
 
       if (res.ok) {
-        // Success animation
         submitBtn.innerHTML = '<i class="fas fa-check"></i> Account created!';
         localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.user.name);
+        localStorage.setItem("username", data.user.name || data.user.username);
         
-        // Delay redirect to show success state
         setTimeout(() => {
           window.location.href = "./userprofile.html";
         }, 1000);
       } else {
-        console.log("Signup Error:", data);
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        showError(data.message || "Signup failed.");
+        throw new Error(data.message || "Signup failed.");
       }
     } catch (error) {
       console.error("Signup error:", error);
+      showError(error.message || "Network error. Please check your connection.");
+    } finally {
       submitBtn.innerHTML = originalText;
       submitBtn.disabled = false;
-      showError("⚠️ Network error. Make sure the server is running.");
     }
   });
 
-  // Google login button effect (if button exists)
-  if (googleBtn) {
-    googleBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const originalText = this.innerHTML;
-      this.innerHTML = '<i class="fab fa-google"></i> Redirecting...';
-      
-      // Simulate Google auth process (replace with actual implementation)
-      setTimeout(() => {
-        alert('Google authentication would be implemented here');
-        this.innerHTML = originalText;
-      }, 1500);
-    });
-  }
-  const GOOGLE_CLIENT_ID = "905615420032-7lun3p0t94s3f9sah5a3v5tbhgm4r485.apps.googleusercontent.com"; // Replace with your actual client ID
+  // Google Login Configuration  
+  const GOOGLE_CLIENT_ID = "905615420032-7lun3p0t94s3f9sah5a3v5tbhgm4r485.apps.googleusercontent.com";
 
-function renderGoogleButton(targetId) {
-  if (window.google && window.google.accounts && window.google.accounts.id) {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      document.getElementById(targetId),
-      { theme: "outline", size: "large", width: "100%",  }
-    );
-  } else {
-    setTimeout(() => renderGoogleButton(targetId), 100);
-  }
-}
-renderGoogleButton("google-signin-btn-login");
-renderGoogleButton("google-signin-btn-signup");
-async function handleGoogleCredentialResponse(response) {
-  // Send the ID token to your backend for verification and login/signup
-  try {
-    const res = await fetch("http://localhost:5000/api/users/google-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential: response.credential })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.user.name || data.user.username);
-       localStorage.setItem("profileImage", data.user.profileImage || "");
-      window.location.href = "./userprofile.html";
-    } else {
-      alert(data.message || "Google authentication failed.");
+  // Enhanced Google credential handler
+  async function handleGoogleCredentialResponse(response) {
+    console.log('Google credential response received');
+    
+    if (!response.credential) {
+      console.error('No credential in Google response');
+      showError('Google login failed: No credential received');
+      return;
     }
-  } catch (err) {
-    alert("Network error during Google authentication.");
+    
+    try {
+      console.log('Sending credential to backend...');
+      const res = await fetch(`${API_BASE_URL}/google-auth`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ credential: response.credential })
+      });
+      
+      const data = await res.json();
+      console.log('Backend response:', data);
+      
+      if (res.ok) {
+        console.log('Google authentication successful');
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.user.name || data.user.username);
+        localStorage.setItem("profileImage", data.user.profileImage || "");
+        
+        setTimeout(() => {
+          window.location.href = "./userprofile.html";
+        }, 100);
+      } else {
+        console.error('Backend authentication failed:', data.message);
+        showError(data.message || "Google authentication failed.");
+      }
+    } catch (err) {
+      console.error('Network error during Google authentication:', err);
+      showError("Network error during Google authentication. Please check your connection.");
+    }
   }
-}
+
+  // Google button renderer
+  function renderGoogleButton(targetId) {
+    console.log(`Attempting to render Google button for: ${targetId}`);
+    const targetElement = document.getElementById(targetId);
+    
+    if (!targetElement) {
+      console.error(`Target element not found: ${targetId}`);
+      return;
+    }
+    
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      console.log('Google API is available, initializing...');
+      try {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
+        
+        google.accounts.id.renderButton(
+          targetElement,
+          { 
+            theme: "outline", 
+            size: "large", 
+            width: "100%",
+            text: "signin_with",
+            shape: "rectangular"
+          }
+        );
+        console.log(`Google button rendered successfully for: ${targetId}`);
+      } catch (error) {
+        console.error('Error rendering Google button:', error);
+        targetElement.innerHTML = '<div style="color: red; text-align: center; padding: 10px;">Google Login Error</div>';
+      }
+    } else {
+      console.log('Google API not ready, retrying in 500ms...');
+      setTimeout(() => renderGoogleButton(targetId), 500);
+    }
+  }
+
+  // Initialize Google Login
+  function initializeGoogleLogin() {
+    console.log('Initializing Google Login...');
+    
+    // Add loading indicators
+    const loginBtn = document.getElementById("google-signin-btn-login");
+    const signupBtn = document.getElementById("google-signin-btn-signup");
+    
+    if (loginBtn) {
+      loginBtn.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;"><i class="fas fa-spinner fa-spin"></i> Loading Google Login...</div>';
+    }
+    
+    if (signupBtn) {
+      signupBtn.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;"><i class="fas fa-spinner fa-spin"></i> Loading Google Login...</div>';
+    }
+    
+    // Render buttons after delay
+    setTimeout(() => {
+      renderGoogleButton("google-signin-btn-login");
+      renderGoogleButton("google-signin-btn-signup");
+    }, 1000);
+  }
+
+  // Initialize Google login when page loads
+  initializeGoogleLogin();
 });

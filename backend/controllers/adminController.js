@@ -5,6 +5,7 @@ const Membership = require('../models/Membership');
 const Notification = require('../models/Notification');
 const TrialBooking = require('../models/TrialBooking');
 const sendEmail = require('../utils/sendEmail');
+const adminNotificationService = require('../services/adminNotificationService');
 
 
 exports.getDashboardData = async (req, res) => {
@@ -54,6 +55,13 @@ exports.getDashboardData = async (req, res) => {
     const totalTrialBookings = await TrialBooking.countDocuments();
     const pendingTrialApprovals = await TrialBooking.countDocuments({ status: 'pending' });
 
+    // Total gyms registered
+    const totalGymsRegistered = await Gym.countDocuments();
+    // Gyms using dashboard: status 'approved' and lastLogin within last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const gymsUsingDashboard = await Gym.countDocuments({ status: 'approved', lastLogin: { $gte: sevenDaysAgo } });
+
     res.json({
       totalUsers,
       activeMembers,
@@ -62,6 +70,8 @@ exports.getDashboardData = async (req, res) => {
       totalRevenue: totalRevenue[0]?.total || 0,
       totalTrialBookings,
       pendingTrialApprovals,
+      totalGymsRegistered,
+      gymsUsingDashboard,
       changes: {
         users: percent(thisMonthUsers, lastMonthUsers),
         members: percent(thisMonthMembers, lastMonthMembers),
@@ -86,6 +96,9 @@ exports.approveGym = async (req, res) => {
     gym.status = 'approved';
     gym.approvedAt = new Date();
     await gym.save();
+
+    // Create notification for gym approval
+    await adminNotificationService.notifyGymApproval(gym);
 
     try {
       await sendEmail(
@@ -127,6 +140,10 @@ exports.rejectGym = async (req, res) => {
       { new: true }
     );
     if (!gym) return res.status(404).json({ error: 'Gym not found' });
+    
+    // Create notification for gym rejection
+    await adminNotificationService.notifyGymRejection(gym, reason);
+    
     try {
       await sendEmail(
         gym.email,
@@ -175,26 +192,65 @@ exports.reconsiderGym = async (req, res) => {
 // delete a gym
 exports.deleteGym = async (req, res) => {
   try {
-      const gymId = req.params.id;
-      const deletedGym = await Gym.findByIdAndDelete(gymId);
+    const gymId = req.params.id;
+    const deletedGym = await Gym.findByIdAndDelete(gymId);
 
-      if (!deletedGym) {
-          return res.status(404).json({ message: 'Gym not found' });
-      }
+    if (!deletedGym) {
+      return res.status(404).json({ message: 'Gym not found' });
+    }
 
-      res.status(200).json({ message: 'Gym deleted successfully' });
+    // Create notification for gym deletion
+    await adminNotificationService.createNotification(
+      'Gym Deleted',
+      `The gym "${deletedGym.gymName || deletedGym.name || 'Unknown Gym'}" has been deleted by the admin.`,
+      'gym-deleted',
+      'fa-trash',
+      '#dc3545',
+      {
+        gymId: deletedGym._id,
+        gymName: deletedGym.gymName || deletedGym.name,
+        action: 'deleted'
+      },
+      'high'
+    );
+
+    res.status(200).json({ message: 'Gym deleted successfully' });
   } catch (error) {
-      console.error('Delete gym error:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error('Delete gym error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 // Get all notifications for the admin
 exports.getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.getAllNotifications(req.admin._id);
-    res.json(notifications);
+    console.log('req.admin:', req.admin);
+    console.log('req.admin._id:', req.admin._id);
+    
+    const notifications = await Notification.find({ user: req.admin._id })
+      .sort({ timestamp: -1 })
+      .limit(50);
+    
+    console.log('Found notifications:', notifications.length);
+    
+    const unreadCount = await Notification.countDocuments({ 
+      user: req.admin._id, 
+      read: false 
+    });
+    
+    console.log('Unread count:', unreadCount);
+    
+    res.json({
+      notifications,
+      unreadCount,
+      success: true
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching notifications' });
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching notifications',
+      error: error.message
+    });
   }
 };
 
@@ -212,11 +268,67 @@ exports.markNotificationRead = async (req, res) => {
     }
 
     await notification.markAsRead();
-    res.json({ message: 'Notification marked as read' });
+    res.json({ 
+      success: true, 
+      message: 'Notification marked as read' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error marking notification as read' });
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error marking notification as read' 
+    });
   }
 };
+
+// Mark all notifications as read
+exports.markAllNotificationsRead = async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { user: req.admin._id, read: false },
+      { read: true }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'All notifications marked as read' 
+    });
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error marking all notifications as read' 
+    });
+  }
+};
+
+// Helper function to create admin notification
+const createAdminNotification = async (title, message, type, icon = 'fa-bell', color = '#2563eb', metadata = {}) => {
+  try {
+    // Try to get the admin ID from the request context if available
+    // For now, we'll use a default admin ID - in production, this should be more dynamic
+    const adminId = '507f1f77bcf86cd799439011'; // Default admin ID
+    
+    const notification = new Notification({
+      title,
+      message,
+      type,
+      icon,
+      color,
+      user: adminId,
+      metadata
+    });
+    
+    await notification.save();
+    console.log(`Admin notification created: ${title}`);
+    return notification;
+  } catch (error) {
+    console.error('Error creating admin notification:', error);
+  }
+};
+
+// Export the helper function for use in other controllers
+module.exports.createAdminNotification = createAdminNotification;
 
 // Admin-specific: Get gym details by ID (regardless of status)
 exports.getGymById = async (req, res) => {

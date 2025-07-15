@@ -299,6 +299,14 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('users-change').innerHTML = `<span class="text-success">${data.changes.users}%</span> from last month`;
             document.getElementById('members-change').innerHTML = `<span class="text-success">${data.changes.members}%</span> from last month`;
             document.getElementById('revenue-change').innerHTML = `<span class="text-success">${data.changes.revenue}%</span> from last month`;
+
+            // New: Total gyms registered and gyms using dashboard
+            if (typeof data.totalGymsRegistered !== 'undefined') {
+                document.getElementById('total-gyms-registered').textContent = data.totalGymsRegistered;
+            }
+            if (typeof data.gymsUsingDashboard !== 'undefined') {
+                document.getElementById('gyms-using-dashboard').innerHTML = `<span class="text-success">${data.gymsUsingDashboard}</span> using dashboard`;
+            }
         });
 
 
@@ -1139,6 +1147,77 @@ function initTrialRequestsTab() {
 
     // Initial load
     if (trainerMgmtGrid) fetchTrainers();
+    
+    // ========== Test Notification Functions for Development ==========
+    
+    // Add test notification button for development
+    const testNotificationBtn = document.createElement('button');
+    testNotificationBtn.textContent = 'Test Notification';
+    testNotificationBtn.style.position = 'fixed';
+    testNotificationBtn.style.bottom = '20px';
+    testNotificationBtn.style.right = '20px';
+    testNotificationBtn.style.zIndex = '9999';
+    testNotificationBtn.style.padding = '10px 20px';
+    testNotificationBtn.style.background = '#2563eb';
+    testNotificationBtn.style.color = 'white';
+    testNotificationBtn.style.border = 'none';
+    testNotificationBtn.style.borderRadius = '5px';
+    testNotificationBtn.style.cursor = 'pointer';
+    testNotificationBtn.style.display = 'none'; // Hide in production
+    
+    // Show test button in development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      testNotificationBtn.style.display = 'block';
+    }
+    
+    testNotificationBtn.addEventListener('click', () => {
+      if (window.adminNotificationSystem) {
+        // Create a test notification
+        const testNotifications = [
+          {
+            title: 'New Gym Registration',
+            message: 'PowerFit Gym from Mumbai has registered and is pending approval.',
+            type: 'gym-registration',
+            icon: 'fa-dumbbell',
+            color: '#f59e0b'
+          },
+          {
+            title: 'Trainer Approved',
+            message: 'John Smith has been approved as a trainer and is now active.',
+            type: 'trainer-approval',
+            icon: 'fa-user-check',
+            color: '#10b981'
+          },
+          {
+            title: 'New Trial Booking',
+            message: 'Sarah Johnson has booked a trial session at Elite Fitness for tomorrow.',
+            type: 'trial-booking',
+            icon: 'fa-calendar-check',
+            color: '#3b82f6'
+          },
+          {
+            title: 'Payment Received',
+            message: 'Monthly subscription payment of ₹1,200 received from Mike Wilson.',
+            type: 'payment',
+            icon: 'fa-credit-card',
+            color: '#059669'
+          }
+        ];
+        
+        const randomNotification = testNotifications[Math.floor(Math.random() * testNotifications.length)];
+        window.adminNotificationSystem.createNotification(
+          randomNotification.title,
+          randomNotification.message,
+          randomNotification.type,
+          randomNotification.icon,
+          randomNotification.color
+        );
+      }
+    });
+    
+    document.body.appendChild(testNotificationBtn);
+    
+    // ========== End Test Notification Functions ==========
     // ========== End Trainer Management Dynamic ==========
 
   // Hamburger menu logic

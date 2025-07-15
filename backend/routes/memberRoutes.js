@@ -3,6 +3,15 @@ const router = express.Router();
 const { addMember, getMembers, updateMember, removeMembersByIds, removeExpiredMembers } = require('../controllers/memberController');
 const gymadminAuth = require('../middleware/gymadminAuth');
 const memberImageUpload = require('../middleware/memberImageUpload');
+const Member = require('../models/Member');
+
+console.log('📋 Member routes loaded - version with email lookup');
+
+// Simple test route
+router.get('/test', (req, res) => {
+  res.json({ message: 'Member routes are working' });
+});
+
 // Remove members by custom IDs (bulk delete)
 router.delete('/bulk', gymadminAuth, removeMembersByIds);
 
@@ -86,16 +95,36 @@ router.get('/expiring', gymadminAuth, async (req, res) => {
   try {
     const Member = require('../models/Member');
     const { days = 3 } = req.query;
-    const daysFromNow = new Date();
-    daysFromNow.setDate(daysFromNow.getDate() + parseInt(days));
+    const gymId = (req.admin && (req.admin.gymId || req.admin.id));
+    
+    if (!gymId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gym ID is required'
+      });
+    }
+    
+    // Calculate target date (days from now)
+    const today = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(today.getDate() + parseInt(days));
+    
+    // Format dates to match the string format in database (YYYY-MM-DD)
+    const todayStr = today.toISOString().split('T')[0];
+    const targetDateStr = targetDate.toISOString().split('T')[0];
+    
+    console.log(`🔍 Checking for memberships expiring in ${days} days for gym ${gymId}`);
+    console.log(`📅 Date range: ${todayStr} to ${targetDateStr}`);
     
     const expiringMembers = await Member.find({
-      gymId: req.gymId,
+      gym: gymId,
       membershipValidUntil: {
-        $lte: daysFromNow,
-        $gte: new Date()
+        $lte: targetDateStr,
+        $gte: todayStr
       }
-    }).select('name email phone membershipValidUntil planSelected membershipId');
+    }).select('memberName email phone membershipValidUntil planSelected membershipId');
+    
+    console.log(`📊 Found ${expiringMembers.length} members with expiring memberships`);
     
     res.json({
       success: true,
@@ -108,6 +137,64 @@ router.get('/expiring', gymadminAuth, async (req, res) => {
       success: false,
       message: 'Error fetching expiring memberships'
     });
+  }
+});
+
+// Get membership details by email (for user profile)
+router.get('/membership-by-email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    console.log('Fetching membership for email:', email);
+    
+    // Find member by email and populate gym status
+    const member = await Member.findOne({ email: email })
+      .populate('gym', 'gymName logo status address city state');
+    
+    if (!member) {
+      return res.status(404).json({ message: 'No membership found for this email' });
+    }
+    
+    // Check if gym is approved (by status field)
+    if (!member.gym || member.gym.status !== 'approved') {
+      return res.status(404).json({ message: 'Membership found but gym is not approved' });
+    }
+    
+    // Calculate days left
+    const today = new Date();
+    const validUntil = new Date(member.membershipValidUntil);
+    const timeDiff = validUntil.getTime() - today.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    // Prepare response data
+   const membershipData = {
+  membershipId: member.membershipId,
+  memberName: member.memberName,
+  email: member.email,
+  phone: member.phone,
+  planSelected: member.planSelected, // was planName
+  monthlyPlan: member.monthlyPlan,
+  membershipValidUntil: member.membershipValidUntil, // was validUntil
+  paymentAmount: member.paymentAmount, // was amountPaid
+  paymentMode: member.paymentMode,     // was paidVia
+  joinDate: member.joinDate,
+  daysLeft: daysLeft,
+  isActive: daysLeft > 0,
+  activityPreference: member.activityPreference,
+  profileImage: member.profileImage,
+  gym: {
+    id: member.gym._id,
+    name: member.gym.gymName,
+    logo: member.gym.logo,
+    address: member.gym.address,
+    city: member.gym.city,
+    state: member.gym.state
+  }
+};
+    
+    res.json({ success: true, membership: membershipData });
+  } catch (error) {
+    console.error('Error fetching membership:', error);
+    res.status(500).json({ message: 'Server error while fetching membership details' });
   }
 });
 

@@ -17,6 +17,15 @@ class NotificationSystem {
     this.bindEventListeners();
     this.startPolling();
     this.loadExistingNotifications();
+    
+    // Setup debug functions
+    this.setupDebugFunctions();
+    
+    // Check for expiring memberships immediately after initialization
+    setTimeout(() => {
+      this.checkMembershipExpiry();
+    }, 2000);
+    
     console.log('🔔 Notification System Initialized');
   }
 
@@ -182,7 +191,8 @@ class NotificationSystem {
       'newMemberNotif',
       'paymentNotif', 
       'trainerNotif',
-      'emailNotif'
+      'emailNotif',
+      'membershipExpiryNotif'
     ];
 
     settingsInputs.forEach(id => {
@@ -252,11 +262,29 @@ class NotificationSystem {
 
   // Check for membership expiry and create notifications
   async checkMembershipExpiry() {
-    if (!this.settings.membershipExpiryNotif) return;
+    console.log('🔍 Checking membership expiry...', this.settings.membershipExpiryNotif);
+    
+    if (!this.settings.membershipExpiryNotif) {
+      console.log('⚠️ Membership expiry notifications are disabled');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('gymAdminToken');
-      if (!token) return;
+      if (!token) {
+        console.log('❌ No auth token found for membership expiry check');
+        return;
+      }
+
+      console.log('📡 Fetching expiring members...');
+
+      // Check for memberships expiring in 7 days
+      const sevenDaysResponse = await fetch('http://localhost:5000/api/members/expiring?days=7', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       // Check for memberships expiring in 3 days
       const threeDaysResponse = await fetch('http://localhost:5000/api/members/expiring?days=3', {
@@ -274,39 +302,84 @@ class NotificationSystem {
         }
       });
 
+      if (sevenDaysResponse.ok) {
+        const sevenDaysData = await sevenDaysResponse.json();
+        console.log('📊 7-day expiry response:', sevenDaysData);
+        if (sevenDaysData.success && sevenDaysData.members && sevenDaysData.members.length > 0) {
+          console.log(`📢 Found ${sevenDaysData.members.length} members expiring in 7 days`);
+          this.createMembershipExpiryNotification(sevenDaysData.members, 7);
+        }
+      } else {
+        console.error('❌ 7-day expiry check failed:', sevenDaysResponse.status);
+      }
+
       if (threeDaysResponse.ok) {
         const threeDaysData = await threeDaysResponse.json();
-        if (threeDaysData.members && threeDaysData.members.length > 0) {
+        console.log('📊 3-day expiry response:', threeDaysData);
+        if (threeDaysData.success && threeDaysData.members && threeDaysData.members.length > 0) {
+          console.log(`📢 Found ${threeDaysData.members.length} members expiring in 3 days`);
           this.createMembershipExpiryNotification(threeDaysData.members, 3);
         }
+      } else {
+        console.error('❌ 3-day expiry check failed:', threeDaysResponse.status);
       }
 
       if (oneDayResponse.ok) {
         const oneDayData = await oneDayResponse.json();
-        if (oneDayData.members && oneDayData.members.length > 0) {
+        console.log('📊 1-day expiry response:', oneDayData);
+        if (oneDayData.success && oneDayData.members && oneDayData.members.length > 0) {
+          console.log(`📢 Found ${oneDayData.members.length} members expiring in 1 day`);
           this.createMembershipExpiryNotification(oneDayData.members, 1);
         }
+      } else {
+        console.error('❌ 1-day expiry check failed:', oneDayResponse.status);
       }
     } catch (error) {
-      console.error('Error checking membership expiry:', error);
+      console.error('❌ Error checking membership expiry:', error);
     }
   }
 
   // Create membership expiry notification
   createMembershipExpiryNotification(members, days) {
+    // Create unique ID to prevent duplicates
+    const memberIds = members.map(m => m._id || m.membershipId).join(',');
+    const notificationId = `expiry-${days}d-${Date.now()}-${memberIds.slice(0, 20)}`;
+    
+    // Check if similar notification already exists (within last hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const existingNotification = this.notifications.find(n => 
+      n.type === 'membership-expiry' && 
+      n.timestamp > oneHourAgo &&
+      n.message.includes(`${days} day`) &&
+      n.members && n.members.length === members.length
+    );
+    
+    if (existingNotification) {
+      console.log(`⚠️ Similar expiry notification already exists for ${days} days`);
+      return;
+    }
+
     const notification = {
-      id: `expiry-${days}d-${Date.now()}`,
+      id: notificationId,
       type: 'membership-expiry',
-      title: `Membership${members.length > 1 ? 's' : ''} Expiring Soon`,
-      message: `${members.length} member${members.length > 1 ? 's have' : ' has'} membership${members.length > 1 ? 's' : ''} expiring in ${days} day${days > 1 ? 's' : ''}`,
+      title: `Membership${members.length > 1 ? 's' : ''} Expiring ${days === 1 ? 'Tomorrow' : `in ${days} Day${days > 1 ? 's' : ''}`}`,
+      message: `${members.length} member${members.length > 1 ? 's have' : ' has'} membership${members.length > 1 ? 's' : ''} expiring ${days === 1 ? 'tomorrow' : `in ${days} day${days > 1 ? 's' : ''}`}`,
       timestamp: new Date(),
       read: false,
-      priority: days === 1 ? 'high' : 'medium',
-      members: members,
+      priority: days === 1 ? 'high' : days === 3 ? 'medium' : 'normal',
+      members: members.map(member => ({
+        name: member.memberName || member.name || 'Unknown',
+        membershipId: member.membershipId || member._id,
+        membershipValidUntil: member.membershipValidUntil,
+        planSelected: member.planSelected,
+        email: member.email,
+        phone: member.phone
+      })),
       icon: 'fa-exclamation-triangle',
-      color: days === 1 ? '#ff6b35' : '#ffa726'
+      color: days === 1 ? '#ff6b35' : days === 3 ? '#ffa726' : '#ffb74d'
     };
 
+    console.log(`📢 Creating membership expiry notification: ${notification.title}`);
     this.addNotification(notification);
   }
 
@@ -513,9 +586,14 @@ class NotificationSystem {
     if (notification.members && notification.members.length > 0) {
       content += `<div class="expiring-members">
         <h4>Members with expiring memberships:</h4>
-        <ul>
+        <ul style="text-align: left; margin-top: 10px;">
           ${notification.members.map(member => 
-            `<li>${member.name} - Expires: ${new Date(member.membershipValidUntil).toLocaleDateString()}</li>`
+            `<li style="margin-bottom: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+              <strong>${member.name}</strong> (${member.planSelected || 'Unknown Plan'})
+              <br><small>ID: ${member.membershipId || 'N/A'} | Expires: ${member.membershipValidUntil ? new Date(member.membershipValidUntil).toLocaleDateString() : 'N/A'}</small>
+              ${member.email ? `<br><small><i class='fas fa-envelope' style='color:#1976d2;'></i> ${member.email}</small>` : ''}
+              ${member.phone ? `<br><small><i class='fas fa-phone' style='color:#43a047;'></i> ${member.phone}</small>` : ''}
+            </li>`
           ).join('')}
         </ul>
       </div>`;
@@ -653,6 +731,18 @@ class NotificationSystem {
     } catch (error) {
       console.error('Error loading notifications:', error);
     }
+  }
+
+  // Debug function to manually test membership expiry
+  async testMembershipExpiry() {
+    console.log('🧪 Testing membership expiry notifications...');
+    await this.checkMembershipExpiry();
+  }
+
+  // Initialize global object for testing
+  setupDebugFunctions() {
+    window.notificationSystem = this;
+    window.testMembershipExpiry = () => this.testMembershipExpiry();
   }
 
   // Utility functions

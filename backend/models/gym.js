@@ -57,6 +57,8 @@ passwordResetOTPExpiry: { type: Date },
   status: { type: String, default: 'pending' },
   rejectionReason: { type: String },
 
+  lastLogin: { type: Date }, // Track last login for dashboard usage
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
   approvedAt: {
@@ -65,7 +67,6 @@ passwordResetOTPExpiry: { type: Date },
   rejectedAt: {
     type: Date
   }
-  
 });
 
 // Automatically update `updatedAt` on save

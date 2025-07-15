@@ -920,20 +920,646 @@ body {
 
 
 
-/* --- Notification Modal --- */
-#notificationModal .modal-content {
-    max-width: 350px;
-    text-align: center;
-    padding: 32px 20px;
+/* --- Enhanced Notification Modal --- */
+#notificationModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  z-index: 10000;
+  background: rgba(0,0,0,0.35);
+  align-items: center;
+  justify-content: center;
 }
+#notificationModal.show {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+#notificationModal .modal-content {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 480px;
+  width: 98vw;
+  padding: 28px 18px 22px 18px;
+  box-shadow: 0 4px 32px rgba(25,118,210,0.14);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  animation: modalFadeIn 0.3s;
+  max-height: 92vh;
+  overflow-y: auto;
+  margin: 0 auto;
+}
+@media (max-width: 768px) {
+  #notificationModal .modal-content {
+    max-width: 99vw;
+    padding: 12px 4vw 12px 4vw;
+    margin: 0 auto;
+  }
+}
+
+#notificationModal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+#notificationModal .modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Quick Message Templates */
+.quick-message-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.quick-msg-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    font-weight: 500;
+    gap: 6px;
+}
+
+.quick-msg-btn:hover {
+    border-color: var(--primary);
+    background: rgba(25, 118, 210, 0.05);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.quick-msg-btn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+.quick-msg-btn i {
+    font-size: 1.2rem;
+}
+
+/* Channel Options */
+.channel-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.channel-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.channel-option:hover {
+    border-color: var(--primary);
+    background: rgba(25, 118, 210, 0.05);
+}
+
+.channel-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.channel-option input[type="checkbox"]:checked + .channel-icon {
+    color: var(--primary);
+}
+
+.channel-icon {
+    font-size: 1.2rem;
+    color: #6c757d;
+    transition: color 0.3s ease;
+}
+
+.channel-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Custom Selection */
+.custom-selection-container {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.selection-search {
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.selection-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.selection-list {
+    padding: 8px;
+}
+
+.recipient-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.recipient-item:hover {
+    background-color: #f8f9fa;
+}
+
+.recipient-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+
+.recipient-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.recipient-info {
+    flex: 1;
+}
+
+.recipient-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.recipient-email {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Message Preview */
+.message-preview {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    margin-top: 8px;
+}
+
+.preview-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.preview-message {
+    color: #6c757d;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+/* Delivery Options */
+.delivery-options {
+    display: flex;
+    gap: 20px;
+    margin-top: 8px;
+}
+
+.delivery-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #495057;
+}
+
+.delivery-option input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+
+.schedule-container {
+    margin-top: 12px;
+}
+
+.schedule-container input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* Send Status */
+.send-status {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    border: 2px solid #e9ecef;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.status-item i {
+    width: 20px;
+    color: #6c757d;
+}
+
+.status-text {
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.status-text.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-text.success {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-text.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Character Count */
+.char-count {
+    display: block;
+    text-align: right;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Form Labels */
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.form-label i {
+    color: var(--primary);
+}
+
+/* Modal Footer */
 #notificationModal .modal-footer {
-    margin-top: 18px;
+    margin-top: 24px;
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
 }
+
 #notificationModal .btn {
-    min-width: 90px;
+    min-width: 120px;
+    padding: 10px 20px;
+    font-weight: 500;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+#notificationModal .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #notificationModal .modal-content {
+        max-width: 95vw;
+        padding: 20px;
+        margin: 20px auto;
+    }
+    
+    #notificationModal .modal-title {
+        font-size: 1.3rem;
+    }
+    
+    .quick-message-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+    }
+    
+    .quick-msg-btn {
+        padding: 10px 6px;
+        font-size: 0.8rem;
+    }
+    
+    .channel-options {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .channel-option {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .delivery-options {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .custom-selection-container {
+        max-height: 150px;
+    }
+    
+    .recipient-item {
+        padding: 6px 10px;
+    }
+    
+    .recipient-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+    
+    .recipient-name {
+        font-size: 0.9rem;
+    }
+    
+    .recipient-email {
+        font-size: 0.7rem;
+    }
+    
+    .preview-title {
+        font-size: 1rem;
+    }
+    
+    .preview-message {
+        font-size: 0.9rem;
+    }
+    
+    .send-status {
+        padding: 12px;
+    }
+    
+    .status-item {
+        font-size: 0.9rem;
+    }
+    
+    #notificationModal .btn {
+        min-width: 100px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    #notificationModal .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    #notificationModal .modal-content {
+        padding: 16px;
+        margin: 10px auto;
+    }
+    
+    .quick-message-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    
+    .quick-msg-btn {
+        padding: 8px 4px;
+        font-size: 0.75rem;
+    }
+    
+    .quick-msg-btn i {
+        font-size: 1rem;
+    }
+    
+    .custom-selection-container {
+        max-height: 120px;
+    }
+    
+    .message-preview {
+        padding: 12px;
+    }
+    
+    .preview-title {
+        font-size: 0.95rem;
+    }
+    
+    .preview-message {
+        font-size: 0.85rem;
+    }
+}
+
+/* Loading states */
+.quick-msg-btn.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.quick-msg-btn.loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 6px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced hover effects */
+.quick-msg-btn:hover i {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+.channel-option:hover .channel-icon {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+/* Focus states for accessibility */
+.quick-msg-btn:focus,
+.channel-option:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Notification count badge */
+.notification-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #dc3545;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Success/Error states */
+.form-control.success {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-control.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Enhanced animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-preview {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.send-status {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Dark theme support (if needed) */
+@media (prefers-color-scheme: dark) {
+    #notificationModal .modal-content {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .quick-msg-btn {
+        background: #4a5568;
+        color: #e2e8f0;
+        border-color: #4a5568;
+    }
+    
+    .quick-msg-btn:hover {
+        background: #2d3748;
+        border-color: var(--primary);
+    }
+    
+    .channel-option {
+        background: #4a5568;
+        color: #e2e8f0;
+        border-color: #4a5568;
+    }
+    
+    .message-preview {
+        background: #4a5568;
+        border-color: #4a5568;
+    }
+    
+    .send-status {
+        background: #4a5568;
+        border-color: #4a5568;
+    }
 }
 
 /* --- Upload Photo Modal --- */
@@ -1056,15 +1682,20 @@ tr:hover {
 
 /* --- General Modal Styles (Unified, Responsive) --- */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 10000;
-    left: 0; top: 0;
-    width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.35);
-    justify-content: center;
-    align-items: center;
-    overflow-y: auto;
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  z-index: 10000;
+  background: rgba(0,0,0,0.35);
+  align-items: center;
+  justify-content: center;
+}
+.modal.show {
+  display: flex !important;
 }
 .modal-content {
     background: #fff;
@@ -3231,28 +3862,50 @@ body[data-theme="dark"] #notificationBell .notification-badge {
 }
 
 .expiring-members {
-  margin-top: 16px;
-  padding: 12px;
+  margin: 4vh auto; /* Adds vertical space and centers horizontally */
+  padding: 1rem;
   background: var(--warning-light, #fff8e1);
   border-radius: 6px;
   border-left: 4px solid var(--warning, #ffa726);
+  max-width: 90%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .expiring-members h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 0.5rem 0;
   color: var(--warning-dark, #ef6c00);
+  font-size: 1.2rem;
 }
 
 .expiring-members ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 1.25rem;
 }
 
 .expiring-members li {
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
   color: var(--text-primary);
+  font-size: 1rem;
 }
 
+/* Optional: further improvements for very large screens */
+@media (min-width: 768px) {
+  .expiring-members {
+    max-width: 600px;
+  }
+}
+
+body.dark-mode .expiring-members {
+  background: #2d313a;
+  border-left-color: #ffa726;
+}
+body.dark-mode .expiring-members h4 {
+  color: #ffa726;
+}
+body.dark-mode .expiring-members li {
+  color: #ffe0b2;
+}
 /* Dark theme adjustments */
 body[data-theme="dark"] .notification-dropdown {
   background: var(--card-bg-dark, #2a2d35);

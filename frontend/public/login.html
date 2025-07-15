@@ -1,96 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login & Sign Up</title>
-
-  <!-- ✅ Your Corrected CSS Path -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIT-verse | Login & Sign Up</title>
+  
+  <!-- Styles -->
   <link rel="stylesheet" href="styleslogin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- ✅ Font Awesome -->
-  <script src="https://kit.fontawesome.com/ff1e7eac4b.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <!-- Top-right buttons -->
-<div style="position: absolute; top: 20px; right: 20px;">
-  <a href="/frontend/public/admin-login.html" class="top-button">Admin Login</a>
-  <a href="/frontend/public/gym-register.html" class="top-button">Register Gym</a>
-</div>
+  <!-- Top Navigation -->
+  <div class="top-nav">
+    <a href="/frontend/public/admin-login.html" class="top-button">Admin Login</a>
+    <a href="/frontend/public/gym-register.html" class="top-button">Register Gym</a>
+  </div>
 
+  <!-- Main Container -->
+  <div class="container">
+    <div class="form-container">
+      <!-- Toggle Buttons -->
+      <div class="toggle-buttons">
+        <button type="button" id="show-login" class="toggle-btn active">Sign In</button>
+        <button type="button" id="show-signup" class="toggle-btn">Sign Up</button>
+      </div>
 
-  
+      <!-- Login Form -->
+      <form id="login-form" class="active" novalidate>
+        <h2>Welcome Back</h2>
+        
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="login-email" placeholder="Email address" required autocomplete="email">
+        </div>
+        
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="animated-button">Sign In</button>
+        
+        <div class="divider">
+          <span class="divider-line"></span>
+          <span class="divider-text">or</span>
+          <span class="divider-line"></span>
+        </div>
+        
+        <div id="google-signin-btn-login"></div>
+        
+        <div class="forgot-password">
+          <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+        </div>
+      </form>
 
+      <!-- Signup Form -->
+      <form id="signup-form" novalidate>
+        <h2>Create Account</h2>
+        
+        <div class="input-group">
+          <i class="fas fa-user"></i>
+          <input type="text" id="username" placeholder="Full Name" required autocomplete="name">
+        </div>
+        
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="signup-email" placeholder="Email address" required autocomplete="email">
+        </div>
+        
+        <div class="input-group">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="signup-phone" placeholder="Phone Number" required autocomplete="tel">
+        </div>
+        
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="signup-password" placeholder="Create Password" required autocomplete="new-password">
+        </div>
+        
+        <button type="submit" class="animated-button">Create Account</button>
+        
+        <div class="divider">
+          <span class="divider-line"></span>
+          <span class="divider-text">or</span>
+          <span class="divider-line"></span>
+        </div>
+        
+        <div id="google-signin-btn-signup"></div>
+      </form>
 
-<div class="container">
-  <div class="form-container">
-    <!-- Toggle buttons -->
-    <div class="toggle-buttons">
-      <button id="show-login"  class="toggle-btn active">Sign In</button>
-      <button id="show-signup" class="toggle-btn">Sign Up</button>
+      <!-- Error Message -->
+      <div id="error-message" style="display: none;"></div>
     </div>
-
-    <!-- ✅ Login Form -->
-   <form id="login-form" class="active">
-  <h2>Sign In</h2>
-  <div class="input-group">
-    <i class="fas fa-user"></i>
-    <input type="text" id="login-email" placeholder="Email or Phone" required />
   </div>
-  <div class="input-group">
-    <i class="fas fa-lock"></i>
-    <input type="password" id="login-password" placeholder="Password" required />
-  </div>
-  <button type="submit" class="animated-button">Login</button>
-  
-  <div class="divider">
-    <span class="divider-line"></span>
-    <span class="divider-text">or</span>
-    <span class="divider-line"></span>
-  </div>
-  
- <div id="google-signin-btn-login"></div>
-  
-  <div style="text-align:right; margin-top:8px;">
-    <a href="#" id="forgotPasswordLink" style="font-size:0.95em; color:#3f37c9; text-decoration:underline; cursor:pointer;">Forgot Password?</a>
-  </div>
-</form>
-
-<!-- 🔴 This will show error messages -->
-<p id="error-message" style="color: red; display: none;">Invalid Credentials</p>
-
-<!-- ✅ Signup Form -->
-<form id="signup-form">
-  <h2>Sign Up</h2>
-  <div class="input-group">
-    <i class="fas fa-user"></i>
-    <input type="text" id="username" placeholder="Full Name" required />
-  </div>
-  <div class="input-group">
-    <i class="fas fa-envelope"></i>
-    <input type="email" id="signup-email" placeholder="Email" required />
-  </div>
-  <div class="input-group">
-    <i class="fas fa-phone"></i>
-    <input type="tel" id="signup-phone" placeholder="Phone Number" required />
-  </div>
-  <div class="input-group">
-    <i class="fas fa-lock"></i>
-    <input type="password" id="signup-password" placeholder="Password" required />
-  </div>
-  <button type="submit" class="animated-button">Sign Up</button>
-  
-  <div class="divider">
-    <span class="divider-line"></span>
-    <span class="divider-text">or</span>
-    <span class="divider-line"></span>
-  </div>
-  
-  <div id="google-signin-btn-signup"></div>
-</form>
-  </div>
-</div>
 <!-- Forgot Password Modals -->
 <div id="requestOtpModal" class="modal" style="display:none;">
   <div class="modal-content">

@@ -3,6 +3,7 @@ const Gym = require('../models/gym');
 const Notification = require('../models/Notification');
 const TrialBooking = require('../models/TrialBooking');
 const sendEmail = require('../utils/sendEmail');
+const adminNotificationService = require('../services/adminNotificationService');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken'); // Added jsonwebtoken
@@ -82,6 +83,10 @@ exports.login = async (req, res) => {
     
     console.log('✅ Token generated successfully for gym:', gym._id);
     console.log('🔐 Returning login response with token length:', token.length);
+    
+    // Update lastLogin field
+    gym.lastLogin = new Date();
+    await gym.save();
     
     res.status(200).json({
       success: true,
@@ -523,6 +528,13 @@ exports.registerGym = async (req, res) => {
 
     await newGym.save();
     console.log("✅ Gym saved successfully to DB (according to Mongoose):", newGym);
+
+    // Create admin notification for new gym registration
+    try {
+      await adminNotificationService.notifyGymRegistration(newGym);
+    } catch (notificationError) {
+      console.error('Error creating admin notification:', notificationError);
+    }
 
     // Send confirmation email
     try {

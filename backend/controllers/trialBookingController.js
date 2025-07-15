@@ -1,5 +1,7 @@
 const TrialBooking = require('../models/TrialBooking');
 const Gym = require('../models/gym');
+const Notification = require('../models/Notification');
+const adminNotificationService = require('../services/adminNotificationService');
 const nodemailer = require('nodemailer');
 
 // Create a reusable transporter object using SMTP
@@ -133,6 +135,13 @@ exports.createBooking = async (req, res) => {
     });
 
     await newBooking.save();
+
+    // Create admin notification for new trial booking
+    try {
+      await adminNotificationService.notifyTrialBooking(newBooking);
+    } catch (notificationError) {
+      console.error('Error creating admin notification for trial booking:', notificationError);
+    }
 
     res.status(201).json({ success: true, message: 'Trial booking created successfully.' });
   } catch (error) {
