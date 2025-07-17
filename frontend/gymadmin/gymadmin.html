@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="gymadmin.css">
     <link rel="stylesheet" href="attendance.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script defer src="gymadmin.js"></script>
     <script defer src="notification-modal.js"></script>
     <script defer src="notification-system.js"></script>
     <script defer src="attendance.js"></script>
+    <script defer src="attendance-stats.js"></script>
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
@@ -141,22 +143,34 @@
                 <!-- Stats Cards -->
                 <div class="stats-cards">
                     <div class="stat-card new-users" id="membersStatCard" style="cursor:pointer;">
+                        <div class="stat-icon" style="font-size:2rem;color:#2563eb;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                            <i class="fas fa-users"></i>
+                        </div>
                         <div class="stat-title">Members</div>
                         <div class="stat-value"></div>
                         <div class="stat-change"></div>
                     </div>
 
                     <div class="stat-card payments">
+                        <div class="stat-icon" style="font-size:2rem;color:#43a047;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
                         <div class="stat-title">Total Payments</div>
                         <div class="stat-value"></div>
                         <div class="stat-change"></div>
                     </div>
-                    <div class="stat-card attendance">
-                        <div class="stat-title">Today's Attendance</div>
-                        <div class="stat-value"></div>
-                        <div class="stat-change"></div>
+                    <div class="stat-card attendance" id="attendanceStatCard" style="cursor:pointer;">
+                        <div class="stat-icon" style="font-size:2rem;color:#ffa726;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-title">Overall Attendance</div>
+                        <div class="stat-value" id="overallAttendanceValue">Loading...</div>
+                        <div class="stat-change" id="overallAttendanceChange">Calculating...</div>
                     </div>
                     <div class="stat-card trainers">
+                        <div class="stat-icon" style="font-size:2rem;color:#7c3aed;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
                         <div class="stat-title">Active Trainers</div>
                         <div class="stat-value"></div>
                         <div class="stat-change"></div>
@@ -188,13 +202,15 @@
                     </div>
                   </div>
                   <div class="card activities-offered-card">
-                    <div class="card-header">
+                    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
                       <h2 class="card-title">Activities Offered</h2>
+                      <button id="addActivitiesBtn" class="upload-photo-btn" type="button" style="display:flex;align-items:center;gap:8px;font-size:1rem;padding:8px 18px;background:#1976d2;color:#fff;border:none;border-radius:6px;box-shadow:0 2px 8px rgba(25,118,210,0.08);cursor:pointer;">
+                        <i class="fas fa-plus-circle"></i> Add Activities
+                      </button>
                     </div>
                     <div class="activities-list" id="activitiesList">
                       <!-- Activities will be rendered dynamically here -->
                     </div>
-                    <button id="addActivitiesBtn" class="btn btn-primary" style="margin-top:16px;">Add Activities</button>
                     <!-- Add Activities Modal -->
                     <div class="modal" id="addActivitiesModal" style="display:none;z-index:10001;align-items:flex-start;">
                       <div class="modal-content" style="max-width:700px;margin-top:48px;">
@@ -417,17 +433,29 @@
                         <div class="card">
                             <div class="card-header">
                                 <h2 class="card-title">Attendance Trend</h2>
-                                <div class="card-actions">
-                                    <button>This Week</button>
-                                    <button>This Month</button>
-                                    <button>This Year</button>
+                                <div class="card-actions" style="display:flex;gap:10px;align-items:center;">
+                                    <label for="dashboardChartMonth" style="font-size:0.95rem;color:#555;margin-right:4px;">Month:</label>
+                                    <select id="dashboardChartMonth" style="padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:0.95rem;">
+                                        <option value="0">Jan</option>
+                                        <option value="1">Feb</option>
+                                        <option value="2">Mar</option>
+                                        <option value="3">Apr</option>
+                                        <option value="4">May</option>
+                                        <option value="5">Jun</option>
+                                        <option value="6">Jul</option>
+                                        <option value="7">Aug</option>
+                                        <option value="8">Sep</option>
+                                        <option value="9">Oct</option>
+                                        <option value="10">Nov</option>
+                                        <option value="11">Dec</option>
+                                    </select>
+                                    <label for="dashboardChartYear" style="font-size:0.95rem;color:#555;margin-left:8px;margin-right:4px;">Year:</label>
+                                    <select id="dashboardChartYear" style="padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:0.95rem;"></select>
                                 </div>
                             </div>
                             <div class="chart-container">
                                 <!-- Chart will be rendered here -->
-                                <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #f8f9fa; border-radius: 8px;">
-                                    <p>Attendance chart visualization would appear here</p>
-                                </div>
+                                <canvas id="dashboardAttendanceChart" style="width: 100%; height: 350px;"></canvas>
                             </div>
                         </div>
                     </div>
@@ -688,6 +716,139 @@
                 <button class="btn btn-primary" id="sendNotificationBtn">
                     <i class="fas fa-paper-plane"></i> Send Notification
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Statistics Modal -->
+    <div class="modal" id="attendanceStatsModal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid #eee;">
+                <h3 class="modal-title" style="margin: 0; color: var(--primary);">
+                    <i class="fas fa-chart-line"></i> Attendance Statistics
+                </h3>
+                <button class="modal-close" id="closeAttendanceStats" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <!-- Today's Summary -->
+                <div class="attendance-summary-section" style="margin-bottom: 30px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-calendar-day"></i> Today's Attendance Summary
+                    </h4>
+                    <div class="attendance-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="summary-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid var(--success);">
+                            <div class="summary-icon" style="font-size: 2rem; color: var(--success); margin-bottom: 10px;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="summary-number" id="totalMembersPresent" style="font-size: 2rem; font-weight: bold; color: var(--success);">0</div>
+                            <div class="summary-label" style="color: var(--text-secondary); font-size: 0.9rem;">Members Present</div>
+                        </div>
+                        <div class="summary-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid var(--primary);">
+                            <div class="summary-icon" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="summary-number" id="totalTrainersPresent" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+                            <div class="summary-label" style="color: var(--text-secondary); font-size: 0.9rem;">Trainers Present</div>
+                        </div>
+                        <div class="summary-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid var(--warning);">
+                            <div class="summary-icon" style="font-size: 2rem; color: var(--warning); margin-bottom: 10px;">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <div class="summary-number" id="overallAttendancePercentage" style="font-size: 2rem; font-weight: bold; color: var(--warning);">0%</div>
+                            <div class="summary-label" style="color: var(--text-secondary); font-size: 0.9rem;">Overall Attendance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Chart Section -->
+                <div class="monthly-chart-section" style="margin-bottom: 30px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chart-bar"></i> Monthly Attendance Trend
+                        </h4>
+                        <div class="chart-controls" style="display: flex; gap: 10px;">
+                            <select id="attendanceChartMonth" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                            <select id="attendanceChartYear" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="background: #f8f9fa; padding: 20px; border-radius: 8px; min-height: 400px;">
+                        <canvas id="attendanceChart" style="width: 100%; height: 350px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Statistics -->
+                <div class="detailed-stats-section">
+                    <h4 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-list"></i> Detailed Statistics
+                    </h4>
+                    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div class="stat-item" style="background: #f8f9fa; padding: 15px; border-radius: 8px; color: #222;">
+                            <div class="stat-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <i class="fas fa-users" style="color: var(--success);"></i>
+                                <span style="font-weight: bold;">Members</span>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Total Members:</span>
+                                    <span id="totalMembersCount">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Present Today:</span>
+                                    <span id="membersPresentToday">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Absent Today:</span>
+                                    <span id="membersAbsentToday">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; color: #222;">
+                                    <span>Attendance Rate:</span>
+                                    <span id="membersAttendanceRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-item" style="background: #f8f9fa; padding: 15px; border-radius: 8px; color: #222;">
+                            <div class="stat-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <i class="fas fa-user-tie" style="color: var(--primary);"></i>
+                                <span style="font-weight: bold;">Trainers</span>
+                            </div>
+                            <div class="stat-details">
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Total Trainers:</span>
+                                    <span id="totalTrainersCount">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Present Today:</span>
+                                    <span id="trainersPresentToday">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #222;">
+                                    <span>Absent Today:</span>
+                                    <span id="trainersAbsentToday">0</span>
+                                </div>
+                                <div class="stat-row" style="display: flex; justify-content: space-between; color: #222;">
+                                    <span>Attendance Rate:</span>
+                                    <span id="trainersAttendanceRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1509,100 +1670,110 @@
 <!-- Attendance Tab -->
 <div id="attendanceTab" style="display:none;">
   <div class="attendance-container">
-    <!-- Attendance Header -->
-    <div class="attendance-header">
-      <h1 class="attendance-title">
-        <i class="fas fa-calendar-check"></i>
-        Attendance Management
-      </h1>
-      <div class="attendance-stats">
-        <div class="attendance-stat-card">
-          <div class="stat-number" id="totalCount">0</div>
-          <div class="stat-label">Total</div>
+    <!-- Compact Top Control Panel -->
+    <div class="attendance-control-panel">
+      <div class="control-panel-header">
+        <h1 class="attendance-title">
+          <i class="fas fa-calendar-check"></i>
+          Attendance Management
+        </h1>
+        <div class="attendance-stats-compact">
+          <div class="stat-item">
+            <span class="stat-number" id="totalCount">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="presentCount">0</span>
+            <span class="stat-label">Present</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="absentCount">0</span>
+            <span class="stat-label">Absent</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="pendingCount">0</span>
+            <span class="stat-label">Pending</span>
+          </div>
         </div>
-        <div class="attendance-stat-card">
-          <div class="stat-number" id="presentCount">0</div>
-          <div class="stat-label">Present</div>
+      </div>
+
+      <div class="control-panel-actions">
+        <!-- Tabs and Date Controls in one row -->
+        <div class="tabs-and-date">
+          <div class="attendance-tabs-compact">
+            <button class="attendance-tab-btn active" data-tab="members">
+              <i class="fas fa-users"></i>
+              Members
+            </button>
+            <button class="attendance-tab-btn" data-tab="trainers">
+              <i class="fas fa-user-tie"></i>
+              Trainers
+            </button>
+          </div>
+          
+          <div class="date-controls-compact">
+            <button class="date-nav-btn-compact" id="prevDay">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <input type="date" id="attendanceDate" class="date-input-compact" />
+            <button class="date-nav-btn-compact" id="nextDay">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="today-btn-compact" id="todayBtn">
+              <i class="fas fa-calendar-day"></i>
+              Today
+            </button>
+          </div>
         </div>
-        <div class="attendance-stat-card">
-          <div class="stat-number" id="absentCount">0</div>
-          <div class="stat-label">Absent</div>
-        </div>
-        <div class="attendance-stat-card">
-          <div class="stat-number" id="pendingCount">0</div>
-          <div class="stat-label">Pending</div>
+
+        <!-- Search and Filters -->
+        <div class="search-and-filters">
+          <div class="search-box-compact">
+            <input type="text" id="attendanceSearch" placeholder="Search by name or ID...">
+            <i class="fas fa-search"></i>
+          </div>
+          <select class="filter-select-compact" id="attendanceFilter">
+            <option value="all">All</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="pending">Pending</option>
+          </select>
+          <div class="bulk-actions-compact">
+            <button class="bulk-btn-compact bulk-present" id="bulkPresentBtn">
+              <i class="fas fa-check-circle"></i>
+              Mark All Present
+            </button>
+            <button class="bulk-btn-compact bulk-absent" id="bulkAbsentBtn">
+              <i class="fas fa-times-circle"></i>
+              Mark All Absent
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Attendance Tabs -->
-    <div class="attendance-tabs">
-      <button class="attendance-tab-btn active" data-tab="members">
-        <i class="fas fa-users"></i>
-        Members
-      </button>
-      <button class="attendance-tab-btn" data-tab="trainers">
-        <i class="fas fa-user-tie"></i>
-        Trainers
-      </button>
-    </div>
-
-    <!-- Date Selector -->
-    <div class="date-selector">
-      <label for="attendanceDate">
-        <i class="fas fa-calendar"></i>
-        Select Date:
-      </label>
-      <input type="date" id="attendanceDate" />
-      <button class="date-nav-btn" id="prevDay">
-        <i class="fas fa-chevron-left"></i>
-        Previous
-      </button>
-      <button class="date-nav-btn" id="nextDay">
-        Next
-        <i class="fas fa-chevron-right"></i>
-      </button>
-      <button class="today-btn" id="todayBtn">
-        <i class="fas fa-calendar-day"></i>
-        Today
-      </button>
-    </div>
-
-    <!-- Attendance Controls -->
-    <div class="attendance-controls">
-      <div class="search-box">
-        <input type="text" id="attendanceSearch" placeholder="Search by name or ID...">
-        <i class="fas fa-search"></i>
-      </div>
-      <select class="filter-select" id="attendanceFilter">
-        <option value="all">All</option>
-        <option value="present">Present</option>
-        <option value="absent">Absent</option>
-        <option value="pending">Pending</option>
-      </select>
-      <div class="bulk-actions">
-        <button class="bulk-btn bulk-present" id="bulkPresentBtn">
-          <i class="fas fa-check-circle"></i>
-          Mark All Present
-        </button>
-        <button class="bulk-btn bulk-absent" id="bulkAbsentBtn">
-          <i class="fas fa-times-circle"></i>
-          Mark All Absent
-        </button>
-      </div>
-    </div>
-
-    <!-- Attendance Summary -->
-    <div class="attendance-summary" id="attendanceSummary">
+    <!-- Attendance Summary (Compact) -->
+    <div class="attendance-summary-compact" id="attendanceSummary">
       <!-- Summary will be populated by JavaScript -->
     </div>
 
-    <!-- Attendance Grid -->
-    <div class="attendance-grid" id="attendanceGrid">
-      <!-- Attendance cards will be populated by JavaScript -->
-      <div class="loading">
-        <div class="spinner"></div>
-        Loading attendance data...
+    <!-- Enhanced Column View -->
+    <div class="attendance-column-view">
+      <div class="attendance-table-header">
+        <div class="column-header photo">Photo</div>
+        <div class="column-header name">Name</div>
+        <div class="column-header id">ID</div>
+        <div class="column-header status">Status</div>
+        <div class="column-header check-in">Check-in</div>
+        <div class="column-header actions">Actions</div>
+      </div>
+      
+      <div class="attendance-table-body" id="attendanceTableBody">
+        <!-- Attendance rows will be populated by JavaScript -->
+        <div class="loading-row">
+          <div class="spinner"></div>
+          Loading attendance data...
+        </div>
       </div>
     </div>
   </div>

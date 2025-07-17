@@ -21,7 +21,8 @@ router.get('/:date', gymadminAuth, async (req, res) => {
             attendanceMap[record.personId._id] = {
                 status: record.status,
                 checkInTime: record.checkInTime,
-                checkOutTime: record.checkOutTime
+                checkOutTime: record.checkOutTime,
+                personType: record.personType
             };
         });
 
@@ -38,15 +39,20 @@ router.post('/', gymadminAuth, async (req, res) => {
         const { personId, personType, date, status, checkInTime, checkOutTime } = req.body;
         const gymId = req.admin.id; // Use req.admin.id from current auth structure
 
+        console.log(`📝 Marking attendance: personId=${personId}, personType=${personType}, date=${date}, status=${status}, gymId=${gymId}`);
+
         // Validate person exists
         let person;
         if (personType === 'Member') {
             person = await Member.findById(personId);
+            console.log(`🔍 Member lookup result:`, person ? `Found ${person.memberName}` : 'Not found');
         } else if (personType === 'Trainer') {
             person = await Trainer.findById(personId);
+            console.log(`🔍 Trainer lookup result:`, person ? `Found ${person.firstName} ${person.lastName}` : 'Not found');
         }
 
         if (!person) {
+            console.log(`❌ Person not found`);
             return res.status(404).json({ error: 'Person not found' });
         }
 
@@ -59,12 +65,14 @@ router.post('/', gymadminAuth, async (req, res) => {
 
         if (attendance) {
             // Update existing attendance
+            console.log(`🔄 Updating existing attendance record`);
             attendance.status = status;
             attendance.checkInTime = checkInTime;
             attendance.checkOutTime = checkOutTime;
             attendance.updatedAt = new Date();
         } else {
             // Create new attendance record
+            console.log(`➕ Creating new attendance record`);
             attendance = new Attendance({
                 gymId,
                 personId,
@@ -76,8 +84,16 @@ router.post('/', gymadminAuth, async (req, res) => {
             });
         }
 
-        await attendance.save();
-        res.json({ message: 'Attendance marked successfully', attendance });
+        const savedAttendance = await attendance.save();
+        console.log(`✅ Attendance saved successfully:`, {
+            id: savedAttendance._id,
+            gymId: savedAttendance.gymId,
+            personId: savedAttendance.personId,
+            date: savedAttendance.date,
+            status: savedAttendance.status
+        });
+        
+        res.json({ message: 'Attendance marked successfully', attendance: savedAttendance });
     } catch (error) {
         console.error('Error marking attendance:', error);
         res.status(500).json({ error: 'Failed to mark attendance' });
@@ -284,6 +300,109 @@ router.post('/bulk', gymadminAuth, async (req, res) => {
     } catch (error) {
         console.error('Error bulk marking attendance:', error);
         res.status(500).json({ error: 'Failed to bulk mark attendance' });
+    }
+});
+
+// Get attendance history for a specific person
+router.get('/history/:personId', gymadminAuth, async (req, res) => {
+    try {
+        const { personId } = req.params;
+        const { startDate, endDate } = req.query;
+        const gymId = req.admin.id;
+
+        console.log(`📋 Fetching attendance history for person ${personId} from ${startDate} to ${endDate}, gymId: ${gymId}`);
+
+        // Validate person exists and belongs to this gym
+        let person;
+        let personType;
+        const member = await Member.findById(personId);
+        const trainer = await Trainer.findById(personId);
+        
+        if (member) {
+            person = member;
+            personType = 'Member';
+            console.log(`✅ Found member: ${member.memberName || 'N/A'}`);
+        } else if (trainer && trainer.gym.toString() === gymId.toString()) {
+            person = trainer;
+            personType = 'Trainer';
+            console.log(`✅ Found trainer: ${trainer.firstName} ${trainer.lastName}`);
+        } else {
+            console.log(`❌ Person not found or not authorized`);
+            return res.status(404).json({ error: 'Person not found or not authorized' });
+        }
+
+        // For members, limit the date range to their membership period
+        let effectiveStartDate = new Date(startDate);
+        let effectiveEndDate = new Date(endDate);
+        
+        if (personType === 'Member') {
+            const joinDate = new Date(person.joinDate);
+            let membershipEndDate = new Date();
+            
+            // Parse membershipValidUntil if it exists
+            if (person.membershipValidUntil) {
+                membershipEndDate = new Date(person.membershipValidUntil);
+            }
+            
+            // Ensure we don't go beyond membership period
+            if (effectiveStartDate < joinDate) {
+                effectiveStartDate = joinDate;
+            }
+            if (effectiveEndDate > membershipEndDate) {
+                effectiveEndDate = membershipEndDate;
+            }
+            
+            // If the requested range is outside membership period, return empty result
+            if (effectiveStartDate > membershipEndDate || effectiveEndDate < joinDate) {
+                return res.json({
+                    history: [],
+                    membershipInfo: {
+                        joinDate: person.joinDate,
+                        membershipValidUntil: person.membershipValidUntil,
+                        isWithinMembershipPeriod: false
+                    }
+                });
+            }
+        }
+
+        // Build query
+        const query = {
+            gymId,
+            personId,
+            date: {
+                $gte: effectiveStartDate,
+                $lte: effectiveEndDate
+            }
+        };
+
+        console.log(`🔍 Attendance query:`, query);
+
+        const attendanceHistory = await Attendance.find(query)
+            .sort({ date: 1 })
+            .select('date status checkInTime checkOutTime');
+
+        console.log(`📊 Found ${attendanceHistory.length} attendance records`);
+        attendanceHistory.forEach(record => {
+            console.log(`  - ${record.date.toISOString().split('T')[0]}: ${record.status}`);
+        });
+
+        // Format response
+        const response = {
+            history: attendanceHistory,
+            membershipInfo: personType === 'Member' ? {
+                joinDate: person.joinDate,
+                membershipValidUntil: person.membershipValidUntil,
+                isWithinMembershipPeriod: true,
+                effectiveStartDate: effectiveStartDate,
+                effectiveEndDate: effectiveEndDate
+            } : null
+        };
+
+        console.log(`✅ Returning ${response.history.length} records`);
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching attendance history:', error);
+        res.status(500).json({ error: 'Failed to fetch attendance history' });
     }
 });
 

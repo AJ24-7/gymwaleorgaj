@@ -1,5 +1,9 @@
 // Attendance Management System
 class AttendanceManager {
+    // Helper to format date as YYYY-MM-DD in local time
+    formatDateLocal(date) {
+        return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+    }
     constructor() {
         this.currentDate = new Date();
         this.currentTab = 'members';
@@ -199,7 +203,7 @@ class AttendanceManager {
     updateDateDisplay() {
         const dateInput = document.getElementById('attendanceDate');
         if (dateInput) {
-            dateInput.value = this.currentDate.toISOString().split('T')[0];
+            dateInput.value = this.formatDateLocal(this.currentDate);
         }
     }
 
@@ -257,7 +261,7 @@ class AttendanceManager {
     }
 
     async loadAttendanceForDate() {
-        const dateStr = this.currentDate.toISOString().split('T')[0];
+        const dateStr = this.formatDateLocal(this.currentDate);
         
         try {
             const token = await this.getAuthToken();
@@ -286,18 +290,18 @@ class AttendanceManager {
     }
 
     renderAttendance() {
-        const container = document.getElementById('attendanceGrid');
+        const container = document.getElementById('attendanceTableBody');
         if (!container) return;
 
         const data = this.currentTab === 'members' ? this.membersData : this.trainersData;
         const filteredData = this.filterExpiredMembers(data);
 
         if (filteredData.length === 0) {
-            container.innerHTML = this.getEmptyState();
+            container.innerHTML = this.getEmptyStateRow();
             return;
         }
 
-        container.innerHTML = filteredData.map(person => this.createAttendanceCard(person)).join('');
+        container.innerHTML = filteredData.map(person => this.createAttendanceRow(person)).join('');
     }
 
     filterExpiredMembers(data) {
@@ -311,13 +315,14 @@ class AttendanceManager {
         });
     }
 
-    createAttendanceCard(person) {
-        const dateStr = this.currentDate.toISOString().split('T')[0];
+    createAttendanceRow(person) {
+        const dateStr = this.formatDateLocal(this.currentDate);
         const attendanceRecord = this.attendanceData[person._id] || {};
         const status = attendanceRecord.status || 'pending';
         const checkInTime = attendanceRecord.checkInTime || '';
 
         const isExpiringSoon = this.currentTab === 'members' && this.isMembershipExpiringSoon(person);
+        
         // Use correct image field for trainers
         let avatarUrl;
         if (this.currentTab === 'trainers') {
@@ -326,40 +331,61 @@ class AttendanceManager {
             avatarUrl = person.profileImage || 'https://via.placeholder.com/50?text=User';
         }
 
+        const personName = person.memberName || person.firstName + ' ' + person.lastName;
+        const personId = this.currentTab === 'members' ? 
+            (person.membershipId || 'N/A') : 
+            (person.specialty || 'General');
+
         return `
-            <div class="attendance-card ${status}" data-id="${person._id}">
-                <div class="member-info">
-                    <img src="${avatarUrl}" alt="${person.name || person.firstName + ' ' + person.lastName}" class="member-avatar">
-                    <div class="member-details">
-                        <h4>${person.memberName || person.firstName + ' ' + person.lastName}</h4>
-                        <p>${this.currentTab === 'members' ? `ID: ${person.membershipId || 'N/A'}` : `Specialty: ${person.specialty || 'General'}`}</p>
-                    </div>
+            <div class="attendance-row ${status}" data-id="${person._id}">
+                <div class="member-photo-container">
+                    <img src="${avatarUrl}" alt="${personName}" class="member-photo">
                 </div>
                 
-                <div class="attendance-status">
-                    <span class="status-badge ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                    ${checkInTime ? `<span class="check-in-time">Check-in: ${checkInTime}</span>` : ''}
+                <div class="member-name-container">
+                    <h4 class="member-name">${personName}</h4>
+                    ${isExpiringSoon ? `
+                        <div class="expiry-warning-row">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Expires in ${this.getDaysUntilExpiry(person)} days
+                        </div>
+                    ` : ''}
                 </div>
-
-                <div class="attendance-actions">
-                    <button class="attendance-btn mark-present ${status === 'present' ? 'disabled' : ''}" 
+                
+                <div class="member-id-container">
+                    <span class="member-id">${personId}</span>
+                </div>
+                
+                <div class="status-container">
+                    <span class="status-badge-enhanced ${status}">
+                        <i class="fas fa-${status === 'present' ? 'check-circle' : status === 'absent' ? 'times-circle' : 'clock'}"></i>
+                        ${status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                </div>
+                
+                <div class="check-in-container">
+                    ${checkInTime ? `<span class="check-in-time-enhanced">${checkInTime}</span>` : '<span class="check-in-time-enhanced">--:--</span>'}
+                </div>
+                
+                <div class="row-actions">
+                    <button class="action-btn-enhanced present ${status === 'present' ? 'disabled' : ''}" 
                             onclick="attendanceManager.markAttendance('${person._id}', 'present')"
                             ${status === 'present' ? 'disabled' : ''}>
-                        <i class="fas fa-check"></i> Present
+                        <i class="fas fa-check"></i>
+                        Present
                     </button>
-                    <button class="attendance-btn mark-absent ${status === 'absent' ? 'disabled' : ''}" 
+                    <button class="action-btn-enhanced absent ${status === 'absent' ? 'disabled' : ''}" 
                             onclick="attendanceManager.markAttendance('${person._id}', 'absent')"
                             ${status === 'absent' ? 'disabled' : ''}>
-                        <i class="fas fa-times"></i> Absent
+                        <i class="fas fa-times"></i>
+                        Absent
+                    </button>
+                    <button class="action-btn-enhanced history" 
+                            onclick="attendanceManager.showAttendanceHistory('${person._id}', '${personName}', '${this.currentTab}')">
+                        <i class="fas fa-history"></i>
+                        History
                     </button>
                 </div>
-
-                ${isExpiringSoon ? `
-                    <div class="expiry-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Membership expires in ${this.getDaysUntilExpiry(person)} days
-                    </div>
-                ` : ''}
             </div>
         `;
     }
@@ -421,6 +447,28 @@ class AttendanceManager {
                 this.attendanceData[personId].status = status;
                 this.attendanceData[personId].checkInTime = status === 'present' ? currentTime : null;
 
+                // Don't clear the entire cache, just update today's data
+                // if (this.attendanceHistory && this.attendanceHistory[personId]) {
+                //     delete this.attendanceHistory[personId];
+                // }
+
+                // Immediately update attendance history with today's data
+                if (!this.attendanceHistory) this.attendanceHistory = {};
+                if (!this.attendanceHistory[personId]) this.attendanceHistory[personId] = {};
+                
+                // Store today's attendance in history cache
+                this.attendanceHistory[personId][dateStr] = {
+                    date: dateStr,
+                    status: status,
+                    checkInTime: status === 'present' ? currentTime : null,
+                    checkOutTime: null
+                };
+
+                console.log(`✅ Stored today's attendance for ${personId} on ${dateStr}:`, this.attendanceHistory[personId][dateStr]);
+
+                // Also refresh attendance history for the current month to get any other data
+                await this.refreshAttendanceHistory(personId);
+
                 // Re-render the specific card
                 this.renderAttendance();
                 this.updateStats();
@@ -436,7 +484,7 @@ class AttendanceManager {
     }
 
     filterAttendance(searchTerm) {
-        const container = document.getElementById('attendanceGrid');
+        const container = document.getElementById('attendanceTableBody');
         if (!container) return;
         const data = this.currentTab === 'members' ? this.membersData : this.trainersData;
         const filteredData = this.filterExpiredMembers(data).filter(person => {
@@ -445,39 +493,39 @@ class AttendanceManager {
             return name.includes(searchTerm.toLowerCase()) || id.includes(searchTerm.toLowerCase());
         });
 
-        // Show searched member just below search bar
+        // Show searched member results
         if (searchTerm && filteredData.length > 0) {
-            container.innerHTML = filteredData.map(person => this.createAttendanceCard(person)).join('');
+            container.innerHTML = filteredData.map(person => this.createAttendanceRow(person)).join('');
         } else {
             this.renderAttendance();
         }
     }
 
     filterByStatus(statusFilter) {
-        const cards = document.querySelectorAll('.attendance-card');
-        cards.forEach(card => {
-            const cardStatus = card.classList.contains('present') ? 'present' : 
-                              card.classList.contains('absent') ? 'absent' : 'pending';
+        const rows = document.querySelectorAll('.attendance-row');
+        rows.forEach(row => {
+            const rowStatus = row.classList.contains('present') ? 'present' : 
+                             row.classList.contains('absent') ? 'absent' : 'pending';
             
-            if (statusFilter === 'all' || cardStatus === statusFilter) {
-                card.style.display = 'block';
+            if (statusFilter === 'all' || rowStatus === statusFilter) {
+                row.style.display = 'grid';
             } else if (statusFilter === 'expiring' && this.currentTab === 'members') {
-                const hasExpiryWarning = card.querySelector('.expiry-warning');
-                card.style.display = hasExpiryWarning ? 'block' : 'none';
+                const hasExpiryWarning = row.querySelector('.expiry-warning-row');
+                row.style.display = hasExpiryWarning ? 'grid' : 'none';
             } else {
-                card.style.display = 'none';
+                row.style.display = 'none';
             }
         });
     }
 
     async bulkMarkAttendance(status) {
-        const visibleCards = document.querySelectorAll('.attendance-card:not([style*="display: none"])');
+        const visibleRows = document.querySelectorAll('.attendance-row:not([style*="display: none"])');
         const promises = [];
 
-        visibleCards.forEach(card => {
-            const personId = card.dataset.id;
-            const currentStatus = card.classList.contains('present') ? 'present' : 
-                                 card.classList.contains('absent') ? 'absent' : 'pending';
+        visibleRows.forEach(row => {
+            const personId = row.dataset.id;
+            const currentStatus = row.classList.contains('present') ? 'present' : 
+                                 row.classList.contains('absent') ? 'absent' : 'pending';
             
             if (currentStatus !== status) {
                 promises.push(this.markAttendance(personId, status));
@@ -544,7 +592,7 @@ class AttendanceManager {
     }
 
     exportAttendance() {
-        const dateStr = this.currentDate.toISOString().split('T')[0];
+        const dateStr = this.formatDateLocal(this.currentDate);
         const data = this.currentTab === 'members' ? this.membersData : this.trainersData;
         const filteredData = this.filterExpiredMembers(data);
 
@@ -601,12 +649,14 @@ class AttendanceManager {
         return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     }
 
-    getEmptyState() {
+    getEmptyStateRow() {
         return `
-            <div class="empty-state">
-                <i class="fas fa-users"></i>
-                <h3>No ${this.currentTab} found</h3>
-                <p>There are no ${this.currentTab} registered in the system.</p>
+            <div class="attendance-row" style="justify-content: center; align-items: center; grid-column: 1 / -1; padding: 60px 20px;">
+                <div style="text-align: center; color: var(--text-secondary);">
+                    <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">No ${this.currentTab} found</h3>
+                    <p style="margin: 0; font-size: 0.9rem;">There are no ${this.currentTab} registered in the system.</p>
+                </div>
             </div>
         `;
     }
@@ -658,6 +708,702 @@ class AttendanceManager {
         } catch (error) {
             console.error('Error removing expired members:', error);
         }
+    }
+
+    // Force refresh attendance history for a person
+    async refreshAttendanceHistory(personId) {
+        console.log(`🔄 Force refreshing attendance history for person ${personId}`);
+        
+        // Don't clear existing cache - we'll merge new data
+        if (!this.attendanceHistory) this.attendanceHistory = {};
+        if (!this.attendanceHistory[personId]) this.attendanceHistory[personId] = {};
+        
+        // Clear membership info cache
+        if (this.membershipInfo && this.membershipInfo[personId]) {
+            delete this.membershipInfo[personId];
+        }
+        
+        // Fetch fresh data for current month
+        const currentDate = new Date();
+        await this.fetchAttendanceHistoryForMonth(personId, currentDate);
+        
+        console.log(`✅ Refreshed attendance history for ${personId}:`, this.attendanceHistory[personId]);
+    }
+
+    // Show attendance history modal
+    async showAttendanceHistory(personId, personName, personType) {
+        const modal = document.createElement('div');
+        modal.className = 'attendance-history-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        `;
+
+        modalContent.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 15px;">
+                <h2 style="margin: 0; color: #1976d2;">
+                    <i class="fas fa-calendar-alt"></i> ${personName} - Attendance History
+                </h2>
+                <div style="display: flex; gap: 10px;">
+                    <button id="refreshHistory" style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button id="closeHistoryModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+                </div>
+            </div>
+            <div id="membershipInfo" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2;">Membership Information</h4>
+                <div id="membershipDetails"></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <button id="prevMonth" style="background: #1976d2; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 id="currentMonth" style="margin: 0; min-width: 200px; text-align: center; color: #333;"></h3>
+                <button id="nextMonth" style="background: #1976d2; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div style="display: flex; gap: 20px; margin-bottom: 20px; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 12px; height: 12px; background: #4caf50; border-radius: 50%;"></div>
+                    <span style="font-size: 14px;">Present</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 12px; height: 12px; background: #f44336; border-radius: 50%;"></div>
+                    <span style="font-size: 14px;">Absent</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 12px; height: 12px; background: #ff9800; border-radius: 50%;"></div>
+                    <span style="font-size: 14px;">Not Marked</span>
+                </div>
+            </div>
+            <div id="attendanceCalendar" style="margin-bottom: 20px;"></div>
+            <div id="attendanceStats" style="display: flex; gap: 20px; justify-content: center; padding: 15px; background: #f8f9fa; border-radius: 8px;"></div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        let currentDate = new Date();
+        let attendanceHistory = {};
+        let membershipInfo = null;
+        let isWithinMembershipPeriod = true;
+
+        // Get member/trainer data to find membership dates
+        const personData = this.findPersonData(personId, personType);
+        console.log('Person data found:', personData);
+        
+        if (personData && personType === 'members') {
+            membershipInfo = {
+                joinDate: personData.joinDate,
+                membershipValidUntil: personData.membershipValidUntil
+            };
+            
+            // Display membership information
+            const membershipInfoDiv = modalContent.querySelector('#membershipInfo');
+            const membershipDetailsDiv = modalContent.querySelector('#membershipDetails');
+            
+            if (membershipInfo.joinDate || membershipInfo.membershipValidUntil) {
+                membershipInfoDiv.style.display = 'block';
+                const joinDateStr = membershipInfo.joinDate ? new Date(membershipInfo.joinDate).toLocaleDateString() : 'N/A';
+                const validUntilStr = membershipInfo.membershipValidUntil ? new Date(membershipInfo.membershipValidUntil).toLocaleDateString() : 'N/A';
+                
+                membershipDetailsDiv.innerHTML = `
+                    <div style="display: flex; gap: 30px;">
+                        <div><strong>Join Date:</strong> ${joinDateStr}</div>
+                        <div><strong>Valid Until:</strong> ${validUntilStr}</div>
+                    </div>
+                `;
+                
+                // Set initial date to join date if available, otherwise current date
+                if (membershipInfo.joinDate) {
+                    const joinDate = new Date(membershipInfo.joinDate);
+                    const today = new Date();
+                    // Start from join date or current date, whichever is earlier
+                    currentDate = joinDate < today ? new Date(joinDate) : new Date(today);
+                } else {
+                    currentDate = new Date();
+                }
+            }
+        } else {
+            // For trainers, start with current date
+            currentDate = new Date();
+        }
+
+        // Close modal functionality
+        const closeModal = () => {
+            document.body.removeChild(modal);
+        };
+
+        modalContent.querySelector('#closeHistoryModal').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Refresh history button
+        modalContent.querySelector('#refreshHistory').addEventListener('click', async () => {
+            console.log('🔄 Refreshing attendance history...');
+            await this.refreshAttendanceHistory(personId);
+            await updateCalendar();
+        });
+
+        // Month navigation with membership period validation
+        const updateCalendar = async () => {
+            // Fetch attendance data for the current month first
+            await this.fetchAttendanceHistoryForMonth(personId, currentDate);
+            
+            // Use membership info from backend if available, otherwise use local data
+            let currentMembershipInfo = membershipInfo;
+            if (this.membershipInfo && this.membershipInfo[personId]) {
+                currentMembershipInfo = this.membershipInfo[personId];
+                console.log('Using membership info from backend:', currentMembershipInfo);
+            }
+            
+            // Check if current month is within membership period
+            if (personType === 'members' && currentMembershipInfo) {
+                const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                const joinDate = currentMembershipInfo.joinDate ? new Date(currentMembershipInfo.joinDate) : null;
+                const validUntil = currentMembershipInfo.membershipValidUntil ? new Date(currentMembershipInfo.membershipValidUntil) : new Date();
+                
+                if (joinDate && currentMonth < new Date(joinDate.getFullYear(), joinDate.getMonth(), 1)) {
+                    isWithinMembershipPeriod = false;
+                } else if (validUntil && currentMonth > new Date(validUntil.getFullYear(), validUntil.getMonth(), 1)) {
+                    isWithinMembershipPeriod = false;
+                } else {
+                    isWithinMembershipPeriod = true;
+                }
+            }
+
+            const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+            modalContent.querySelector('#currentMonth').textContent = monthName;
+
+            // Update navigation buttons based on membership period
+            const prevBtn = modalContent.querySelector('#prevMonth');
+            const nextBtn = modalContent.querySelector('#nextMonth');
+            
+            if (personType === 'members' && currentMembershipInfo) {
+                const joinDate = currentMembershipInfo.joinDate ? new Date(currentMembershipInfo.joinDate) : null;
+                const validUntil = currentMembershipInfo.membershipValidUntil ? new Date(currentMembershipInfo.membershipValidUntil) : new Date();
+                
+                // Disable previous button if we're at or before join month
+                if (joinDate) {
+                    const joinMonth = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
+                    const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                    prevBtn.disabled = currentMonth <= joinMonth;
+                    prevBtn.style.opacity = prevBtn.disabled ? '0.5' : '1';
+                    prevBtn.style.cursor = prevBtn.disabled ? 'not-allowed' : 'pointer';
+                }
+                
+                // Disable next button if we're at or after valid until month
+                if (validUntil) {
+                    const validUntilMonth = new Date(validUntil.getFullYear(), validUntil.getMonth(), 1);
+                    const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                    nextBtn.disabled = currentMonth >= validUntilMonth;
+                    nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+                    nextBtn.style.cursor = nextBtn.disabled ? 'not-allowed' : 'pointer';
+                }
+            }
+
+            // Show loading state
+            modalContent.querySelector('#attendanceCalendar').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <div>Loading attendance data...</div>
+                </div>
+            `;
+            modalContent.querySelector('#attendanceStats').innerHTML = '';
+
+            // Render calendar and stats with updated membership info
+            this.renderCalendar(modalContent.querySelector('#attendanceCalendar'), currentDate, personId, currentMembershipInfo);
+            this.updateAttendanceStats(modalContent.querySelector('#attendanceStats'), currentDate, personId, currentMembershipInfo);
+        };
+
+        modalContent.querySelector('#prevMonth').addEventListener('click', () => {
+            if (!modalContent.querySelector('#prevMonth').disabled) {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                updateCalendar();
+            }
+        });
+
+        modalContent.querySelector('#nextMonth').addEventListener('click', () => {
+            if (!modalContent.querySelector('#nextMonth').disabled) {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                updateCalendar();
+            }
+        });
+
+        // Initial load
+        await updateCalendar();
+    }
+
+    // Helper function to find person data
+    findPersonData(personId, personType) {
+        const data = personType === 'members' ? this.membersData : this.trainersData;
+        return data.find(person => person._id === personId);
+    }
+
+    // Fetch attendance history for a specific month
+    async fetchAttendanceHistoryForMonth(personId, date) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) return;
+
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+            const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+            console.log(`Fetching attendance history for ${personId} from ${startDate} to ${endDate}`);
+
+            const response = await fetch(`/api/attendance/history/${personId}?startDate=${startDate}&endDate=${endDate}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Attendance history response:', data);
+                
+                // Initialize attendance history for this person if not exists
+                if (!this.attendanceHistory) this.attendanceHistory = {};
+                if (!this.attendanceHistory[personId]) this.attendanceHistory[personId] = {};
+                
+                // Don't clear existing data - we'll merge new data
+                // this.attendanceHistory[personId] = {};
+                
+                // Handle backend response format
+                if (data.history && Array.isArray(data.history)) {
+                    console.log(`Found ${data.history.length} attendance records for ${personId}`);
+                    data.history.forEach(record => {
+                        const dateKey = record.date.split('T')[0];
+                        this.attendanceHistory[personId][dateKey] = {
+                            date: dateKey,
+                            status: record.status,
+                            checkInTime: record.checkInTime,
+                            checkOutTime: record.checkOutTime
+                        };
+                        console.log(`Stored record for ${dateKey}: ${record.status}`);
+                    });
+                    
+                    // Store membership info if available
+                    if (data.membershipInfo) {
+                        if (!this.membershipInfo) this.membershipInfo = {};
+                        this.membershipInfo[personId] = data.membershipInfo;
+                        console.log('Membership info stored:', this.membershipInfo[personId]);
+                    }
+                } else {
+                    // Fallback for old format
+                    const history = Array.isArray(data) ? data : [];
+                    history.forEach(record => {
+                        const dateKey = record.date.split('T')[0];
+                        this.attendanceHistory[personId][dateKey] = {
+                            date: dateKey,
+                            status: record.status,
+                            checkInTime: record.checkInTime,
+                            checkOutTime: record.checkOutTime
+                        };
+                    });
+                }
+                
+                console.log(`Total records loaded for ${personId}:`, Object.keys(this.attendanceHistory[personId]).length);
+                console.log('Attendance history data:', this.attendanceHistory[personId]);
+                
+            } else if (response.status === 404) {
+                // API endpoint not found, try alternative approach
+                console.log('History endpoint not found, using alternative method');
+                await this.fetchAttendanceHistoryAlternative(personId, startDate, endDate);
+            } else {
+                console.error(`Error response from API: ${response.status} - ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('Error details:', errorText);
+                // Try alternative method as fallback
+                await this.fetchAttendanceHistoryAlternative(personId, startDate, endDate);
+            }
+        } catch (error) {
+            console.error('Error fetching attendance history:', error);
+            // Fallback to alternative method
+            await this.fetchAttendanceHistoryAlternative(personId, startDate, endDate);
+        }
+    }
+
+    // Alternative method to fetch attendance history using existing endpoint
+    async fetchAttendanceHistoryAlternative(personId, startDate, endDate) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) return;
+
+            console.log(`Using alternative method to fetch attendance from ${startDate} to ${endDate}`);
+
+            if (!this.attendanceHistory) this.attendanceHistory = {};
+            if (!this.attendanceHistory[personId]) this.attendanceHistory[personId] = {};
+
+            // Don't clear existing data - we'll merge new data
+            // this.attendanceHistory[personId] = {};
+
+            // Fetch attendance data for each day in the range
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const promises = [];
+            
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                
+                const promise = fetch(`/api/attendance/${dateStr}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        return response.json().then(dayData => ({
+                            date: dateStr,
+                            data: dayData
+                        }));
+                    }
+                    return null;
+                }).catch(error => {
+                    console.error(`Error fetching attendance for ${dateStr}:`, error);
+                    return null;
+                });
+                
+                promises.push(promise);
+            }
+
+            // Wait for all requests to complete
+            const results = await Promise.all(promises);
+            
+            // Process results
+            results.forEach(result => {
+                if (result && result.data && result.data[personId]) {
+                    this.attendanceHistory[personId][result.date] = {
+                        date: result.date,
+                        status: result.data[personId].status,
+                        checkInTime: result.data[personId].checkInTime,
+                        checkOutTime: result.data[personId].checkOutTime
+                    };
+                    console.log(`Alternative method stored record for ${result.date}: ${result.data[personId].status}`);
+                }
+            });
+
+            console.log(`Alternative method loaded ${Object.keys(this.attendanceHistory[personId]).length} records for ${personId}`);
+            console.log('Alternative method attendance data:', this.attendanceHistory[personId]);
+        } catch (error) {
+            console.error('Error in alternative attendance history fetch:', error);
+        }
+    }
+
+    // Render calendar with attendance data
+    renderCalendar(container, date, personId, membershipInfo = null) {
+        console.log(`Rendering calendar for personId: ${personId}, date: ${date.toISOString().split('T')[0]}`);
+        console.log('Membership info:', membershipInfo);
+        console.log('Attendance history for person:', this.attendanceHistory ? this.attendanceHistory[personId] : 'No history');
+        
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+        // Always use system date for 'today' (local time, no timezone offset)
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
+
+        // Calculate membership period boundaries
+        let membershipStart = null;
+        let membershipEnd = null;
+        
+        if (membershipInfo) {
+            membershipStart = membershipInfo.joinDate ? new Date(membershipInfo.joinDate) : null;
+            membershipEnd = membershipInfo.membershipValidUntil ? new Date(membershipInfo.membershipValidUntil) : null;
+            console.log('Membership period:', membershipStart, 'to', membershipEnd);
+        }
+
+        let calendarHTML = `
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 10px;">
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Sun</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Mon</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Tue</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Wed</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Thu</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Fri</div>
+                <div style="padding: 8px; font-weight: bold; text-align: center; background: #f5f5f5; border-radius: 4px;">Sat</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+        `;
+
+        const currentDate = new Date(startDate);
+        for (let i = 0; i < 42; i++) {
+            const dateStr = this.formatDateLocal(currentDate);
+            const dayNumber = currentDate.getDate();
+            const isCurrentMonth = currentDate.getMonth() === month;
+            const isToday = dateStr === todayStr;
+            // Fix: Compare only date parts, not time
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            const isPastDate = currentDateOnly <= todayDateOnly;
+            const isSunday = currentDate.getDay() === 0;
+
+            // Check if date is within membership period
+            let isWithinMembershipPeriod = true;
+            let membershipStatus = '';
+            
+            if (membershipInfo) {
+                const dayDate = new Date(currentDate);
+                dayDate.setHours(0, 0, 0, 0);
+                
+                if (membershipStart) {
+                    const startDate = new Date(membershipStart);
+                    startDate.setHours(0, 0, 0, 0);
+                    if (dayDate < startDate) {
+                        isWithinMembershipPeriod = false;
+                        membershipStatus = 'before-membership';
+                    }
+                }
+                
+                if (membershipEnd) {
+                    const endDate = new Date(membershipEnd);
+                    endDate.setHours(0, 0, 0, 0);
+                    if (dayDate > endDate) {
+                        isWithinMembershipPeriod = false;
+                        membershipStatus = 'after-membership';
+                    }
+                }
+            }
+
+            let attendanceStatus = 'none';
+            let dotColor = 'transparent';
+            let statusText = 'No data';
+            let checkInTime = '';
+            let cellBackground = isCurrentMonth ? (isToday ? '#e3f2fd' : '#fff') : '#f9f9f9';
+            let cellOpacity = '1';
+
+            // Handle different cases for attendance status
+            if (!isWithinMembershipPeriod) {
+                if (membershipStatus === 'before-membership') {
+                    statusText = 'Before membership started';
+                    cellBackground = '#ffe0e0';
+                    cellOpacity = '0.6';
+                } else if (membershipStatus === 'after-membership') {
+                    statusText = 'After membership expired';
+                    cellBackground = '#ffe0e0';
+                    cellOpacity = '0.6';
+                }
+            } else if (isCurrentMonth && isPastDate && this.attendanceHistory && this.attendanceHistory[personId] && this.attendanceHistory[personId][dateStr]) {
+                const record = this.attendanceHistory[personId][dateStr];
+                attendanceStatus = record.status;
+                checkInTime = record.checkInTime || '';
+                console.log(`Found attendance record for ${dateStr}: ${record.status}`, record);
+                switch (record.status) {
+                    case 'present':
+                        dotColor = '#4caf50';
+                        statusText = `Present${checkInTime ? ' at ' + checkInTime : ''}`;
+                        break;
+                    case 'absent':
+                        dotColor = '#f44336';
+                        statusText = 'Absent';
+                        break;
+                    default:
+                        dotColor = '#ff9800';
+                        statusText = 'Not marked';
+                        break;
+                }
+            } else if (isCurrentMonth && isToday && this.attendanceData && this.attendanceData[personId] && this.attendanceData[personId].status && this.attendanceData[personId].status !== 'pending') {
+                // Special case for today's attendance from attendanceData
+                const todayRecord = this.attendanceData[personId];
+                attendanceStatus = todayRecord.status;
+                checkInTime = todayRecord.checkInTime || '';
+                console.log(`Found today's attendance record for ${dateStr}: ${todayRecord.status}`, todayRecord);
+                switch (todayRecord.status) {
+                    case 'present':
+                        dotColor = '#4caf50';
+                        statusText = `Present${checkInTime ? ' at ' + checkInTime : ''}`;
+                        break;
+                    case 'absent':
+                        dotColor = '#f44336';
+                        statusText = 'Absent';
+                        break;
+                    default:
+                        dotColor = '#ff9800';
+                        statusText = 'Not marked';
+                        break;
+                }
+            } else if (isCurrentMonth && isPastDate && !isSunday && isWithinMembershipPeriod) {
+                dotColor = '#ff9800';
+                statusText = 'Not marked';
+                console.log(`No attendance record found for ${dateStr}, marking as not marked`);
+            } else if (isSunday && isCurrentMonth) {
+                statusText = 'Weekend';
+                dotColor = 'transparent';
+            } else if (!isPastDate && isCurrentMonth) {
+                statusText = 'Future date';
+                dotColor = 'transparent';
+            } else if (!isCurrentMonth) {
+                statusText = 'Outside current month';
+                dotColor = 'transparent';
+            }
+
+            calendarHTML += `
+                <div style="
+                    padding: 8px;
+                    text-align: center;
+                    background: ${cellBackground};
+                    color: ${isCurrentMonth ? '#333' : '#ccc'};
+                    border-radius: 4px;
+                    position: relative;
+                    min-height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                    border: ${isToday ? '2px solid #1976d2' : '1px solid #e0e0e0'};
+                    cursor: ${isCurrentMonth ? 'pointer' : 'default'};
+                    transition: all 0.2s ease;
+                    opacity: ${cellOpacity};
+                " ${isCurrentMonth ? `title="${dayNumber} ${date.toLocaleString('default', { month: 'long' })}: ${statusText}"` : ''}>
+                    <span style="font-size: 14px; font-weight: ${isToday ? 'bold' : 'normal'};">${dayNumber}</span>
+                    ${dotColor !== 'transparent' ? `<div style="width: 8px; height: 8px; background: ${dotColor}; border-radius: 50%; margin-top: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>` : ''}
+                    ${isSunday && isCurrentMonth ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 8px; color: #999;">⚡</div>' : ''}
+                    ${!isWithinMembershipPeriod && isCurrentMonth ? '<div style="position: absolute; top: 2px; left: 2px; font-size: 8px; color: #f44336;">✗</div>' : ''}
+                </div>
+            `;
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        calendarHTML += '</div>';
+        
+        // Add membership period information if available
+        if (membershipInfo) {
+            const joinDateStr = membershipInfo.joinDate ? new Date(membershipInfo.joinDate).toLocaleDateString() : 'N/A';
+            const validUntilStr = membershipInfo.membershipValidUntil ? new Date(membershipInfo.membershipValidUntil).toLocaleDateString() : 'N/A';
+            
+            calendarHTML += `
+                <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 6px; border-left: 4px solid #1976d2;">
+                    <small style="color: #666; display: block; margin-bottom: 5px;">
+                        <i class="fas fa-info-circle"></i> Membership Period: ${joinDateStr} - ${validUntilStr}
+                    </small>
+                    <small style="color: #666;">
+                        <span style="color: #f44336;">✗</span> Days outside membership period are marked
+                    </small>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = calendarHTML;
+
+        // Add hover effects
+        container.querySelectorAll('div[title]').forEach(dayElement => {
+            dayElement.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+                this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            });
+            dayElement.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow = 'none';
+            });
+        });
+    }
+
+    // Update attendance statistics for the month
+    updateAttendanceStats(container, date, personId, membershipInfo = null) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const today = new Date();
+
+        let presentCount = 0;
+        let absentCount = 0;
+        let notMarkedCount = 0;
+        let totalWorkingDays = 0;
+
+        // Determine membership boundaries
+        let membershipStart = null;
+        let membershipEnd = null;
+        
+        if (membershipInfo) {
+            membershipStart = membershipInfo.joinDate ? new Date(membershipInfo.joinDate) : null;
+            membershipEnd = membershipInfo.membershipValidUntil ? new Date(membershipInfo.membershipValidUntil) : null;
+        }
+
+        // Count working days (excluding Sundays) in the month within membership period
+        for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+            // Skip Sundays
+            if (d.getDay() === 0) continue;
+            
+            // Fix: Compare only date parts, not time
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const currentDateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            // Skip future dates
+            if (currentDateOnly > todayDateOnly) continue;
+            
+            // Check if date is within membership period
+            if (membershipStart && d < membershipStart) continue;
+            if (membershipEnd && d > membershipEnd) continue;
+            
+            totalWorkingDays++;
+            const dateStr = this.formatDateLocal(d);
+            
+            if (this.attendanceHistory && this.attendanceHistory[personId] && this.attendanceHistory[personId][dateStr]) {
+                const record = this.attendanceHistory[personId][dateStr];
+                if (record.status === 'present') {
+                    presentCount++;
+                } else if (record.status === 'absent') {
+                    absentCount++;
+                } else {
+                    notMarkedCount++;
+                }
+            } else {
+                notMarkedCount++;
+            }
+        }
+
+        const attendanceRate = totalWorkingDays > 0 ? Math.round((presentCount / totalWorkingDays) * 100) : 0;
+
+        container.innerHTML = `
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #4caf50;">${presentCount}</div>
+                <div style="font-size: 14px; color: #666;">Present</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #f44336;">${absentCount}</div>
+                <div style="font-size: 14px; color: #666;">Absent</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #ff9800;">${notMarkedCount}</div>
+                <div style="font-size: 14px; color: #666;">Not Marked</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #1976d2;">${attendanceRate}%</div>
+                <div style="font-size: 14px; color: #666;">Attendance Rate</div>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <div style="font-size: 12px; color: #666;">Working Days: ${totalWorkingDays}</div>
+            </div>
+        `;
     }
 }
 

@@ -872,7 +872,7 @@ class NotificationSystem {
   }
 
   // Add a new notification
-  addNotification(notification) {
+  addNotification(notification, { silent = false } = {}) {
     // Check if notification already exists
     const exists = this.notifications.find(n => 
       n.id === notification.id || 
@@ -883,21 +883,18 @@ class NotificationSystem {
 
     notification.timestamp = new Date(notification.timestamp);
     this.notifications.unshift(notification);
-    
+
     if (!notification.read) {
       this.unreadCount++;
       this.updateNotificationBadge();
+      // Only show toast if not silent (i.e., not loading from backend)
+      if (!silent && this.shouldShowNotification(notification.type)) {
+        this.showToastNotification(notification);
+        this.playNotificationSound();
+      }
     }
 
     this.updateNotificationDropdown();
-    
-    // Show toast notification if enabled
-    if (this.shouldShowNotification(notification.type)) {
-      this.showToastNotification(notification);
-    }
-
-    // Play notification sound
-    this.playNotificationSound();
   }
 
   // Check if notification should be shown based on settings
@@ -1361,11 +1358,13 @@ class NotificationSystem {
       if (response.ok) {
         const data = await response.json();
         if (data.notifications) {
-          this.notifications = data.notifications.map(notif => ({
-            ...notif,
-            timestamp: new Date(notif.timestamp)
-          }));
-          
+          this.notifications = [];
+          data.notifications.forEach(notif => {
+            this.addNotification({
+              ...notif,
+              timestamp: new Date(notif.timestamp)
+            }, { silent: true }); // Prevent toast for loaded notifications
+          });
           this.unreadCount = this.notifications.filter(n => !n.read).length;
           this.updateNotificationBadge();
           this.updateNotificationDropdown();
