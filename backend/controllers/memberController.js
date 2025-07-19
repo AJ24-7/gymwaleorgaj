@@ -1,7 +1,9 @@
 const Member = require('../models/Member');
 const Gym = require('../models/gym');
 const path = require('path');
+
 const sendEmail = require('../utils/sendEmail');
+const Payment = require('../models/Payment');
 
 // Add a new member to a gym
 exports.addMember = async (req, res) => {
@@ -25,32 +27,22 @@ exports.addMember = async (req, res) => {
         });
       }
     }
-    console.log('[MemberController] ===== ADD MEMBER REQUEST START =====');
-    console.log('[MemberController] Received request body:', req.body);
-    console.log('[MemberController] Received file:', req.file);
-    console.log('[MemberController] Raw body keys:', Object.keys(req.body));
-    console.log('[MemberController] Raw body entries:');
+   
     for (const [key, value] of Object.entries(req.body)) {
-      console.log(`[MemberController]   ${key}: ${value} (type: ${typeof value})`);
     }
-    console.log('[MemberController] ===== ADD MEMBER REQUEST END =====');
     
     // Accept gymId from req.admin (set by gymadminAuth) or body
     const gymId = (req.admin && (req.admin.gymId || req.admin.id)) || req.body.gymId;
-    console.log('[MemberController] Using gymId:', gymId);
-    console.log('[MemberController] req.admin:', req.admin);
     
     if (!gymId) return res.status(400).json({ message: 'Gym ID is required.' });
     const gym = await Gym.findById(gymId);
     if (!gym) return res.status(404).json({ message: 'Gym not found.' });
     
-    console.log('[MemberController] Found gym:', gym.gymName);
 
     let profileImagePath = '';
     if (req.file) {
       // Save relative path for frontend use
       profileImagePath = '/uploads/profile-pics/' + req.file.filename;
-      console.log('[MemberController] Profile image path:', profileImagePath);
     }
 
     // Helper function to extract string value from potential array
@@ -64,31 +56,18 @@ exports.addMember = async (req, res) => {
     // Extract membership fields from request body
     let membershipId = extractStringValue(req.body.membershipId);
     let membershipValidUntil = extractStringValue(req.body.membershipValidUntil);
-    
-    console.log('[MemberController] Extracted values from request:', {
-      membershipId,
-      membershipValidUntil,
-      memberName: req.body.memberName,
-      memberEmail: req.body.memberEmail,
-      planSelected: req.body.planSelected,
-      monthlyPlan: req.body.monthlyPlan
-    });
-    
     // FALLBACK: Generate membershipId if missing (frontend should send it, but backup)
     if (!membershipId) {
-      console.log('[MemberController] membershipId missing, generating fallback...');
       const now = new Date();
       const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
       const gymShort = (gym.gymName || 'GYM').replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       const planShort = (req.body.planSelected || 'PLAN').replace(/[^A-Za-z0-9]/g, '').substring(0,6).toUpperCase();
       membershipId = `${gymShort}-${ym}-${planShort}-${random}`;
-      console.log('[MemberController] Generated fallback membershipId:', membershipId);
     }
     
     // FALLBACK: Generate membershipValidUntil if missing 
     if (!membershipValidUntil) {
-      console.log('[MemberController] membershipValidUntil missing, generating fallback...');
       const now = new Date();
       let months = 1;
       const monthlyPlan = req.body.monthlyPlan || '';
@@ -98,24 +77,11 @@ exports.addMember = async (req, res) => {
       const validUntil = new Date(now);
       validUntil.setMonth(validUntil.getMonth() + months);
       membershipValidUntil = validUntil.toISOString().split('T')[0];
-      console.log('[MemberController] Generated fallback membershipValidUntil:', membershipValidUntil, 'for', months, 'months');
     }
     
-    console.log('[MemberController] Final values to save:', {
-      membershipId,
-      membershipValidUntil,
-      memberName: req.body.memberName,
-      memberEmail: req.body.memberEmail,
-      planSelected: req.body.planSelected,
-      monthlyPlan: req.body.monthlyPlan
-    });
+   
     
-    console.log('[MemberController] Raw req.body values for debugging:', {
-      'req.body.membershipId': req.body.membershipId,
-      'req.body.membershipValidUntil': req.body.membershipValidUntil,
-      'typeof membershipId': typeof membershipId,
-      'typeof membershipValidUntil': typeof membershipValidUntil
-    });
+   
 
     const member = new Member({
       gym: gymId,
@@ -135,15 +101,33 @@ exports.addMember = async (req, res) => {
       membershipValidUntil: membershipValidUntil
     });
     
-    console.log('[MemberController] About to save member with membershipId:', membershipId, 'and validUntil:', membershipValidUntil);
+
     await member.save();
-    console.log('[MemberController] Member saved successfully with ID:', member._id);
+
+    // Create payment record for membership
+    try {
+      const payment = new Payment({
+        gymId: gymId,
+        type: 'received',
+        category: 'membership',
+        amount: req.body.paymentAmount || 0,
+        description: `Membership payment for ${req.body.memberName || 'Member'}`,
+        memberName: req.body.memberName || '',
+        memberId: member._id,
+        paymentMethod: req.body.paymentMode || 'cash',
+        status: 'completed',
+        createdBy: (req.admin && req.admin.id) || gymId
+      });
+      await payment.save();
+    } catch (paymentErr) {
+      console.error('[MemberController] Error creating payment record:', paymentErr);
+      // Do not block member creation if payment fails
+    }
 
     // Create notification for new member
     try {
       const Notification = require('../models/Notification');
       const memberName = req.body.memberName || 'New Member';
-      console.log('[NotificationDebug] Creating notification for member:', memberName, 'from req.body.memberName:', req.body.memberName);
       
       const notification = new Notification({
         title: 'New Member Added',
@@ -160,7 +144,6 @@ exports.addMember = async (req, res) => {
         }
       });
       await notification.save();
-      console.log('[NotificationDebug] Notification created successfully');
     } catch (notifError) {
       console.error('Error creating notification:', notifError);
       // Don't block member creation if notification fails
@@ -168,18 +151,8 @@ exports.addMember = async (req, res) => {
 
     // Send membership email if all required fields are present
     try {
-      console.log('[MemberController] Email sending check:', {
-        memberEmail: req.body.memberEmail,
-        memberName: req.body.memberName,
-        membershipId: membershipId,  // Use the processed variable, not re-extracted
-        planSelected: req.body.planSelected,
-        monthlyPlan: req.body.monthlyPlan,
-        membershipValidUntil: membershipValidUntil,  // Use the processed variable, not re-extracted
-        gymName: gym.gymName
-      });
-      
+     
       if (req.body.memberEmail && req.body.memberName && membershipId && req.body.planSelected && req.body.monthlyPlan && membershipValidUntil && gym.gymName) {
-        console.log('[MemberController] All required fields present, sending email...');
         // Use gym logo from profile if available, otherwise fallback to default icon
         let gymLogoUrl = 'https://img.icons8.com/color/96/000000/gym.png';
         if (gym.logo && typeof gym.logo === 'string' && gym.logo.trim() !== '') {
@@ -215,17 +188,8 @@ exports.addMember = async (req, res) => {
           </div>
         `;
         await sendEmail(req.body.memberEmail, `Your Membership at ${gym.gymName}`, html);
-        console.log('[MemberController] Email sent successfully to:', req.body.memberEmail);
       } else {
-        console.log('[MemberController] Missing required fields for email:', {
-          hasEmail: !!req.body.memberEmail,
-          hasName: !!req.body.memberName,
-          hasMembershipId: !!membershipId,  // Use the processed variable
-          hasPlanSelected: !!req.body.planSelected,
-          hasMonthlyPlan: !!req.body.monthlyPlan,
-          hasValidUntil: !!membershipValidUntil,  // Use the processed variable
-          hasGymName: !!gym.gymName
-        });
+       
       }
     } catch (emailErr) {
       console.error('[MemberController] Error sending membership email:', emailErr);

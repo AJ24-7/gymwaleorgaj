@@ -107,6 +107,14 @@ class SupportSystem {
                 this.updateTicketPriority(this.selectedTicket.ticketId, e.target.value);
             }
         });
+
+        // Grievance Success Modal close events
+        document.getElementById('closeGrievanceSuccessModal')?.addEventListener('click', () => {
+            document.getElementById('grievanceSuccessModal').style.display = 'none';
+        });
+        document.querySelector('#grievanceSuccessModal .quick-reply-modal-overlay')?.addEventListener('click', () => {
+            document.getElementById('grievanceSuccessModal').style.display = 'none';
+        });
     }
 
     // Load support statistics
@@ -558,6 +566,7 @@ class SupportSystem {
             });
 
             if (response.ok) {
+                // Prepare details for the modal
                 const channelNames = channels.map(channel => {
                     switch(channel) {
                         case 'email': return 'Email';
@@ -566,9 +575,33 @@ class SupportSystem {
                         default: return channel;
                     }
                 }).join(', ');
-                
-                this.showNotification(`Quick reply sent successfully via ${channelNames}!`, 'success');
+
+                const ticket = this.selectedTicket;
+                const detailsHtml = `
+                    <div style="margin-bottom: 16px;">
+                      <strong>Ticket ID:</strong> #${ticket.ticketId}<br>
+                      <strong>User:</strong> ${ticket.userName} (${ticket.userEmail})<br>
+                      <strong>Channels:</strong> ${channelNames}
+                    </div>
+                    <div style="background: #eafaf1; border-radius: 8px; padding: 12px; color: #218838; margin-bottom: 10px;">
+                      <i class="fas fa-check-circle"></i> Quick reply sent successfully!
+                    </div>
+                    <div>
+                      <strong>Message:</strong>
+                      <div style="margin-top: 6px; background: #f8f9fa; border-radius: 6px; padding: 8px 10px; color: #333; font-size: 0.97em;">
+                        ${message.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}
+                      </div>
+                    </div>
+                `;
+
+                // Close quick reply modal first for instant feedback
                 this.closeQuickReplyModal();
+
+                // Show the modal immediately
+                document.getElementById('grievanceSuccessBody').innerHTML = detailsHtml;
+                document.getElementById('grievanceSuccessModal').style.display = 'flex';
+
+                // Then reload tickets/stats (can be async)
                 this.loadSupportTickets();
                 this.loadSupportStats();
             } else {

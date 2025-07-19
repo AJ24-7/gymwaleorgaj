@@ -5,7 +5,6 @@ const gymadminAuth = require('../middleware/gymadminAuth');
 const memberImageUpload = require('../middleware/memberImageUpload');
 const Member = require('../models/Member');
 
-console.log('📋 Member routes loaded - version with email lookup');
 
 // Simple test route
 router.get('/test', (req, res) => {
@@ -124,8 +123,6 @@ router.get('/expiring', gymadminAuth, async (req, res) => {
     const todayStr = today.toISOString().split('T')[0];
     const targetDateStr = targetDate.toISOString().split('T')[0];
     
-    console.log(`🔍 Checking for memberships expiring in ${days} days for gym ${gymId}`);
-    console.log(`📅 Date range: ${todayStr} to ${targetDateStr}`);
     
     const expiringMembers = await Member.find({
       gym: gymId,
@@ -135,7 +132,6 @@ router.get('/expiring', gymadminAuth, async (req, res) => {
       }
     }).select('memberName email phone membershipValidUntil planSelected membershipId');
     
-    console.log(`📊 Found ${expiringMembers.length} members with expiring memberships`);
     
     res.json({
       success: true,

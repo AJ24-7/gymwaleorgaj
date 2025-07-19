@@ -358,30 +358,21 @@ router.post('/tickets/:ticketId/reply', adminAuth, async (req, res) => {
     }
 
     if (channels.includes('notification')) {
-      // For ticket replies, notification should be sent to the ticket creator
-      // This would typically be handled by a user notification system
-      // For now, we'll log that notification was requested
-      console.log(`📨 Notification requested for ticket ${ticket.ticketId} to ${ticket.userEmail}`);
       
       // If this is a grievance from a gym user, also notify the gym admin
-      console.log(`🔍 Checking for gym notification: userType=${ticket.userType}, description contains grievance keywords`);
       
       if (ticket.userType === 'Gym') {
-        console.log(`🎯 Gym ticket found, checking for grievance keywords in: "${ticket.description}"`);
-        console.log(`🎯 Subject: "${ticket.subject}"`);
         
         // Check for grievance keywords in both description and subject
         const grievanceKeywords = ['grievance', 'complaint', 'issue', 'problem', 'dissatisfied', 'unhappy', 'poor service', 'bad experience'];
         const textToCheck = (ticket.description + ' ' + ticket.subject).toLowerCase();
         const isGrievance = grievanceKeywords.some(keyword => textToCheck.includes(keyword));
         
-        console.log(`🔍 Grievance detected: ${isGrievance}`);
         
         if (isGrievance) {
           try {
             // For gym tickets, userId is already the gym ID
             const gymId = ticket.userId;
-            console.log(`🎯 Creating gym notification for gym ID: ${gymId}`);
             
             // Create notification for gym admin
             const notification = await GymNotification.createGrievanceReply({
@@ -395,21 +386,16 @@ router.post('/tickets/:ticketId/reply', adminAuth, async (req, res) => {
               priority: ticket.priority === 'high' || ticket.priority === 'urgent' ? 'urgent' : ticket.priority
             });
             
-            console.log(`✅ Gym admin notification created successfully:`, notification._id);
             
             // Find gym details for logging
             const gym = await Gym.findById(gymId);
             if (gym) {
-              console.log(`✅ Notification sent to gym: ${gym.gymName} (ID: ${gym._id})`);
             }
           } catch (notificationError) {
-            console.error('❌ Error creating gym admin notification:', notificationError);
           }
         } else {
-          console.log(`ℹ️ No grievance keywords found in gym ticket ${ticket.ticketId}`);
         }
       } else {
-        console.log(`ℹ️ Not a gym ticket (userType: ${ticket.userType})`);
       }
       
       // TODO: Implement user notification system for ticket replies
@@ -566,9 +552,7 @@ router.post('/admin/tickets', adminAuth, async (req, res) => {
       attachments = []
     } = req.body;
 
-    console.log('Creating admin support ticket with data:', {
-      category, priority, subject, userType, gymId, gymName
-    });
+   
 
     // Generate ticket ID
     const ticketCount = await Support.countDocuments();
@@ -604,7 +588,6 @@ router.post('/admin/tickets', adminAuth, async (req, res) => {
 
     await ticket.save();
 
-    console.log('Admin support ticket created:', ticketId);
 
     res.status(201).json({
       success: true,

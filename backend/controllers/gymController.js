@@ -36,31 +36,22 @@ const sendOTPEmail = async (email, otp) => {
 // Unified Gym/Admin Login (use for both gym and admin dashboard)
 exports.login = async (req, res) => {
   const { email, password } = req.body;
-  console.log('🔐 Login attempt for email:', email);
-  console.log('🔐 Request body received:', { email: !!email, password: !!password });
   
   try {
     // Find gym by email
     const gym = await Gym.findOne({ email });
     if (!gym) {
-      console.log('❌ Gym not found for email:', email);
       return res.status(401).json({ success: false, message: 'Invalid credentials or gym not found.' });
     }
-    
-    console.log('✅ Gym found:', { id: gym._id, email: gym.email, status: gym.status });
-    
+        
     // Check password
     const isMatch = await bcrypt.compare(password, gym.password);
     if (!isMatch) {
-      console.log('❌ Password mismatch for email:', email);
       return res.status(401).json({ success: false, message: 'Invalid credentials or gym not found.' });
     }
-    
-    console.log('✅ Password verified for email:', email);
-    
+        
     // Check approval status
     if (gym.status !== 'approved') {
-      console.log('❌ Gym not approved, status:', gym.status);
       if (gym.status === 'pending') {
         return res.status(403).json({ success: false, message: 'Your gym registration is pending approval. Please wait for the admin to review your application.' });
       } else if (gym.status === 'rejected') {
@@ -69,9 +60,7 @@ exports.login = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Your gym registration is not approved.' });
       }
     }
-    
-    console.log('✅ Gym status approved, generating token');
-    
+        
     // Create and assign a token
     const payload = {
       admin: {
@@ -81,9 +70,7 @@ exports.login = async (req, res) => {
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
     
-    console.log('✅ Token generated successfully for gym:', gym._id);
-    console.log('🔐 Returning login response with token length:', token.length);
-    
+   
     // Update lastLogin field
     gym.lastLogin = new Date();
     await gym.save();
@@ -126,7 +113,6 @@ exports.requestPasswordChangeOTP = async (req, res) => {
 // Verify Password Change OTP (moved from gymadminController)
 exports.verifyPasswordChangeOTP = async (req, res) => {
     const { email, otp, newPassword } = req.body;
-    console.log('Password Change Request:', { email, otp: otp ? 'PROVIDED' : 'MISSING' });
     if (!email || !otp || !newPassword) {
         console.error('Incomplete password change request', { email, otpProvided: !!otp, passwordProvided: !!newPassword });
         return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
@@ -179,19 +165,15 @@ exports.verifyPasswordChangeOTP = async (req, res) => {
 
 // Get Admin Profile (moved from gymadminController)
 exports.getAdminProfile = async (req, res) => {
-    console.group('Get Admin Profile');
-    console.log('Request Admin:', req.admin);
+   
     try {
         if (!req.admin || !req.admin.id) {
             console.warn('Invalid admin object in request');
-            console.groupEnd();
             return res.status(401).json({ message: 'Authentication failed' });
         }
         const admin = await Gym.findById(req.admin.id).select('-password');
-        console.log('Admin Found:', !!admin);
         if (!admin) {
             console.warn(`No admin found with ID: ${req.admin.id}`);
-            console.groupEnd();
             return res.status(404).json({ message: 'Admin profile not found' });
         }
         const logoUrl = admin.logoUrl ? 
@@ -206,8 +188,6 @@ exports.getAdminProfile = async (req, res) => {
             address: admin.address || '',
             description: admin.description || ''
         };
-        console.log('Profile Response:', profileResponse);
-        console.groupEnd();
         res.json(profileResponse);
     } catch (error) {
         console.error('Comprehensive error fetching admin profile:', {
@@ -215,35 +195,25 @@ exports.getAdminProfile = async (req, res) => {
             message: error.message,
             stack: error.stack
         });
-        console.groupEnd();
         res.status(500).json({ message: 'Server error while fetching profile' });
     }
 };
 
 // Request OTP for Password Reset (moved from gymadminController)
 exports.requestOtp = async (req, res) => {
-  console.log('[requestOtp] Function called.'); // New Log
   const { email } = req.body;
-  console.log('[requestOtp] Received email:', email); // New Log
   if (!email) {
-    console.log('[requestOtp] Email is missing. Sending 400.'); // New Log
     return res.status(400).json({ message: 'Email is required' });
   }
   try {
-    console.log(`[requestOtp] Searching for admin with email: ${email}`); // New Log
     const gymAdmin = await Gym.findOne({ email });
     if (!gymAdmin) {
-      console.log(`[requestOtp] Admin not found for email: ${email}. Sending 404.`); // New Log
       return res.status(404).json({ message: 'Admin with this email not found.' });
     }
-    console.log('[requestOtp] Admin found:', gymAdmin._id); // New Log
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`[requestOtp] Generated OTP: ${otp} for admin: ${gymAdmin._id}`);
     gymAdmin.passwordResetToken = otp; 
     gymAdmin.passwordResetExpires = Date.now() + 10 * 60 * 1000; 
-    console.log(`[requestOtp] Saving OTP for admin: ${gymAdmin._id}`); // New Log
     await gymAdmin.save();
-    console.log(`[requestOtp] OTP saved successfully for admin: ${gymAdmin._id}`); // New Log
     // Send OTP email
     const emailSubject = 'Your Password Reset OTP';
     const emailHtml = `
@@ -255,9 +225,7 @@ exports.requestOtp = async (req, res) => {
       <p>Thank you,<br/>The FIT-verse Team</p>
     `;
     try {
-      console.log(`[requestOtp] Attempting to send OTP email to: ${gymAdmin.email}`);
       await sendEmail(gymAdmin.email, emailSubject, emailHtml);
-      console.log(`[requestOtp] OTP email sent successfully to: ${gymAdmin.email}.`);
       res.status(200).json({ success: true, message: 'OTP sent to your email address. Please check your inbox (and spam folder).' });
     } catch (emailError) {
       console.error('[requestOtp] Error sending OTP email:', emailError.message, emailError.stack);
@@ -272,8 +240,6 @@ exports.requestOtp = async (req, res) => {
 // Reset Password with OTP (moved from gymadminController)
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
-  console.log('[resetPassword] Function called.');
-  console.log('[resetPassword] Received data:', { email, otp: '[REDACTED]', newPassword: '[REDACTED]' });
   if (!email || !otp || !newPassword) {
     return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
   }
@@ -287,19 +253,14 @@ exports.resetPassword = async (req, res) => {
       passwordResetExpires: { $gt: Date.now() },
     });
     if (!admin) {
-      console.log(`[resetPassword] Invalid or expired OTP for email: ${email}`);
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please request a new one.' });
     }
-    console.log(`[resetPassword] Admin found and OTP + expiry verified for: ${email}`);
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     admin.password = await bcrypt.hash(newPassword, salt);
     admin.passwordResetToken = undefined; // Clear OTP token
     admin.passwordResetExpires = undefined; // Clear OTP expiry
-    console.log(`[resetPassword] Attempting to save new password for: ${email}`);
     await admin.save();
-    console.log(`[resetPassword] New password saved successfully for: ${email}`);
-    // Optionally, send a confirmation email
     // await sendEmail(admin.email, 'Your Password Has Been Reset', '<p>Your password was successfully reset.</p>');
     res.status(200).json({ success: true, message: 'Password has been reset successfully. You can now login with your new password.' });
   } catch (error) {
@@ -310,8 +271,6 @@ exports.resetPassword = async (req, res) => {
 
 exports.registerGym = async (req, res) => {
   try {
-    console.log("🟡 Incoming form body:", req.body);
-    console.log("🟡 Uploaded files:", req.files);
 
     // Password check
     const plainPassword = req.body.password;
@@ -527,7 +486,6 @@ exports.registerGym = async (req, res) => {
     });
 
     await newGym.save();
-    console.log("✅ Gym saved successfully to DB (according to Mongoose):", newGym);
 
     // Create admin notification for new gym registration
     try {
@@ -564,31 +522,21 @@ exports.registerGym = async (req, res) => {
 
 // Get Gym Profile for Logged-in Admin
 exports.getMyProfile = async (req, res) => {
-  console.log('👤 Profile request received');
-  console.log('👤 Request headers:', {
-    authorization: req.headers.authorization ? `Bearer ${req.headers.authorization.substring(0, 20)}...` : 'missing',
-    contentType: req.headers['content-type']
-  });
+  
   
   const adminId = req.admin && req.admin.id;
-  console.log('👤 Admin ID from token:', adminId);
   
   if (!adminId) {
-    console.log('❌ No admin ID found in request');
     return res.status(401).json({ message: 'Not authorized, no admin ID found' });
   }
   
   try {
-    console.log('👤 Searching for gym with ID:', adminId);
     // Find gym by its own ID, since the gym admin is the gym itself
     const gym = await Gym.findById(adminId).select('-password');
     if (!gym) {
-      console.log('❌ Gym profile not found for admin ID:', adminId);
       return res.status(404).json({ message: 'Gym profile not found for this admin' });
     }
-    
-    console.log('✅ Gym profile found:', { id: gym._id, name: gym.gymName, email: gym.email });
-    
+        
     // Ensure proper data formatting for frontend
     const gymProfile = gym.toObject();
     
@@ -615,7 +563,6 @@ exports.getMyProfile = async (req, res) => {
       gymProfile.activities = [];
     }
     
-    console.log('✅ [getMyProfile] Returning gym profile with keys:', Object.keys(gymProfile));
     res.status(200).json(gymProfile);
   } catch (error) {
     console.error('❌ Error fetching gym profile for admin:', error);
@@ -671,7 +618,6 @@ function handleLogoUpload(gym, file, gymLogo) {
 
 exports.updateMyProfile = async (req, res) => {
   const adminId = req.admin?.id;
-  console.log("Fetching gym for adminId:", adminId);
   if (!adminId) {
     return res.status(401).json({ message: 'Not authorized' });
   }
@@ -704,20 +650,12 @@ exports.updateMyProfile = async (req, res) => {
       return res.status(400).json({ message: passwordChangeResult.error });
     }
 
-    // Debug: Log file and body
-    console.log('File received:', req.file);
-    console.log('Body received:', req.body);
-
     handleLogoUpload(gym, req.file, gymLogo);
 
     await gym.save();
-    // Debug: Log final logoUrl
-    console.log('Final logoUrl:', gym.logoUrl);
     const profileData = gym.toObject();
     delete profileData.password;
 
-    // Debug: Log the logoUrl being returned
-    console.log('[getMyProfile] Returning logoUrl:', profileData.logoUrl);
     res.status(200).json({
       message: 'Profile updated successfully',
       gym: profileData
@@ -884,7 +822,6 @@ exports.getAllGymPhotos = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Gym not found for this admin.' });
     }
     
-    console.log('DEBUG: Found gym:', gym.gymName, 'Photos count:', gym.gymPhotos?.length || 0);
     res.json({ success: true, photos: gym.gymPhotos || [] });
   } catch (err) {
     console.error('Get Gym Photos Error:', err);

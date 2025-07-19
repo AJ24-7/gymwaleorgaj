@@ -18,12 +18,14 @@ router.get('/:date', gymadminAuth, async (req, res) => {
 
         const attendanceMap = {};
         attendance.forEach(record => {
-            attendanceMap[record.personId._id] = {
-                status: record.status,
-                checkInTime: record.checkInTime,
-                checkOutTime: record.checkOutTime,
-                personType: record.personType
-            };
+            if (record.personId && record.personId._id) {
+                attendanceMap[record.personId._id] = {
+                    status: record.status,
+                    checkInTime: record.checkInTime,
+                    checkOutTime: record.checkOutTime,
+                    personType: record.personType
+                };
+            }
         });
 
         res.json(attendanceMap);
@@ -39,7 +41,6 @@ router.post('/', gymadminAuth, async (req, res) => {
         const { personId, personType, date, status, checkInTime, checkOutTime } = req.body;
         const gymId = req.admin.id; // Use req.admin.id from current auth structure
 
-        console.log(`📝 Marking attendance: personId=${personId}, personType=${personType}, date=${date}, status=${status}, gymId=${gymId}`);
 
         // Validate person exists
         let person;
@@ -52,7 +53,6 @@ router.post('/', gymadminAuth, async (req, res) => {
         }
 
         if (!person) {
-            console.log(`❌ Person not found`);
             return res.status(404).json({ error: 'Person not found' });
         }
 
@@ -65,14 +65,12 @@ router.post('/', gymadminAuth, async (req, res) => {
 
         if (attendance) {
             // Update existing attendance
-            console.log(`🔄 Updating existing attendance record`);
             attendance.status = status;
             attendance.checkInTime = checkInTime;
             attendance.checkOutTime = checkOutTime;
             attendance.updatedAt = new Date();
         } else {
             // Create new attendance record
-            console.log(`➕ Creating new attendance record`);
             attendance = new Attendance({
                 gymId,
                 personId,
@@ -310,7 +308,6 @@ router.get('/history/:personId', gymadminAuth, async (req, res) => {
         const { startDate, endDate } = req.query;
         const gymId = req.admin.id;
 
-        console.log(`📋 Fetching attendance history for person ${personId} from ${startDate} to ${endDate}, gymId: ${gymId}`);
 
         // Validate person exists and belongs to this gym
         let person;
@@ -321,13 +318,10 @@ router.get('/history/:personId', gymadminAuth, async (req, res) => {
         if (member) {
             person = member;
             personType = 'Member';
-            console.log(`✅ Found member: ${member.memberName || 'N/A'}`);
         } else if (trainer && trainer.gym.toString() === gymId.toString()) {
             person = trainer;
             personType = 'Trainer';
-            console.log(`✅ Found trainer: ${trainer.firstName} ${trainer.lastName}`);
         } else {
-            console.log(`❌ Person not found or not authorized`);
             return res.status(404).json({ error: 'Person not found or not authorized' });
         }
 
@@ -375,13 +369,11 @@ router.get('/history/:personId', gymadminAuth, async (req, res) => {
             }
         };
 
-        console.log(`🔍 Attendance query:`, query);
 
         const attendanceHistory = await Attendance.find(query)
             .sort({ date: 1 })
             .select('date status checkInTime checkOutTime');
 
-        console.log(`📊 Found ${attendanceHistory.length} attendance records`);
         attendanceHistory.forEach(record => {
             console.log(`  - ${record.date.toISOString().split('T')[0]}: ${record.status}`);
         });
@@ -398,7 +390,6 @@ router.get('/history/:personId', gymadminAuth, async (req, res) => {
             } : null
         };
 
-        console.log(`✅ Returning ${response.history.length} records`);
         res.json(response);
     } catch (error) {
         console.error('Error fetching attendance history:', error);

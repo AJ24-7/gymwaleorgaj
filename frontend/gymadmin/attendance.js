@@ -23,7 +23,6 @@ class AttendanceManager {
 
     // Token utility functions (copied from gymadmin.js)
     async waitForToken(tokenKey, maxTries, delayMs) {
-        console.log(`🔍 Waiting for token '${tokenKey}' (max ${maxTries} tries, ${delayMs}ms intervals)`);
         
         let token = null;
         let tries = 0;
@@ -34,7 +33,6 @@ class AttendanceManager {
             const urlParams = new URLSearchParams(window.location.search);
             const urlToken = urlParams.get('token');
             if (urlToken) {
-                console.log('🔗 Token found in URL parameters');
                 // Store it in localStorage for future use
                 localStorage.setItem(tokenKey, urlToken);
                 // Clean the URL
@@ -67,24 +65,19 @@ class AttendanceManager {
             const result = checkAllStorageLocations();
             if (result) {
                 token = result.token;
-                console.log(`✅ Token found in ${result.location} after ${tries} attempts`);
                 // If found in alternative location, also store it in the expected location
                 if (result.location !== 'localStorage') {
                     localStorage.setItem(tokenKey, token);
-                    console.log(`📝 Token copied to localStorage[${tokenKey}]`);
                 }
                 break;
             }
             
             await new Promise(res => setTimeout(res, delayMs));
             tries++;
-            console.log(`🔄 Token check attempt ${tries}/${maxTries} - Token found: false`);
         }
         
         if (token) {
-            console.log(`✅ Token '${tokenKey}' found after ${tries} attempts`);
         } else {
-            console.log(`❌ Token '${tokenKey}' not found after ${tries} attempts`);
         }
         
         return token;

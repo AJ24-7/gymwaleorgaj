@@ -62,22 +62,16 @@ document.addEventListener('DOMContentLoaded', function() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      console.log('Activities fetch - Full profile data:', data);
-      console.log('Activities raw data:', data.activities);
-      console.log('Activities type:', typeof data.activities);
-      
       // Handle activities data - ensure proper structure
       let activities = [];
       if (Array.isArray(data.activities)) {
         activities = data.activities.map(activity => {
-          console.log('Processing activity:', activity, 'Type:', typeof activity);
           
           // Handle different activity formats
           if (typeof activity === 'string') {
             // If activity is just a string, try to parse as JSON first
             try {
               const parsedActivity = JSON.parse(activity);
-              console.log('Successfully parsed JSON string activity:', parsedActivity);
               return {
                 name: parsedActivity.name || '',
                 icon: parsedActivity.icon || 'fa-dumbbell',
@@ -88,7 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
               // If not JSON, find matching activity from predefined list
               const matchedActivity = allPossibleActivities.find(a => a.name === activity);
               const result = matchedActivity || { name: activity, icon: 'fa-dumbbell', description: '' };
-              console.log('String activity matched to:', result);
               return result;
             }
           } else if (typeof activity === 'object' && activity !== null) {
@@ -96,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (activity.name && typeof activity.name === 'string' && activity.name.startsWith('{')) {
               try {
                 const parsedActivity = JSON.parse(activity.name);
-                console.log('Successfully parsed JSON from name field:', parsedActivity);
                 return {
                   name: parsedActivity.name || '',
                   icon: parsedActivity.icon || 'fa-dumbbell',
@@ -115,17 +107,14 @@ document.addEventListener('DOMContentLoaded', function() {
               icon: activity.icon || 'fa-dumbbell',
               description: activity.description || ''
             };
-            console.log('Object activity processed to:', result);
             return result;
           }
-          console.log('Unrecognized activity format:', activity);
           return null;
         }).filter(Boolean);
       } else if (typeof data.activities === 'string') {
         // Handle case where activities might be stored as a JSON string
         try {
           const parsedActivities = JSON.parse(data.activities);
-          console.log('Parsed activities from JSON string:', parsedActivities);
           if (Array.isArray(parsedActivities)) {
             activities = parsedActivities.map(activity => {
               if (typeof activity === 'string') {
@@ -140,7 +129,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      console.log('Final processed activities:', activities);
       currentActivities = activities;
       selectedActivities = currentActivities.map(a => a.name);
       renderActivitiesList();
@@ -153,9 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- Render Activities in Dashboard ---
   function renderActivitiesList() {
     if (!activitiesList) return;
-    
-    console.log('Rendering activities list. Current activities:', currentActivities);
-    
+        
     if (!currentActivities?.length) {
       activitiesList.innerHTML = '<div style="color:#888;font-size:1em;text-align:center;padding:20px;">No activities added yet.</div>';
       return;
@@ -168,9 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
       activitiesList.innerHTML = '<div style="color:#888;font-size:1em;text-align:center;padding:20px;">No valid activities found.</div>';
       return;
     }
-    
-    console.log('Rendering valid activities:', validActivities);
-    
+        
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     activitiesList.innerHTML = '<div class="activities-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;">' +
       validActivities.map(a => `
@@ -1375,7 +1359,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 // --- Add Member Modal Logic (Single Consolidated Implementation) ---
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('[AddMember] Initializing add member modal functionality');
   
   // DOM elements
   const addMemberBtn = document.getElementById('addMemberBtn');
@@ -1393,38 +1376,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const monthlyPlan = document.getElementById('monthlyPlan');
   const paymentAmount = document.getElementById('paymentAmount');
 
-  console.log('[AddMember] DOM elements found:', {
-    addMemberBtn: !!addMemberBtn,
-    addMemberModal: !!addMemberModal,
-    planSelected: !!planSelected,
-    monthlyPlan: !!monthlyPlan,
-    paymentAmount: !!paymentAmount,
-    memberProfileImageInput: !!memberProfileImageInput,
-    uploadMemberImageBtn: !!uploadMemberImageBtn
-  });
 
-  // Additional debugging - check actual element IDs in DOM
-  console.log('[AddMember] Checking DOM element IDs:');
-  console.log('planSelected element:', document.getElementById('planSelected'));
-  console.log('monthlyPlan element:', document.getElementById('monthlyPlan'));
-  console.log('paymentAmount element:', document.getElementById('paymentAmount'));
-  console.log('uploadMemberImageBtn element:', document.getElementById('uploadMemberImageBtn'));
-  console.log('memberProfileImage element:', document.getElementById('memberProfileImage'));
-
-  // Debug: Log actual element IDs to see if we're targeting the right elements
-  if (planSelected) console.log('[AddMember] Plan select element ID:', planSelected.id);
-  if (monthlyPlan) console.log('[AddMember] Monthly plan element ID:', monthlyPlan.id);
-  if (paymentAmount) console.log('[AddMember] Payment amount element ID:', paymentAmount.id);
-  if (uploadMemberImageBtn) console.log('[AddMember] Upload button element ID:', uploadMemberImageBtn.id);
-  if (memberProfileImageInput) console.log('[AddMember] File input element ID:', memberProfileImageInput.id);
-
+  
   // Cache for membership plans
   let plansCache = [];
 
   // Fetch membership plans from backend
   async function fetchPlansForModal() {
     try {
-      console.log('[AddMember] Fetching membership plans...');
       
       // Use the same waitForToken pattern as the admin profile fetch
       const token = await waitForToken('gymAdminToken', 10, 100);
@@ -1439,7 +1398,6 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const tokenName of alternativeTokens) {
           alternativeToken = localStorage.getItem(tokenName);
           if (alternativeToken) {
-            console.log(`[AddMember] Found alternative token: ${tokenName}`);
             break;
           }
         }
@@ -1464,24 +1422,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const data = await response.json();
-        console.log('[AddMember] Plans API response (alternative token):', data);
         
         // Handle both response formats: direct array or {success: true, plans: [...]}
         if (Array.isArray(data)) {
           plansCache = data;
-          console.log('[AddMember] Plans cached (direct array):', plansCache.length, 'plans');
         } else if (data.success && Array.isArray(data.plans)) {
           plansCache = data.plans;
-          console.log('[AddMember] Plans cached (nested):', plansCache.length, 'plans');
         } else {
           console.warn('[AddMember] Invalid API response format:', data);
           plansCache = [];
         }
         return;
       }
-      
-      console.log('[AddMember] Using gymAdminToken for API request');
-      const response = await fetch('http://localhost:5000/api/gyms/membership-plans', {
+            const response = await fetch('http://localhost:5000/api/gyms/membership-plans', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1494,15 +1447,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       const data = await response.json();
-      console.log('[AddMember] Plans API response:', data);
       
       // Handle both response formats: direct array or {success: true, plans: [...]}
       if (Array.isArray(data)) {
         plansCache = data;
-        console.log('[AddMember] Plans cached (direct array):', plansCache.length, 'plans');
       } else if (data.success && Array.isArray(data.plans)) {
         plansCache = data.plans;
-        console.log('[AddMember] Plans cached (nested):', plansCache.length, 'plans');
       } else {
         console.warn('[AddMember] Invalid API response format:', data);
         plansCache = [];
@@ -1515,25 +1465,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Update payment amount based on plan and duration
   function updatePaymentAmountAndDiscount() {
-    console.log('[AddMember] Calculating payment amount...');
     
     // Get fresh DOM references
     const currentPlanSelected = document.getElementById('planSelected');
     const currentMonthlyPlan = document.getElementById('monthlyPlan');
     const currentPaymentAmount = document.getElementById('paymentAmount');
     
-    if (!currentPlanSelected || !currentMonthlyPlan || !currentPaymentAmount) {
-      console.warn('[AddMember] Required elements not found for payment calculation');
-      return;
-    }
+   
 
     const selectedPlan = currentPlanSelected.value;
     const selectedDuration = currentMonthlyPlan.value;
     
-    console.log('[AddMember] Selected:', { plan: selectedPlan, duration: selectedDuration });
 
     if (!selectedPlan || !selectedDuration) {
-      console.log('[AddMember] Clearing payment amount - no selection');
       currentPaymentAmount.value = '';
       return;
     }
@@ -1541,7 +1485,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Extract months from duration
     const monthsMatch = selectedDuration.match(/(\d+)\s*Months?/i); // Updated regex to handle both "Month" and "Months"
     const months = monthsMatch ? parseInt(monthsMatch[1]) : 1;
-    console.log('[AddMember] Extracted months:', months, 'from duration:', selectedDuration);
 
     // Find plan in cache
     const plan = plansCache.find(p => p.name === selectedPlan);
@@ -1552,7 +1495,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    console.log('[AddMember] Found plan:', plan);
+   
 
     // Calculate amount
     const baseAmount = plan.price * months;
@@ -1570,19 +1513,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (discountApplies) {
       finalAmount = Math.round(baseAmount * (1 - plan.discount / 100));
-      console.log('[AddMember] Discount applied:', plan.discount + '%, Final:', finalAmount);
     } else {
-      console.log('[AddMember] No discount applicable. Plan discount:', plan.discount, 'Plan discountMonths:', plan.discountMonths, 'Selected months:', months);
     }
 
     // Update UI
     currentPaymentAmount.value = finalAmount;
-    console.log('[AddMember] Payment amount updated:', finalAmount);
   }
 
   // Open modal
   async function openAddMemberModal() {
-    console.log('[AddMember] Opening modal...');
     await fetchPlansForModal();
     
     if (addMemberModal) {
@@ -1597,12 +1536,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Populate plan dropdown
     if (planSelected && plansCache.length > 0) {
-      console.log('[AddMember] Current planSelected element:', planSelected);
-      console.log('[AddMember] Current planSelected innerHTML before:', planSelected.innerHTML);
       planSelected.innerHTML = '<option value="">Select Plan</option>' + 
         plansCache.map(plan => `<option value="${plan.name}">${plan.name} - ₹${plan.price}/month</option>`).join('');
-      console.log('[AddMember] Plan dropdown populated with', plansCache.length, 'options');
-      console.log('[AddMember] Current planSelected innerHTML after:', planSelected.innerHTML);
     } else {
       console.warn('[AddMember] Plan dropdown not populated:', {
         planSelected: !!planSelected,
@@ -1615,23 +1550,19 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       attachPaymentListeners();
       attachImageUploadListeners();
-      console.log('[AddMember] All listeners reattached after modal open');
     }, 100);
     
-    console.log('[AddMember] Modal opened and reset');
   }
 
   // Close modal
   function closeAddMemberModalFunc() {
     if (addMemberModal) addMemberModal.style.display = 'none';
-    console.log('[AddMember] Modal closed');
   }
 
   // Button event listeners
   if (addMemberBtn) {
     addMemberBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('[AddMember] Dashboard button clicked');
       openAddMemberModal();
     });
   }
@@ -1639,14 +1570,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (addMemberBtnTab) {
     addMemberBtnTab.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('[AddMember] Tab button clicked');
       openAddMemberModal();
     });
   }
 
   // Payment calculation listeners - attach directly without DOM replacement
   function attachPaymentListeners() {
-    console.log('[AddMember] Attaching payment calculation listeners...');
     
     // Get current DOM references
     const currentPlanSelected = document.getElementById('planSelected');
@@ -1656,7 +1585,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // Remove any existing listeners by removing and re-adding the event listener
       currentPlanSelected.removeEventListener('change', handlePlanChange);
       currentPlanSelected.addEventListener('change', handlePlanChange);
-      console.log('[AddMember] Plan select listener attached');
     } else {
       console.warn('[AddMember] Plan select element not found!');
     }
@@ -1665,7 +1593,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // Remove any existing listeners by removing and re-adding the event listener
       currentMonthlyPlan.removeEventListener('change', handleMonthChange);
       currentMonthlyPlan.addEventListener('change', handleMonthChange);
-      console.log('[AddMember] Monthly plan listener attached');
     } else {
       console.warn('[AddMember] Monthly plan select element not found!');
     }
@@ -1673,12 +1600,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Event handler functions
   function handlePlanChange(event) {
-    console.log('[AddMember] Plan changed to:', event.target.value);
     updatePaymentAmountAndDiscount();
   }
 
   function handleMonthChange(event) {
-    console.log('[AddMember] Duration changed to:', event.target.value);
     updatePaymentAmountAndDiscount();
   }
 
@@ -1698,7 +1623,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Image upload functionality - use direct event listeners
   function attachImageUploadListeners() {
-    console.log('[AddMember] Attaching image upload listeners...');
     
     const currentUploadBtn = document.getElementById('uploadMemberImageBtn');
     const currentFileInput = document.getElementById('memberProfileImage');
@@ -1707,7 +1631,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // Remove existing listeners
       currentUploadBtn.removeEventListener('click', handleUploadBtnClick);
       currentUploadBtn.addEventListener('click', handleUploadBtnClick);
-      console.log('[AddMember] Upload button listener attached');
     } else {
       console.warn('[AddMember] Image upload button or input not found:', {
         uploadMemberImageBtn: !!currentUploadBtn,
@@ -1718,7 +1641,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentFileInput) {
       currentFileInput.removeEventListener('change', handleFileInputChange);
       currentFileInput.addEventListener('change', handleFileInputChange);
-      console.log('[AddMember] File input listener attached');
     }
   }
 
@@ -1726,32 +1648,26 @@ document.addEventListener('DOMContentLoaded', function() {
   function handleUploadBtnClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[AddMember] Image upload button clicked');
     const fileInput = document.getElementById('memberProfileImage');
     if (fileInput) {
       fileInput.click();
-      console.log('[AddMember] File dialog triggered');
     } else {
       console.error('[AddMember] File input not found when button clicked');
     }
   }
 
   function handleFileInputChange(e) {
-    console.log('[AddMember] Image file selected');
     const file = e.target.files[0];
     const imageTag = document.getElementById('memberImageTag');
     
     if (file && imageTag) {
-      console.log('[AddMember] Processing image file:', file.name);
       const reader = new FileReader();
       reader.onload = function(evt) {
         imageTag.src = evt.target.result;
-        console.log('[AddMember] Image preview updated');
       };
       reader.readAsDataURL(file);
     } else if (imageTag) {
       imageTag.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik00OCA2NEM1Ni44MzY2IDY0IDY0IDU2LjgzNjYgNjQgNDhDNjQgMzkuMTYzNCA1Ni44MzY2IDMyIDQ4IDMyQzM5LjE2MzQgMzIgMzIgMzkuMTYzNCAzMiA0OEMzMiA1Ni44MzY2IDM5LjE2MzQgNjQgNDggNjRaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yNCA3Nkg3MlY4MEgyNFY3NloiIGZpbGw9IiNDQ0NDQ0MiLz4KPHRleHQgeD0iNDgiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTk5OTkiPlBob3RvPC90ZXh0Pgo8L3N2Zz4K';
-      console.log('[AddMember] Image cleared');
     }
   }
 
@@ -1765,14 +1681,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     addMemberForm.onsubmit = async function(e) {
       e.preventDefault();
-      console.log('[AddMember] Form submitted');
       let token = await waitForToken('gymAdminToken', 10, 100);
       if (!token) {
         const alternativeTokens = ['token', 'authToken', 'gymAuthToken'];
         for (const tokenName of alternativeTokens) {
           token = localStorage.getItem(tokenName);
           if (token) {
-            console.log(`[AddMember] Using alternative token: ${tokenName}`);
             break;
           }
         }
@@ -1783,20 +1697,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       const formData = prepareMemberFormData(addMemberForm);
       const { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate } = getMemberFormMeta(formData);
-      // Debug: Log all the form data being sent
-      console.log('[AddMember] Form submission data:', {
-        gymName,
-        plan,
-        monthlyPlan,
-        memberEmail,
-        memberName,
-        membershipId,
-        validDate
-      });
+     
       // Debug: Log FormData contents
-      console.log('[AddMember] FormData contents:');
       for (let [key, value] of formData.entries()) {
-        console.log(`[AddMember] ${key}:`, value);
       }
       try {
         const res = await fetch('http://localhost:5000/api/members', {
@@ -1804,19 +1707,15 @@ document.addEventListener('DOMContentLoaded', function() {
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
-        console.log('[AddMember] Backend response status:', res.status);
         const data = await res.json();
-        console.log('[AddMember] Backend response data:', data);
         
         // Handle successful response
         if (res.ok && (data.success || data.message === 'Member added successfully')) {
-          console.log('[AddMember] Member added successfully');
           sendMembershipEmail({ token, memberEmail, memberName, membershipId, plan, monthlyPlan, validDate, gymName });
           showAddMemberSuccess(membershipId, addMemberForm, memberImageTag, closeAddMemberModalFunc, memberName);
         } 
         // Handle duplicate member error with "Add Anyway" option
         else if (data && data.code === 'DUPLICATE_MEMBER') {
-          console.log('[AddMember] Duplicate member detected, showing confirmation dialog');
           showDialog({
             title: '⚠️ Duplicate Member Detected',
             message: `A member with this email or phone number already exists in the system.\n\n🔍 <b>Details:</b>\n• Email: ${memberEmail}\n• Phone: ${formData.get('memberPhone') || 'Not provided'}\n\n👨‍👩‍👧‍👦 If this is a family member or the person already has a different membership, you can still add them.`,
@@ -1824,7 +1723,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelText: 'Cancel',
             iconHtml: '<i class="fas fa-user-friends" style="color:#ff9800;font-size:2.5em;"></i>',
             onConfirm: async function() {
-              console.log('[AddMember] User chose to add duplicate member anyway');
               // Try again with forceAdd flag
               formData.set('forceAdd', 'true');
               try {
@@ -1834,10 +1732,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   body: formData
                 });
                 const forceData = await forceRes.json();
-                console.log('[AddMember] Force add response:', forceData);
                 
                 if (forceRes.ok && (forceData.success || forceData.message === 'Member added successfully')) {
-                  console.log('[AddMember] Force add successful');
                   sendMembershipEmail({ token, memberEmail, memberName, membershipId, plan, monthlyPlan, validDate, gymName });
                   showAddMemberSuccess(membershipId, addMemberForm, memberImageTag, closeAddMemberModalFunc, memberName);
                 } else {
@@ -1985,237 +1881,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remove legacy error message display (all errors now use dialog)
     function showAddMemberError() {}
   }
-  
-  console.log('[AddMember] Modal initialization complete');
-
-  // Debug functions for testing dialog scenarios:
-  // Use browser console: testDialogs.testSuccess(), testDialogs.testDuplicate(), etc.
-  window.testDialogs = {
-    testSuccess: () => showDialog({
-      title: '✅ Member Added Successfully!',
-      message: 'Member John Doe has been added!\nMembership ID: GYM-202501-BASIC-ABC123',
-      confirmText: 'Got it!',
-      iconHtml: '<i class="fas fa-user-check" style="color:#4caf50;font-size:2.5em;"></i>'
-    }),
-    testDuplicate: () => showDialog({
-      title: '⚠️ Duplicate Member Detected',
-      message: 'A member with this email already exists.\nAdd anyway?',
-      confirmText: 'Add Anyway',
-      cancelText: 'Cancel',
-      iconHtml: '<i class="fas fa-user-friends" style="color:#ff9800;font-size:2.5em;"></i>'
-    }),
-    testError: () => showDialog({
-      title: 'Error Adding Member',
-      message: 'Failed to add member. Please try again.',
-      confirmText: 'OK',
-      iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#e53935;font-size:2.2em;"></i>'
-    })
-  };
-
-  // Add debugging function to check available tokens
-  window.debugTokens = function() {
-    console.log('[DEBUG] Available localStorage tokens:');
-    const tokenKeys = ['gymAdminToken', 'token', 'authToken', 'gymAuthToken'];
-    tokenKeys.forEach(key => {
-      const value = localStorage.getItem(key);
-      console.log(`[DEBUG] ${key}:`, value ? `${value.substring(0, 20)}...` : 'null');
-    });
     
-    console.log('[DEBUG] All localStorage keys:');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      const value = localStorage.getItem(key);
-      console.log(`[DEBUG] ${key}:`, typeof value === 'string' && value.length > 50 ? `${value.substring(0, 20)}...` : value);
-    }
-  };
-
-  // Add global test function for debugging
-  window.testAddMemberPayment = function() {
-    console.log('[TEST] Testing payment calculation...');
-    
-    // Get fresh DOM references (not cached ones)
-    const planSelect = document.getElementById('planSelected');
-    const monthSelect = document.getElementById('monthlyPlan');
-    const paymentField = document.getElementById('paymentAmount');
-    
-    console.log('[TEST] Elements found:', {
-      planSelected: !!planSelect,
-      monthlyPlan: !!monthSelect,
-      paymentAmount: !!paymentField
-    });
-    
-    if (planSelect && monthSelect && paymentField) {
-      console.log('[TEST] Current values before setting:', {
-        plan: planSelect.value,
-        month: monthSelect.value,
-        payment: paymentField.value
-      });
-      
-      console.log('[TEST] Available month options:');
-      Array.from(monthSelect.options).forEach(option => {
-        console.log(`[TEST]   - "${option.value}": ${option.text}`);
-      });
-      
-      console.log('[TEST] Setting test values...');
-      planSelect.value = 'Basic';
-      monthSelect.value = '6 Months'; // Fixed: Use correct option value with 's'
-      
-      console.log('[TEST] Values after setting:', {
-        plan: planSelect.value,
-        month: monthSelect.value,
-        payment: paymentField.value
-      });
-      
-      console.log('[TEST] Triggering change events...');
-      planSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      
-      console.log('[TEST] Final payment amount:', paymentField.value);
-    }
-    
-    console.log('[TEST] plansCache:', plansCache);
-    
-    // Also call the update function directly
-    console.log('[TEST] Calling updatePaymentAmountAndDiscount directly...');
-    updatePaymentAmountAndDiscount();
-  };
-
-  // Add test function to debug plan fetching
-  window.testPlanFetching = async function() {
-    console.log('[TEST] Testing plan fetching process...');
-    
-    // Debug tokens
-    window.debugTokens();
-    
-    // Test fetchPlansForModal
-    console.log('[TEST] Calling fetchPlansForModal...');
-    await fetchPlansForModal();
-    
-    console.log('[TEST] Plans cache after fetch:', plansCache);
-    console.log('[TEST] Plans cache length:', plansCache.length);
-    
-    if (plansCache.length > 0) {
-      console.log('[TEST] First plan details:', plansCache[0]);
-    }
-    
-    // Test manual API call
-    console.log('[TEST] Testing manual API call...');
-    const token = localStorage.getItem('gymAdminToken');
-    if (token) {
-      try {
-        const response = await fetch('http://localhost:5000/api/gyms/membership-plans', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        console.log('[TEST] API Response status:', response.status);
-        const data = await response.json();
-        console.log('[TEST] API Response data:', data);
-        
-      } catch (error) {
-        console.error('[TEST] API call error:', error);
-      }
-    } else {
-      console.log('[TEST] No gymAdminToken found');
-    }
-  };
-
-  window.testImageUpload = function() {
-    console.log('[TEST] Testing image upload...');
-    const uploadBtn = document.getElementById('uploadMemberImageBtn');
-    const fileInput = document.getElementById('memberProfileImage');
-    
-    console.log('[TEST] Elements found:', {
-      uploadMemberImageBtn: !!uploadBtn,
-      memberProfileImage: !!fileInput
-    });
-    
-    console.log('[TEST] Button element details:', uploadBtn);
-    console.log('[TEST] File input element details:', fileInput);
-    
-    if (uploadBtn) {
-      console.log('[TEST] Triggering click on upload button');
-      
-      // Try clicking directly
-      uploadBtn.click();
-      
-      // Also try triggering a click event
-      console.log('[TEST] Also dispatching click event...');
-      uploadBtn.dispatchEvent(new Event('click', { bubbles: true }));
-      
-    } else {
-      console.log('[TEST] Upload button not found');
-    }
-  };
-
-  // Add function to test authentication
-  window.testAuthentication = async function() {
-    console.log('[TEST] Testing authentication...');
-    window.debugTokens();
-    
-    console.log('[TEST] Testing waitForToken...');
-    const token = await waitForToken('gymAdminToken', 5, 100);
-    console.log('[TEST] waitForToken result:', token ? `${token.substring(0, 20)}...` : 'null');
-    
-    console.log('[TEST] Testing API call...');
-    await fetchPlansForModal();
-    console.log('[TEST] Plans cache after fetch:', plansCache);
-  };
-
-  // Add test function to simulate opening the modal
-  window.testOpenModal = async function() {
-    
-    await openAddMemberModal();
-    
-    const planSelect = document.getElementById('planSelected');
-    if (planSelect) {
-      Array.from(planSelect.options).forEach(option => {
-      });
-    }
-  };
-
-  // Add test function to check if event listeners are working
-  window.testEventListeners = function() {
-    console.log('[TEST] Testing if event listeners are working...');
-    
-    const planSelect = document.getElementById('planSelected');
-    const monthSelect = document.getElementById('monthlyPlan');
-    const paymentField = document.getElementById('paymentAmount');
-    
-    if (!planSelect || !monthSelect || !paymentField) {
-      console.log('[TEST] Elements not found - make sure modal is open');
-      return;
-    }
-    
-    console.log('[TEST] Simulating user selections...');
-    
-    // Clear payment first
-    paymentField.value = '';
-    
-    // Simulate user selecting Basic plan
-    planSelect.value = 'Basic';
-    planSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    
-    // Wait a moment, then select duration
-    setTimeout(() => {
-      monthSelect.value = '6 Months';
-      monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      
-      // Check result after another moment
-      setTimeout(() => {
-        console.log('[TEST] Final payment amount after UI simulation:', paymentField.value);
-        console.log('[TEST] Expected: 2850 (Basic ₹500 × 6 months - 5% discount)');
-      }, 200);
-    }, 200);
-  };
 });
             let currentGymProfile = {}; // Store fetched profile data
 
             async function fetchAndUpdateAdminProfile() {
-        console.log('🚀 Starting admin profile fetch process');
         logLocalStorageItems();
         
         // Increase retries to 50 (5 seconds) to avoid race condition after login redirect
@@ -2230,7 +1900,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('✅ Token found, proceeding with profile fetch');
     
         try {
             const responseData = await fetchAdminProfile(token);
@@ -2240,7 +1909,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            console.log('✅ Profile fetch successful, updating UI');
             currentGymProfile = responseData.data;
             updateAdminProfileUI(adminNameElement, adminAvatarElement, responseData.data);
         } catch (error) {
@@ -2250,11 +1918,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function logLocalStorageItems() {
-        console.log('🔍 Detailed localStorage inspection:');
-        console.log('📊 Total localStorage keys:', localStorage.length);
-        console.log('🌐 Current origin:', window.location.origin);
-        console.log('🌐 Current pathname:', window.location.pathname);
-        
+       
         const allItems = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -2266,26 +1930,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 fullValue: value // Only for debugging - remove in production
             });
         }
-        
-        console.log('📦 All localStorage items:', allItems);
-        
+                
         // Specifically check for our target token
         const targetToken = localStorage.getItem('gymAdminToken');
-        console.log('🎯 Target token (gymAdminToken):', {
-            exists: !!targetToken,
-            value: targetToken ? targetToken.substring(0, 30) + '...' : null,
-            length: targetToken?.length || 0
-        });
+       
         
         // Check for any token-like keys
         const tokenKeys = Object.keys(localStorage).filter(key => 
             key.toLowerCase().includes('token') || key.toLowerCase().includes('auth')
         );
-        console.log('🔐 Token-like keys found:', tokenKeys);
     }
     
     async function waitForToken(tokenKey, maxTries, delayMs) {
-        console.log(`🔍 Waiting for token '${tokenKey}' (max ${maxTries} tries, ${delayMs}ms intervals)`);
         
         let token = null;
         let tries = 0;
@@ -2296,7 +1952,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const urlToken = urlParams.get('token');
             if (urlToken) {
-                console.log('🔗 Token found in URL parameters');
                 // Store it in localStorage for future use
                 localStorage.setItem(tokenKey, urlToken);
                 // Clean the URL
@@ -2329,36 +1984,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = checkAllStorageLocations();
             if (result) {
                 token = result.token;
-                console.log(`✅ Token found in ${result.location} after ${tries} attempts`);
                 // If found in alternative location, also store it in the expected location
                 if (result.location !== 'localStorage') {
                     localStorage.setItem(tokenKey, token);
-                    console.log(`📝 Token copied to localStorage[${tokenKey}]`);
                 }
                 break;
             }
             
             await new Promise(res => setTimeout(res, delayMs));
             tries++;
-            console.log(`🔄 Token check attempt ${tries}/${maxTries} - Token found: false`);
             
-            // Log all storage contents for debugging every 10th attempt
-            if (tries % 10 === 0) {
-                console.log('Current localStorage state:', Object.keys(localStorage).map(key => ({
-                    key, 
-                    value: localStorage.getItem(key)?.substring(0, 20) + '...'
-                })));
-                console.log('Current sessionStorage state:', Object.keys(sessionStorage).map(key => ({
-                    key, 
-                    value: sessionStorage.getItem(key)?.substring(0, 20) + '...'
-                })));
-            }
+           
         }
         
         if (token) {
-            console.log(`✅ Token '${tokenKey}' found after ${tries} attempts`);
         } else {
-            console.log(`❌ Token '${tokenKey}' not found after ${maxTries} attempts`);
         }
         
         return token;
@@ -2375,14 +2015,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function fetchAdminProfile(token) {
-        console.group('Admin Profile Fetch');
-        console.log('Fetching admin profile');
-        console.log('Token retrieval:', {
-            gymAuthToken: !!localStorage.getItem('gymAuthToken'),
-            token: !!localStorage.getItem('token'),
-            authToken: !!localStorage.getItem('authToken')
-        });
-        console.log('Sending profile request to:', 'http://localhost:5000/api/gyms/profile/me');
+       
         const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
             method: 'GET',
             headers: {
@@ -2390,10 +2023,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             }
         });
-        console.log('Profile fetch response status:', response.status);
         const data = await response.json();
-        console.log('Profile fetch response data:', data);
-        console.groupEnd();
         return { ok: response.ok, status: response.status, statusText: response.statusText, data, raw: response };
     }
     
@@ -2416,15 +2046,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (adminNameElement) {
             adminNameElement.textContent = profile.gymName || profile.name || 'Gym Admin';
-            console.log('Updated admin name:', adminNameElement.textContent);
         }
         if (adminAvatarElement) {
             let logoUrl = profile.logoUrl || profile.logo || profile.logoURL || profile.logo_path || '';
-            
-            // Debug: Log the raw logoUrl value
-            console.log('[DEBUG] Raw logoUrl from gym profile:', logoUrl);
-            console.log('[DEBUG] Profile object keys:', Object.keys(profile));
-            
+      
             if (logoUrl && !logoUrl.startsWith('http')) {
                 if (logoUrl.startsWith('/')) {
                     logoUrl = `http://localhost:5000${logoUrl}`;
@@ -2435,43 +2060,28 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!logoUrl) logoUrl = `http://localhost:5000/uploads/images/default-logo.png`;
             
-            console.log('[DEBUG] Final processed logoUrl:', logoUrl);
             
             // Auto-fix logo path if it's using wrong directory
             if (logoUrl && logoUrl.includes('/uploads/gymImages/')) {
                 const filename = logoUrl.split('/').pop();
                 const altUrl = `http://localhost:5000/uploads/gymPhotos/${filename}`;
-                console.log('[DEBUG] Auto-correcting logo path from gymImages to gymPhotos:', altUrl);
                 logoUrl = altUrl;
             }
             
-            console.log('[DEBUG] Final corrected logoUrl:', logoUrl);
             
             adminAvatarElement.src = logoUrl;
             adminAvatarElement.onerror = function() {
-                console.log('[ERROR] Failed to load logo:', logoUrl);
-                console.log('[ERROR] Using default logo fallback');
                 this.onerror = null; // Prevent infinite loop
                 this.src = 'http://localhost:5000/uploads/images/default-logo.png';
             };
-            adminAvatarElement.onload = function() {
-                console.log('[SUCCESS] Logo loaded successfully:', logoUrl);
-            };
-            console.log('Updated admin logo:', logoUrl);
+           
         }
-        
-        // Debug log to check profile structure
-        console.log('Complete profile data stored:', profile);
-        console.log('Profile location:', profile.location);
-        console.log('Profile activities:', profile.activities);
-        
         // Update gym information section
         updateGymInformationSection(profile);
     }
 
     // Function to update gym information section with profile data
     function updateGymInformationSection(profile) {
-        console.log('Updating gym information section with profile:', profile);
         
         // Basic Information
         const gymInfoName = document.getElementById('gymInfoName');
@@ -2533,7 +2143,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        console.log('Gym information section updated successfully');
     }
     
     function handleProfileFetchException(error, adminNameElement, adminAvatarElement) {
@@ -2558,7 +2167,6 @@ document.addEventListener('DOMContentLoaded', function () {
     async function fetchGymPhotos() {
         const token = localStorage.getItem('gymAdminToken');
         try {
-            console.log('Fetching gym photos from dedicated photos endpoint...');
             const response = await fetch('http://localhost:5000/api/gyms/photos', {
                 method: 'GET',
                 headers: {
@@ -2570,11 +2178,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(`Failed to fetch gym photos: ${response.status} ${response.statusText}`);
             }
             const data = await response.json();
-            console.log('Fetched gym photos data:', data);
             
             // Extract photos from the response (registration photos are in the photos array)
             const photos = data.photos || [];
-            console.log('Rendering', photos.length, 'gym photos');
             renderPhotoGrid(photos);
         } catch (err) {
             console.error('Error fetching gym photos:', err);
@@ -2612,7 +2218,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             
-            console.log(`[DEBUG] Rendering photo ${idx + 1}:`, { title, description, category, url });
             
             const card = document.createElement('div');
             card.className = 'photo-grid-item';
@@ -2916,7 +2521,6 @@ function clearUploadPhotoMsgAndCloseModal() {
                 return;
             }
 
-            console.log('Populating edit profile modal with:', currentGymProfile);
             
             document.getElementById('editGymName').value = currentGymProfile.gymName || '';
             document.getElementById('editGymEmail').value = currentGymProfile.email || '';
@@ -2943,7 +2547,6 @@ function clearUploadPhotoMsgAndCloseModal() {
             // Handle logo URL with improved logic
             let logoUrl = currentGymProfile.logoUrl || currentGymProfile.logo || currentGymProfile.logoURL || currentGymProfile.logo_path || '';
             
-            console.log('[DEBUG] Edit modal - Raw logoUrl from gym profile:', logoUrl);
             
             if (logoUrl && !logoUrl.startsWith('http')) {
                 if (logoUrl.startsWith('/')) {
@@ -2957,28 +2560,23 @@ function clearUploadPhotoMsgAndCloseModal() {
             if (logoUrl && logoUrl.includes('/uploads/gymImages/')) {
                 const filename = logoUrl.split('/').pop();
                 const altUrl = `http://localhost:5000/uploads/gymPhotos/${filename}`;
-                console.log('[DEBUG] Auto-correcting logo path from gymImages to gymPhotos:', altUrl);
                 logoUrl = altUrl;
             }
             
             if (logoUrl) {
                 logoPreviewImage.src = `${logoUrl}?${new Date().getTime()}`;
                 logoPreviewImage.style.display = 'block';
-                console.log('Logo preview set to:', logoUrl);
                 
                 // Add error handling for logo preview
                 logoPreviewImage.onerror = function() {
-                    console.log('[ERROR] Failed to load logo preview:', logoUrl);
                     this.onerror = null; // Prevent infinite loop
                     this.src = 'http://localhost:5000/uploads/images/default-logo.png';
                 };
             } else {
                 logoPreviewImage.src = '#';
                 logoPreviewImage.style.display = 'none';
-                console.log('No logo URL found, hiding preview');
             }
             
-            console.log('Modal populated with address:', { address, city, state, pincode });
         }
 
         if (editProfileLink) {
@@ -2993,7 +2591,6 @@ function clearUploadPhotoMsgAndCloseModal() {
         if (logoutLink) {
             logoutLink.addEventListener('click', function(event) {
                 event.preventDefault(); // Prevent default anchor behavior
-                console.log('Logout clicked');
                localStorage.removeItem('gymAdminToken');
                 window.location.href = 'http://localhost:5000/public/admin-login.html'; // Redirect to login page
             });
@@ -3382,10 +2979,12 @@ const trainersMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySel
 const dashboardMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-tachometer-alt'));
 const settingsMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-cog'));
 const attendanceMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-calendar-check'));
+const paymentsMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-credit-card'));
 const memberDisplayTab = document.getElementById('memberDisplayTab');
 const trainerTab = document.getElementById('trainerTab');
 const settingsTab = document.getElementById('settingsTab');
 const attendanceTab = document.getElementById('attendanceTab');
+const paymentTab = document.getElementById('paymentTab');
 const dashboardContent = document.querySelector('.content');
 
 function hideAllMainTabs() {
@@ -3394,6 +2993,7 @@ function hideAllMainTabs() {
   if (trainerTab) trainerTab.style.display = 'none';
   if (settingsTab) settingsTab.style.display = 'none';
   if (attendanceTab) attendanceTab.style.display = 'none';
+  if (paymentTab) paymentTab.style.display = 'none';
 }
 
 if (attendanceMenuLink && attendanceTab) {
@@ -3409,6 +3009,21 @@ if (attendanceMenuLink && attendanceTab) {
     }
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     attendanceMenuLink.classList.add('active');
+  });
+}
+
+if (paymentsMenuLink && paymentTab) {
+  paymentsMenuLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    hideAllMainTabs();
+    paymentTab.style.display = 'block';
+    updateMainContentMargins();
+    // Initialize payment manager if it exists
+    if (typeof window.paymentManager !== 'undefined') {
+      window.paymentManager.loadPaymentData();
+    }
+    sidebarMenuLinks.forEach(link => link.classList.remove('active'));
+    paymentsMenuLink.classList.add('active');
   });
 }
 
@@ -3670,6 +3285,7 @@ function updateMainContentMargins() {
   setTabMargin(trainerTab);
   setTabMargin(settingsTab);
   setTabMargin(attendanceTab);
+  setTabMargin(paymentTab);
 }
 
 // Dynamic sidebar menu highlight
@@ -3783,18 +3399,33 @@ function renderMembersTable(members) {
     return;
   }
   membersTableBody.innerHTML = '';
+  const today = new Date();
+  today.setHours(0,0,0,0);
   members.forEach(member => {
     const imgSrc = member.profileImage ? `http://localhost:5000${member.profileImage}` : 'https://via.placeholder.com/48?text=Photo';
     const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
     const membershipId = member.membershipId || '';
-    const validUntil = member.membershipValidUntil ? new Date(member.membershipValidUntil).toLocaleDateString() : '';
+    const validUntilRaw = member.membershipValidUntil;
+    const validUntil = validUntilRaw ? new Date(validUntilRaw).toLocaleDateString() : '';
     const amountPaid = member.paymentAmount !== undefined ? member.paymentAmount : '';
-    // Try both address and memberAddress for compatibility
     const address = member.address || member.memberAddress || '';
-    // Store the MongoDB _id as a data attribute
     const rowId = member._id ? `data-member-id="${member._id}"` : '';
+    // Row color logic
+    let statusClass = '';
+    if (validUntilRaw) {
+      const validDate = new Date(validUntilRaw);
+      validDate.setHours(0,0,0,0);
+      const diffDays = Math.ceil((validDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) {
+        statusClass = 'member-row-expired';
+      } else if (diffDays === 0 || diffDays === 1 || diffDays === 3) {
+        statusClass = 'member-row-expiring';
+      } else {
+        statusClass = 'member-row-active';
+      }
+    }
     membersTableBody.innerHTML += `
-      <tr ${rowId}>
+      <tr ${rowId} class="${statusClass}">
         <td style="text-align:center;"><img src="${imgSrc}" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;"></td>
         <td>${member.memberName || ''}</td>
          <td>${membershipId}</td>
@@ -4326,6 +3957,7 @@ document.addEventListener('DOMContentLoaded', function() {
     'Dashboard': 'dashboardTab',
     'Members': 'memberDisplayTab',
     'Attendance': 'attendanceTab',
+    'Payments': 'paymentTab',
     'Settings': 'settingsTab',
     // Add more mappings as you implement more tabs
   };
@@ -4373,6 +4005,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof window.attendanceManager !== 'undefined') {
           window.attendanceManager.loadData();
           window.attendanceManager.loadAttendanceForDate();
+        }
+      } else if (tabName === 'Payments') {
+        hideAllMainTabs();
+        const paymentTab = document.getElementById('paymentTab');
+        if (paymentTab) paymentTab.style.display = 'block';
+        updateMainContentMargins();
+        // Initialize payment manager if it exists
+        if (typeof window.paymentManager !== 'undefined') {
+          window.paymentManager.loadPaymentData();
         }
       } else if (tabName === 'Settings') {
         hideAllMainTabs();

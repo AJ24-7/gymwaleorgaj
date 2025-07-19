@@ -5,16 +5,13 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Wait for notification system to initialize
   setTimeout(() => {
-    console.log('[NotificationIntegration] Checking for existing form handler...');
     
     // Don't override if our enhanced form handler is already working
     const originalAddMemberForm = document.getElementById('addMemberForm');
     if (originalAddMemberForm && originalAddMemberForm._hasEnhancedHandler) {
-      console.log('[NotificationIntegration] Enhanced form handler detected, skipping override');
       return;
     }
     
-    console.log('[NotificationIntegration] No enhanced handler found, integrating notifications...');
     
     // Override member addition to trigger notifications
     if (originalAddMemberForm) {
@@ -41,10 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
           });
           
           const data = await response.json();
-          console.log('[NotificationIntegration] Response:', data);
           
           if (response.ok && (data.success || data.message === 'Member added successfully')) {
-            console.log('[NotificationIntegration] Member added successfully');
             
             // Use dialog for success (if showDialog is available)
             if (typeof showDialog === 'function') {
@@ -105,7 +100,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
           } else if (data && data.code === 'DUPLICATE_MEMBER') {
             // Handle duplicate member with dialog
-            console.log('[NotificationIntegration] Duplicate member detected');
             
             if (typeof showDialog === 'function') {
               const memberEmail = formData.get('memberEmail') || formData.get('email') || '';
@@ -118,7 +112,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelText: 'Cancel',
                 iconHtml: '<i class="fas fa-user-friends" style="color:#ff9800;font-size:2.5em;"></i>',
                 onConfirm: async function() {
-                  console.log('[NotificationIntegration] User chose to add duplicate member anyway');
                   // Try again with forceAdd flag
                   formData.set('forceAdd', 'true');
                   try {
@@ -211,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Test function to verify notification system integration
 function testNotificationSystem() {
   if (window.notificationSystem && typeof showDialog === 'function') {
-    console.log('🔔 Testing notification system integration...');
     
     // Test dialog integration
     showDialog({
@@ -227,7 +219,6 @@ function testNotificationSystem() {
       confirmText: 'Awesome!',
       iconHtml: '<i class="fas fa-bell" style="color:#4caf50;font-size:2.5em;"></i>',
       onConfirm: function() {
-        console.log('✅ Notification system test completed successfully');
       }
     });
     
@@ -241,9 +232,7 @@ function testNotificationSystem() {
 // Auto-test when both systems are ready
 setTimeout(() => {
   if (window.notificationSystem) {
-    console.log('🎉 Notification system is active and ready!');
-    // Uncomment the line below to show test dialog
-    // testNotificationSystem();
+   
   }
 }, 3000);
 

@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym-Wale | Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="gymadmin.css">
     <link rel="stylesheet" href="attendance.css">
+    <link rel="stylesheet" href="membertab.css">
+    <link rel="stylesheet" href="payment.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script defer src="gymadmin.js"></script>
     <script defer src="notification-modal.js"></script>
     <script defer src="notification-system.js"></script>
     <script defer src="attendance.js"></script>
     <script defer src="attendance-stats.js"></script>
+    <script defer src="payment.js"></script>
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
@@ -537,6 +541,131 @@
                                     <img src="https://images.unsplash.com/photo-1576678927484-cc907957088c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Rowing Machine">
                                     <div class="equipment-overlay">Rowing Machine</div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Tab (Initially Hidden) -->
+            <div id="paymentTab" class="payment-tab">
+                <div class="page-header">
+                    <h1 class="page-title">Payment Management</h1>
+                    <div class="page-actions">
+                        <button id="addPaymentBtn" class="add-payment-btn">
+                            <i class="fas fa-plus"></i> Add Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Payment Statistics Cards -->
+                <div class="payment-stats-grid">
+                    <div class="payment-stat-card received">
+                        <div class="payment-stat-header">
+                            <div class="payment-stat-title">Amount Received</div>
+                            <div class="payment-stat-icon received">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                        </div>
+                        <div class="payment-stat-value">₹0</div>
+                        <div class="payment-stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            0.0%
+                        </div>
+                    </div>
+
+                    <div class="payment-stat-card paid">
+                        <div class="payment-stat-header">
+                            <div class="payment-stat-title">Amount Paid</div>
+                            <div class="payment-stat-icon paid">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div class="payment-stat-value">₹0</div>
+                        <div class="payment-stat-change negative">
+                            <i class="fas fa-arrow-up"></i>
+                            0.0%
+                        </div>
+                    </div>
+
+                    <div class="payment-stat-card profit">
+                        <div class="payment-stat-header">
+                            <div class="payment-stat-title">Profit/Loss</div>
+                            <div class="payment-stat-icon profit">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="payment-stat-value">₹0</div>
+                        <div class="payment-stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            0.0%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Chart -->
+                <div class="payment-chart-section">
+                    <div class="payment-chart-header">
+                        <h2 class="payment-chart-title">
+                            <i class="fas fa-chart-area"></i> Payment Trends
+                        </h2>
+                        <div class="payment-chart-controls">
+                            <select id="paymentChartMonth">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                            <select id="paymentChartYear">
+                                <!-- Years will be populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="payment-chart-container">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Payment Content Grid -->
+                <div class="payment-content-grid">
+                    <!-- Recurring Payments -->
+                    <div class="recurring-payments-section">
+                        <div class="recurring-payments-header">
+                            <h2 class="recurring-payments-title">
+                                <i class="fas fa-calendar-alt"></i> Monthly Recurring Payments
+                            </h2>
+                            <div class="recurring-payments-filters">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="pending">Pending</button>
+                                <button class="filter-btn" data-filter="overdue">Overdue</button>
+                                <button class="filter-btn" data-filter="completed">Completed</button>
+                            </div>
+                        </div>
+                        <div class="recurring-payments-list" id="recurringPaymentsList">
+                            <div class="payment-loading">
+                                <i class="fas fa-spinner"></i> Loading payments...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Payments -->
+                    <div class="recent-payments-section">
+                        <div class="recent-payments-header">
+                            <h2 class="recent-payments-title">
+                                <i class="fas fa-history"></i> Recent Payments
+                            </h2>
+                        </div>
+                        <div class="recent-payments-list" id="recentPaymentsList">
+                            <div class="payment-loading">
+                                <i class="fas fa-spinner"></i> Loading payments...
                             </div>
                         </div>
                     </div>
@@ -1210,6 +1339,7 @@
       </thead>
       <tbody id="membersTableBody">
         <!-- Members will be loaded here -->
+       
       </tbody>
     </table>
   </div>
@@ -1784,6 +1914,112 @@
   <script src="notification-integration.js"></script>
   <!-- Notification Configuration -->
   <script src="notification-config.js"></script>
+
+  <!-- Add Payment Modal -->
+  <div class="add-payment-modal" id="addPaymentModal">
+    <div class="add-payment-modal-content">
+      <div class="add-payment-modal-header">
+        <h3 class="add-payment-modal-title">
+          <i class="fas fa-plus-circle"></i> Add Payment
+        </h3>
+        <button class="modal-close-btn" id="closeAddPaymentModal">&times;</button>
+      </div>
+      <div class="add-payment-modal-body">
+        <form id="addPaymentForm">
+          <div class="payment-form-grid">
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="paymentType">Payment Type</label>
+              <select class="payment-form-select" id="paymentType" name="type" required>
+                <option value="">Select Type</option>
+                <option value="received">Amount Received</option>
+                <option value="paid">Amount Paid</option>
+              </select>
+            </div>
+
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="paymentCategory">Category</label>
+              <select class="payment-form-select" id="paymentCategory" name="category" required>
+                <option value="">Select Category</option>
+                <option value="membership">Membership</option>
+                <option value="personal_training">Personal Training</option>
+                <option value="rent">Rent</option>
+                <option value="bills">Bills</option>
+                <option value="staff_payment">Staff Payment</option>
+                <option value="equipment_maintenance">Equipment Maintenance</option>
+                <option value="accessories">New Accessories</option>
+                <option value="miscellaneous">Miscellaneous</option>
+              </select>
+            </div>
+
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="paymentAmount">Amount (₹)</label>
+              <input type="number" class="payment-form-input" id="paymentAmount" name="amount" min="0" step="0.01" required>
+            </div>
+
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="paymentMethod">Payment Method</label>
+              <select class="payment-form-select" id="paymentMethod" name="paymentMethod" required>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+
+            <div class="payment-form-group full-width">
+              <label class="payment-form-label" for="paymentDescription">Description</label>
+              <input type="text" class="payment-form-input" id="paymentDescription" name="description" placeholder="Enter payment description" required>
+            </div>
+
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="memberName">Member Name (if applicable)</label>
+              <input type="text" class="payment-form-input" id="memberName" name="memberName" placeholder="Enter member name">
+            </div>
+
+            <div class="payment-form-group">
+              <label class="payment-form-label" for="paymentDueDate">Due Date</label>
+              <input type="date" class="payment-form-input" id="paymentDueDate" name="dueDate">
+            </div>
+
+            <div class="payment-form-group full-width">
+              <div class="payment-form-checkbox">
+                <input type="checkbox" id="isRecurring" name="isRecurring">
+                <label for="isRecurring">This is a recurring payment</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="recurring-details" id="recurringDetails">
+            <div class="payment-form-grid">
+              <div class="payment-form-group">
+                <label class="payment-form-label" for="recurringFrequency">Frequency</label>
+                <select class="payment-form-select" id="recurringFrequency" name="frequency">
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+
+              <div class="payment-form-group">
+                <label class="payment-form-label" for="nextDueDate">Next Due Date</label>
+                <input type="date" class="payment-form-input" id="nextDueDate" name="nextDueDate">
+              </div>
+            </div>
+          </div>
+
+          <div class="payment-form-group full-width">
+            <label class="payment-form-label" for="paymentNotes">Notes</label>
+            <textarea class="payment-form-textarea" id="paymentNotes" name="notes" placeholder="Additional notes (optional)"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="add-payment-modal-footer">
+        <button type="button" class="payment-form-btn secondary" id="cancelPaymentBtn">Cancel</button>
+        <button type="submit" class="payment-form-btn primary" form="addPaymentForm">Add Payment</button>
+      </div>
+    </div>
+  </div>
  
 </body>
 </html>

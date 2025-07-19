@@ -1,6 +1,5 @@
 // === Enhanced Notification Modal System ===
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔔 Initializing Enhanced Notification Modal System');
     
     // Quick message templates
     // Member quick message templates
@@ -231,14 +230,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure only one click handler is attached to the modal's send button
         const sendBtn = document.getElementById('sendNotificationBtn');
         if (sendBtn) {
-            console.log('Attaching click handler to send button');
             sendBtn.onclick = null;
             sendBtn.addEventListener('click', handleSendNotification);
         } else {
             console.error('Send button not found!');
         }
 
-        console.log('✅ Enhanced Notification Modal initialized');
     }
 
     // Update message preview
