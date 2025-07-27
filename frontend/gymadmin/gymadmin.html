@@ -13,7 +13,10 @@
     <link rel="stylesheet" href="member-payments.css">
     <link rel="stylesheet" href="equipment.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script defer src="gymadmin.js"></script>
+    <script defer src="settings.js"></script>
+    <script defer src="gym-profile.js"></script>
     <script defer src="notification-modal.js"></script>
     <script defer src="notification-system.js"></script>
     <script defer src="support-reviews.js"></script>
@@ -128,7 +131,9 @@
                   <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="profile-dropdown-menu" id="profileDropdownMenu">
-                  <button class="dropdown-item" id="editProfileLink" type="button"><i class="fas fa-user-edit"></i> Edit Profile</button>
+                  <button class="dropdown-item" id="gymProfileLink" type="button"><i class="fas fa-building"></i> Gym Profile</button>
+                  <div class="dropdown-divider"></div>
+                  <button class="dropdown-item" id="changePasswordLink" type="button"><i class="fas fa-lock"></i> Change Password</button>
                   <div class="dropdown-divider"></div>
                   <button class="dropdown-item" id="logoutLink" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </div>
@@ -215,6 +220,10 @@
                         <i class="fas fa-dumbbell"></i>
                         <span class="quick-action-title">Add Equipment</span>
                       </button>
+                      <button class="quick-action-btn" id="generateQRCodeBtn" type="button">
+                        <i class="fas fa-qrcode"></i>
+                        <span class="quick-action-title">Generate QR Code</span>
+                      </button>
                     </div>
                   </div>
                   <div class="card activities-offered-card">
@@ -229,7 +238,7 @@
                     </div>
                     <!-- Add Activities Modal -->
                     <div class="modal" id="addActivitiesModal" style="display:none;z-index:10001;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:700px;margin-top:48px;">
+                      <div class="modal-content" style="max-width:700px;margin-top:48px; max-height:80vh; overflow-y:auto;">
                         <div style="display:flex;align-items:center;justify-content:space-between;">
                           <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-plus-circle" style="color:var(--primary);"></i> Add Activities</h3>
                           <button class="modal-close" id="closeAddActivitiesModal" style="font-size:1.5rem;">&times;</button>
@@ -251,109 +260,6 @@
                           <button id="confirmSaveActivitiesBtn" class="btn btn-primary" style="margin-right:10px;">Save</button>
                           <button id="cancelSaveActivitiesConfirmBtn" class="btn btn-secondary">Cancel</button>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                 <!-- Gym Information Section -->
-                <div class="dashboard-row">
-                  <div class="card gym-info-card">
-                    <div class="card-header">
-                      <h2 class="card-title"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i>Gym Information</h2>
-                      <button id="editGymInfoBtn" class="btn btn-secondary" style="font-size:0.9em;padding:6px 12px;"><i class="fas fa-edit"></i> Edit</button>
-                    </div>
-                    <div class="gym-info-content" id="gymInfoContent">
-                      <!-- Basic Information -->
-                      <div class="gym-info-section">
-                        <h3 class="gym-info-section-title"><i class="fas fa-info-circle"></i> Basic Information</h3>
-                        <div class="gym-info-grid">
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Gym Name:</span>
-                            <span class="gym-info-value" id="gymInfoName">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Owner/Contact Person:</span>
-                            <span class="gym-info-value" id="gymInfoOwner">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Email:</span>
-                            <span class="gym-info-value" id="gymInfoEmail">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Phone:</span>
-                            <span class="gym-info-value" id="gymInfoPhone">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Support Email:</span>
-                            <span class="gym-info-value" id="gymInfoSupportEmail">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Support Phone:</span>
-                            <span class="gym-info-value" id="gymInfoSupportPhone">Loading...</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Location Information -->
-                      <div class="gym-info-section">
-                        <h3 class="gym-info-section-title"><i class="fas fa-map-marker-alt"></i> Location</h3>
-                        <div class="gym-info-grid">
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Address:</span>
-                            <span class="gym-info-value" id="gymInfoAddress">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">City:</span>
-                            <span class="gym-info-value" id="gymInfoCity">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">State:</span>
-                            <span class="gym-info-value" id="gymInfoState">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Pincode:</span>
-                            <span class="gym-info-value" id="gymInfoPincode">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Landmark:</span>
-                            <span class="gym-info-value" id="gymInfoLandmark">Loading...</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Operational Information -->
-                      <div class="gym-info-section">
-                        <h3 class="gym-info-section-title"><i class="fas fa-clock"></i> Operations</h3>
-                        <div class="gym-info-grid">
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Opening Time:</span>
-                            <span class="gym-info-value" id="gymInfoOpeningTime">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Closing Time:</span>
-                            <span class="gym-info-value" id="gymInfoClosingTime">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Current Members:</span>
-                            <span class="gym-info-value" id="gymInfoCurrentMembers">Loading...</span>
-                          </div>
-                          <div class="gym-info-item">
-                            <span class="gym-info-label">Status:</span>
-                            <span class="gym-info-value gym-status" id="gymInfoStatus">Loading...</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Description -->
-                      <div class="gym-info-section">
-                        <h3 class="gym-info-section-title"><i class="fas fa-align-left"></i> Description</h3>
-                        <div class="gym-info-description" id="gymInfoDescription">Loading...</div>
-                      </div>
-
-                      <!-- Equipment List -->
-                      <div class="gym-info-section">
-                        <h3 class="gym-info-section-title"><i class="fas fa-dumbbell"></i> Equipment Available</h3>
-                        <div class="gym-info-equipment" id="gymInfoEquipment">Loading...</div>
                       </div>
                     </div>
                   </div>
@@ -1118,42 +1024,216 @@
       </div>
     </div>
 
-    <!-- Edit Profile Modal -->
-<div class="modal" id="editProfileModal" style="display:none;">
-  <div class="modal-content">
-    <span class="modal-close" id="closeEditProfileModal">&times;</span>
-    <form id="editProfileForm">
-      <label for="editGymName">Gym Name</label>
-      <input type="text" id="editGymName" name="gymName" required>
-      <label for="editGymEmail">Email</label>
-      <input type="email" id="editGymEmail" name="email" required>
-      <label for="editGymPhone">Phone</label>
-      <input type="text" id="editGymPhone" name="phone" required>
-      <label for="editGymAddress">Address</label>
-      <input type="text" id="editGymAddress" name="address">
-      <label for="editGymCity">City</label>
-      <input type="text" id="editGymCity" name="city">
-      <label for="editGymPincode">Pincode</label>
-      <input type="text" id="editGymPincode" name="pincode">
-      <label for="editGymDescription">Description</label>
-      <textarea id="editGymDescription" name="description"></textarea>
-      <label for="editGymLogo">Logo</label>
-     <input type="file" id="editGymLogo" name="gymLogo">
-      <img id="logoPreviewImage" src="#" alt="Logo Preview" style="display:none;max-width:100px;margin-top:10px;">
-      <!-- Change Password Section -->
-<div id="changePasswordSection" style="margin-top:1rem;">
-  <button type="button" id="showChangePasswordFields" class="btn btn-secondary">Change Password</button>
-  <div id="passwordFields" style="display:none; margin-top:1rem;">
-    <label for="editGymPassword">New Password</label>
-    <input type="password" id="editGymPassword" name="password" autocomplete="new-password" minlength="8" placeholder="New password">
-    <label for="editGymPasswordConfirm">Confirm New Password</label>
-    <input type="password" id="editGymPasswordConfirm" name="passwordConfirm" autocomplete="new-password" minlength="8" placeholder="Repeat new password">
-  </div>
-</div>
-      <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Save</button>
-    </form>
-  </div>
-</div>
+    <!-- Gym Profile Modal -->
+    <div class="modal" id="gymProfileModal" style="display:none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid #eee;">
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-building" style="color: var(--primary);"></i>
+                    Gym Profile
+                </h2>
+                <span class="modal-close" id="closeGymProfileModal" style="font-size: 24px; cursor: pointer;">&times;</span>
+            </div>
+            
+            <div style="padding: 20px;">
+                <!-- View Mode / Edit Mode Toggle -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div class="mode-indicator" id="modeIndicator">
+                        <span class="view-mode active" id="viewModeTab">
+                            <i class="fas fa-eye"></i> View Mode
+                        </span>
+                        <span class="edit-mode" id="editModeTab">
+                            <i class="fas fa-edit"></i> Edit Mode
+                        </span>
+                    </div>
+                    <button id="toggleEditModeBtn" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Enable Edit Mode
+                    </button>
+                </div>
+
+                <!-- Gym Logo Section -->
+                <div class="gym-logo-section" style="text-align: center; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <div class="logo-container" style="position: relative; display: inline-block;">
+                        <div class="gym-logo-display" style="width: 120px; height: 120px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; border: 3px solid #dee2e6; margin: 0 auto;">
+                            <img id="gymLogoImage" src="https://via.placeholder.com/120?text=GYM+LOGO" alt="Gym Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                        </div>
+                        <div class="logo-upload-overlay" id="logoUploadOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 12px; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fas fa-camera" style="color: white; font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <input type="file" id="gymLogoInput" accept="image/*" style="display: none;">
+                    <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">Click to change gym logo (Edit Mode)</p>
+                </div>
+
+                <!-- Gym Information Form -->
+                <form id="gymProfileForm">
+                    <!-- Basic Information -->
+                    <div class="info-section" style="margin-bottom: 30px;">
+                        <h3 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-info-circle"></i> Basic Information
+                        </h3>
+                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="gymName">Gym Name</label>
+                                <input type="text" id="gymName" name="gymName" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="ownerName">Owner/Contact Person</label>
+                                <input type="text" id="ownerName" name="contactPerson" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymEmail">Email</label>
+                                <input type="email" id="gymEmail" name="email" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymPhone">Phone</label>
+                                <input type="text" id="gymPhone" name="phone" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="supportEmail">Support Email</label>
+                                <input type="email" id="supportEmail" name="supportEmail" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="supportPhone">Support Phone</label>
+                                <input type="text" id="supportPhone" name="supportPhone" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location Information -->
+                    <div class="info-section" style="margin-bottom: 30px;">
+                        <h3 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-map-marker-alt"></i> Location
+                        </h3>
+                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="gymAddress">Address</label>
+                                <input type="text" id="gymAddress" name="address" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymCity">City</label>
+                                <input type="text" id="gymCity" name="city" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymState">State</label>
+                                <input type="text" id="gymState" name="state" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymPincode">Pincode</label>
+                                <input type="text" id="gymPincode" name="pincode" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="gymLandmark">Landmark</label>
+                                <input type="text" id="gymLandmark" name="landmark" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operational Information -->
+                    <div class="info-section" style="margin-bottom: 30px;">
+                        <h3 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-clock"></i> Operations
+                        </h3>
+                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="openingTime">Opening Time</label>
+                                <input type="time" id="openingTime" name="openingTime" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="closingTime">Closing Time</label>
+                                <input type="time" id="closingTime" name="closingTime" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="currentMembers">Current Members</label>
+                                <input type="number" id="currentMembers" name="membersCount" readonly>
+                            </div>
+                           
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="info-section" style="margin-bottom: 30px;">
+                        <h3 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-align-left"></i> Description
+                        </h3>
+                        <div class="form-group">
+                            <textarea id="gymDescription" name="description" rows="4" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button type="button" id="cancelGymProfileBtn" class="btn btn-secondary" style="display: none;">Cancel</button>
+                        <button type="submit" id="saveGymProfileBtn" class="btn btn-primary" style="display: none;">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="changePasswordModal" style="display:none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid #eee;">
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-lock" style="color: var(--primary);"></i>
+                    Change Password
+                </h2>
+                <span class="modal-close" id="closeChangePasswordModal" style="font-size: 24px; cursor: pointer;">&times;</span>
+            </div>
+            
+            <div style="padding: 20px;">
+                <form id="changePasswordForm">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="currentPassword">Current Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="currentPassword" name="currentPassword" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; padding-right: 40px;">
+                            <i class="fas fa-eye toggle-password" data-target="currentPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d;"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="newPassword">New Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="newPassword" name="newPassword" required minlength="8" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; padding-right: 40px;">
+                            <i class="fas fa-eye toggle-password" data-target="newPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d;"></i>
+                        </div>
+                        <small style="color: #6c757d;">Password must be at least 8 characters long</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="confirmPassword" name="confirmPassword" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; padding-right: 40px;">
+                            <i class="fas fa-eye toggle-password" data-target="confirmPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d;"></i>
+                        </div>
+                    </div>
+
+                    <!-- Password Strength Indicator -->
+                    <div id="passwordStrength" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 14px; color: #6c757d;">Password Strength:</span>
+                            <span id="strengthText" style="font-size: 14px; font-weight: bold;">Weak</span>
+                        </div>
+                        <div style="height: 4px; background: #eee; border-radius: 2px; overflow: hidden;">
+                            <div id="strengthBar" style="height: 100%; width: 0%; background: #dc3545; transition: all 0.3s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 15px;">
+                        <button type="button" id="cancelPasswordChangeBtn" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" id="savePasswordBtn" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+   >
    <!-- Password Confirmation Dialog -->
 <div id="passwordConfirmDialog" class="modal" style="display:none;">
   <div class="modal-content" style="max-width:350px;">
@@ -1342,6 +1422,146 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- QR Code Generator Modal -->
+<div class="modal" id="qrCodeGeneratorModal" style="display:none;z-index:10003;">
+  <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:20px;border-bottom:1px solid #eee;">
+      <h3 style="margin:0;color:var(--primary);display:flex;align-items:center;gap:12px;">
+        <i class="fas fa-qrcode"></i> QR Code Generator - Member Registration
+      </h3>
+      <button class="modal-close" id="closeQRCodeModal" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      
+      <!-- QR Code Configuration -->
+      <div class="qr-config-section" style="margin-bottom:25px;">
+        <h4 style="color:#333;margin-bottom:15px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-cog"></i> QR Code Configuration
+        </h4>
+        
+        <div class="form-group" style="margin-bottom:15px;">
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Registration Type:</label>
+          <select id="qrRegistrationType" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            <option value="standard">Standard Registration</option>
+            <option value="trial">Trial Membership (3 Days)</option>
+            <option value="premium">Premium Registration</option>
+          </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:15px;">
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Default Plan:</label>
+          <select id="qrDefaultPlan" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            <option value="">Let User Choose</option>
+            <option value="basic">Basic Plan</option>
+            <option value="standard">Standard Plan</option>
+            <option value="premium">Premium Plan</option>
+          </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:15px;">
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Usage Limit:</label>
+          <select id="qrUsageLimit" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            <option value="1">One-Time Use</option>
+            <option value="5">5 Uses</option>
+            <option value="10">10 Uses</option>
+            <option value="unlimited">Unlimited</option>
+          </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:15px;">
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Expiry Date:</label>
+          <input type="datetime-local" id="qrExpiryDate" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom:15px;">
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Special Offer/Discount:</label>
+          <input type="text" id="qrSpecialOffer" placeholder="e.g., 20% off first month" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+        </div>
+      </div>
+      
+      <!-- Generate Button -->
+      <div style="text-align:center;margin-bottom:25px;">
+        <button id="generateQRBtn" class="btn btn-primary" style="padding:12px 30px;font-size:16px;display:flex;align-items:center;gap:10px;margin:0 auto;">
+          <i class="fas fa-magic"></i> Generate QR Code
+        </button>
+      </div>
+      
+      <!-- QR Code Display -->
+      <div id="qrCodeDisplay" style="display:none;">
+        <div class="qr-code-section" style="background:#f8f9fa;padding:25px;border-radius:12px;text-align:center;margin-bottom:20px;">
+          <h4 style="color:#333;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <i class="fas fa-qrcode"></i> Generated QR Code
+          </h4>
+          
+          <!-- QR Code Canvas -->
+          <div id="qrCodeCanvas" style="margin:0 auto 20px;padding:20px;background:white;border-radius:8px;display:inline-block;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          
+          <!-- QR Code Info -->
+          <div class="qr-info-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin:20px 0;">
+            <div class="qr-info-item" style="background:white;padding:15px;border-radius:8px;text-align:center;">
+              <i class="fas fa-link" style="color:#3b82f6;font-size:24px;margin-bottom:8px;"></i>
+              <div style="font-weight:600;color:#333;margin-bottom:5px;">Registration URL</div>
+              <div id="qrUrl" style="font-size:12px;color:#666;word-break:break-all;"></div>
+            </div>
+            <div class="qr-info-item" style="background:white;padding:15px;border-radius:8px;text-align:center;">
+              <i class="fas fa-clock" style="color:#f59e0b;font-size:24px;margin-bottom:8px;"></i>
+              <div style="font-weight:600;color:#333;margin-bottom:5px;">Expires On</div>
+              <div id="qrExpiryDisplay" style="font-size:14px;color:#666;"></div>
+            </div>
+            <div class="qr-info-item" style="background:white;padding:15px;border-radius:8px;text-align:center;">
+              <i class="fas fa-users" style="color:#10b981;font-size:24px;margin-bottom:8px;"></i>
+              <div style="font-weight:600;color:#333;margin-bottom:5px;">Usage Limit</div>
+              <div id="qrUsageDisplay" style="font-size:14px;color:#666;"></div>
+            </div>
+            <div class="qr-info-item" style="background:white;padding:15px;border-radius:8px;text-align:center;">
+              <i class="fas fa-chart-line" style="color:#8b5cf6;font-size:24px;margin-bottom:8px;"></i>
+              <div style="font-weight:600;color:#333;margin-bottom:5px;">Usage Count</div>
+              <div id="qrUsageCount" style="font-size:14px;color:#666;">0 times used</div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+            <button id="downloadQRBtn" class="btn btn-success" style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-download"></i> Download QR Code
+            </button>
+            <button id="copyQRUrlBtn" class="btn btn-secondary" style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-copy"></i> Copy URL
+            </button>
+            <button id="shareQRBtn" class="btn btn-info" style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-share"></i> Share
+            </button>
+            <button id="printQRBtn" class="btn btn-warning" style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-print"></i> Print
+            </button>
+          </div>
+        </div>
+        
+        <!-- Usage Statistics -->
+        <div class="qr-stats-section" style="background:#f8f9fa;padding:20px;border-radius:12px;">
+          <h4 style="color:#333;margin-bottom:15px;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-chart-bar"></i> Usage Statistics
+          </h4>
+          <div id="qrStatsContent">
+            <p style="color:#666;text-align:center;margin:0;">Statistics will appear here once the QR code is used.</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Active QR Codes List -->
+      <div class="active-qr-section" style="margin-top:25px;">
+        <h4 style="color:#333;margin-bottom:15px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-list"></i> Active QR Codes
+        </h4>
+        <div id="activeQRList" style="max-height:200px;overflow-y:auto;">
+          <!-- Active QR codes will be listed here -->
+        </div>
+      </div>
+      
+    </div>
   </div>
 </div>
 
@@ -2093,7 +2313,30 @@
           </div>
         </div>
       </div>
-
+      <!-- Customize Dashboard Section in Settings Tab -->
+    <div class="settings-section card" id="customizeDashboardSection" style="margin: 32px auto 0 auto; max-width: 600px; padding: 32px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <h2 style="margin-bottom: 18px; color: var(--primary); display: flex; align-items: center; gap: 10px; font-size: 1.4rem;">
+        <i class="fas fa-sliders-h"></i> Customize Dashboard
+      </h2>
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+        <label for="toggleEquipmentTab" style="font-weight: 500; font-size: 1rem;">Show Equipment Tab</label>
+        <label class="switch">
+          <input type="checkbox" id="toggleEquipmentTab" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+        <label for="togglePaymentTab" style="font-weight: 500; font-size: 1rem;">Show Payment Tab</label>
+        <label class="switch">
+          <input type="checkbox" id="togglePaymentTab" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <small style="color: #888; display: block; margin-top: 18px;">
+        <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+        <strong>Note:</strong> These settings are specific to your gym only. Changes will not affect other gym dashboards. Toggle to show or hide the Equipment and Payment tabs on your dashboard. Changes apply instantly.
+      </small>
+    </div>
       <!-- Notification Settings -->
       <div class="settings-section">
         <div class="settings-card">
@@ -2830,6 +3073,8 @@
  
    <!-- 7-Day Allowance System -->
    <script src="seven-day-allowance.js"></script>
+   <!-- QR Code Generator System -->
+   <script src="qr-code-generator.js"></script>
    <!-- Notification integration with enhanced form handler compatibility -->
    <script src="notification-integration.js"></script>
    <!-- Notification Configuration -->

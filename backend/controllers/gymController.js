@@ -673,10 +673,10 @@ exports.updateMyProfile = async (req, res) => {
     return res.status(401).json({ message: 'Not authorized' });
   }
 
-  const { gymName, email, phone, address, city, state, pincode, landmark, description, currentPassword, newPassword, gymLogo } = req.body;
+  const { gymName, email, phone, address, city, state, pincode, landmark, description, contactPerson, supportEmail, supportPhone, openingTime, closingTime, status, currentPassword, newPassword, gymLogo } = req.body;
 
   try {
-    const gym = await Gym.findOne({ admin: adminId });
+    const gym = await Gym.findById(adminId);
     if (!gym) {
       return res.status(404).json({ message: 'Gym not found for this admin' });
     }
@@ -686,6 +686,12 @@ exports.updateMyProfile = async (req, res) => {
     if (email) gym.email = email;
     if (phone) gym.phone = phone;
     if (description) gym.description = description;
+    if (contactPerson) gym.contactPerson = contactPerson;
+    if (supportEmail) gym.supportEmail = supportEmail;
+    if (supportPhone) gym.supportPhone = supportPhone;
+    if (openingTime) gym.openingTime = openingTime;
+    if (closingTime) gym.closingTime = closingTime;
+    if (status) gym.status = status;
 
     updateLocation(gym, { address, city, state, pincode, landmark });
 
@@ -724,6 +730,50 @@ exports.updateMyProfile = async (req, res) => {
       return res.status(400).json({ message: 'Validation Error', errors: error.errors });
     }
     res.status(500).json({ message: 'Server error while updating profile' });
+  }
+};
+
+// Change password for logged-in gym admin
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters long.' });
+    }
+
+    // Get the gym from the database
+    const gym = await Gym.findById(req.gym.id);
+    if (!gym) {
+      return res.status(404).json({ message: 'Gym not found.' });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, gym.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    // Check if new password is different from current password
+    const isSamePassword = await bcrypt.compare(newPassword, gym.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'New password cannot be the same as the current password.' });
+    }
+
+    // Hash and save new password
+    gym.password = await bcrypt.hash(newPassword, 10);
+    await gym.save();
+
+    res.status(200).json({ message: 'Password changed successfully.' });
+
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Server error while changing password.' });
   }
 };
 
@@ -1040,115 +1090,3 @@ exports.updateMembershipPlans = async (req, res) => {
   }
 };
 
-// Migration endpoint to convert old string equipment to new object format
-exports.migrateEquipment = async (req, res) => {
-  try {
-    console.log('🔄 Starting equipment migration...');
-    
-    // Find all gyms
-    const gyms = await Gym.find({});
-    console.log(`📊 Found ${gyms.length} gyms to migrate`);
-    
-    let migratedCount = 0;
-    
-    for (const gym of gyms) {
-      let needsUpdate = false;
-      
-      if (gym.equipment && gym.equipment.length > 0) {
-        // Check if any equipment items are strings or missing required fields
-        const updatedEquipment = gym.equipment.map(item => {
-          // If item is a string, convert to object
-          if (typeof item === 'string') {
-            needsUpdate = true;
-            console.log(`  🔧 Converting string equipment: "${item}" for gym: ${gym.gymName}`);
-            return {
-              id: new Date().getTime().toString() + Math.random().toString(36).substr(2, 9),
-              name: item,
-              category: 'other',
-              quantity: 1,
-              status: 'available',
-              photos: [],
-              createdAt: new Date(),
-              updatedAt: new Date()
-            };
-          }
-          
-          // If item is an object but missing required fields
-          if (typeof item === 'object' && item !== null) {
-            let itemUpdated = false;
-            const updatedItem = { ...item };
-            
-            if (!updatedItem.name) {
-              console.log(`  ⚠️  Missing name for equipment in gym: ${gym.gymName}`);
-              updatedItem.name = 'Unknown Equipment';
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.id) {
-              updatedItem.id = new Date().getTime().toString() + Math.random().toString(36).substr(2, 9);
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.category) {
-              updatedItem.category = 'other';
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.quantity) {
-              updatedItem.quantity = 1;
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.status) {
-              updatedItem.status = 'available';
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.photos) {
-              updatedItem.photos = [];
-              itemUpdated = true;
-            }
-            
-            if (!updatedItem.createdAt) {
-              updatedItem.createdAt = new Date();
-              itemUpdated = true;
-            }
-            
-            updatedItem.updatedAt = new Date();
-            
-            if (itemUpdated) {
-              needsUpdate = true;
-              console.log(`  🔧 Updated equipment fields for: "${updatedItem.name}" in gym: ${gym.gymName}`);
-            }
-            
-            return updatedItem;
-          }
-          
-          return item;
-        });
-        
-        if (needsUpdate) {
-          gym.equipment = updatedEquipment;
-          await gym.save();
-          migratedCount++;
-          console.log(`✅ Migrated gym: ${gym.gymName}`);
-        }
-      }
-    }
-    
-    console.log(`🎉 Migration completed! Updated ${migratedCount} gyms.`);
-    res.status(200).json({ 
-      success: true, 
-      message: `Migration completed! Updated ${migratedCount} gyms.`,
-      migratedCount
-    });
-    
-  } catch (error) {
-    console.error('❌ Migration failed:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Migration failed', 
-      error: error.message 
-    });
-  }
-};

@@ -22,29 +22,55 @@ const getPaymentStats = async (req, res) => {
       endDate = new Date();
     }
 
-    const stats = await Payment.aggregate([
-      {
-        $match: {
-          $or: [
-            { gymId: new mongoose.Types.ObjectId(gymId) },
-            { gymId: gymId }
-          ],
-          createdAt: { $gte: startDate, $lte: endDate }
+    // Get current stats - for received and paid, use period filter
+    // For due and pending, get current outstanding amounts regardless of period
+    const [periodStats, currentDuePending] = await Promise.all([
+      // Period-based stats for completed payments (received/paid)
+      Payment.aggregate([
+        {
+          $match: {
+            $or: [
+              { gymId: new mongoose.Types.ObjectId(gymId) },
+              { gymId: gymId }
+            ],
+            type: { $in: ['received', 'paid'] },
+            createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' },
+            count: { $sum: 1 }
+          }
         }
-      },
-      {
-        $group: {
-          _id: '$type',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 }
+      ]),
+      // Current outstanding due/pending amounts (regardless of creation date)
+      Payment.aggregate([
+        {
+          $match: {
+            $or: [
+              { gymId: new mongoose.Types.ObjectId(gymId) },
+              { gymId: gymId }
+            ],
+            type: { $in: ['due', 'pending'] },
+            status: 'pending' // Only count pending/due payments that haven't been completed
+          }
+        },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' },
+            count: { $sum: 1 }
+          }
         }
-      }
+      ])
     ]);
 
-    const received = stats.find(s => s._id === 'received')?.total || 0;
-    const paid = stats.find(s => s._id === 'paid')?.total || 0;
-    const due = stats.find(s => s._id === 'due')?.total || 0;
-    const pending = stats.find(s => s._id === 'pending')?.total || 0;
+    const received = periodStats.find(s => s._id === 'received')?.total || 0;
+    const paid = periodStats.find(s => s._id === 'paid')?.total || 0;
+    const due = currentDuePending.find(s => s._id === 'due')?.total || 0;
+    const pending = currentDuePending.find(s => s._id === 'pending')?.total || 0;
     const profit = received - paid;
 
     // Get previous period for growth calculation
@@ -58,28 +84,53 @@ const getPaymentStats = async (req, res) => {
       prevEndDate = new Date(startDate);
     }
 
-    const prevStats = await Payment.aggregate([
-      {
-        $match: {
-          $or: [
-            { gymId: new mongoose.Types.ObjectId(gymId) },
-            { gymId: gymId }
-          ],
-          createdAt: { $gte: prevStartDate, $lte: prevEndDate }
+    // Get previous period stats using the same logic
+    const [prevPeriodStats, prevCurrentDuePending] = await Promise.all([
+      // Previous period-based stats for completed payments (received/paid)
+      Payment.aggregate([
+        {
+          $match: {
+            $or: [
+              { gymId: new mongoose.Types.ObjectId(gymId) },
+              { gymId: gymId }
+            ],
+            type: { $in: ['received', 'paid'] },
+            createdAt: { $gte: prevStartDate, $lte: prevEndDate }
+          }
+        },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' }
+          }
         }
-      },
-      {
-        $group: {
-          _id: '$type',
-          total: { $sum: '$amount' }
+      ]),
+      // Previous outstanding due/pending amounts (for growth comparison)
+      Payment.aggregate([
+        {
+          $match: {
+            $or: [
+              { gymId: new mongoose.Types.ObjectId(gymId) },
+              { gymId: gymId }
+            ],
+            type: { $in: ['due', 'pending'] },
+            status: 'pending',
+            createdAt: { $lte: prevEndDate }
+          }
+        },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' }
+          }
         }
-      }
+      ])
     ]);
 
-    const prevReceived = prevStats.find(s => s._id === 'received')?.total || 0;
-    const prevPaid = prevStats.find(s => s._id === 'paid')?.total || 0;
-    const prevDue = prevStats.find(s => s._id === 'due')?.total || 0;
-    const prevPending = prevStats.find(s => s._id === 'pending')?.total || 0;
+    const prevReceived = prevPeriodStats.find(s => s._id === 'received')?.total || 0;
+    const prevPaid = prevPeriodStats.find(s => s._id === 'paid')?.total || 0;
+    const prevDue = prevCurrentDuePending.find(s => s._id === 'due')?.total || 0;
+    const prevPending = prevCurrentDuePending.find(s => s._id === 'pending')?.total || 0;
     const prevProfit = prevReceived - prevPaid;
 
     const receivedGrowth = prevReceived > 0 ? ((received - prevReceived) / prevReceived) * 100 : 0;
@@ -246,13 +297,24 @@ const getRecurringPayments = async (req, res) => {
     };
     
     // Only include payments that are actually recurring OR have future due dates
-    // Exclude one-time "received" payments even if they have due dates
+    // For recurring payments, only show them if they're due within 7 days
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    
     matchCondition.$and = [
       {
         $or: [
-          { isRecurring: true },
           { 
+            // Recurring payments due within 7 days
             $and: [
+              { isRecurring: true },
+              { dueDate: { $lte: sevenDaysFromNow } }
+            ]
+          },
+          { 
+            // Non-recurring payments with due dates (excluding 'received' type)
+            $and: [
+              { isRecurring: { $ne: true } },
               { dueDate: { $exists: true, $ne: null } },
               { type: { $in: ['due', 'pending', 'paid'] } } // Exclude 'received' type payments
             ]
@@ -419,24 +481,36 @@ const markPaymentAsPaid = async (req, res) => {
     const { id } = req.params;
     const gymId = req.admin.id;
 
+    // Find the payment first to check its current type
+    const currentPayment = await Payment.findOne({ _id: id, gymId });
+    
+    if (!currentPayment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    // Determine the new type based on current type
+    let newType = currentPayment.type;
+    if (currentPayment.type === 'pending') {
+      newType = 'received'; // Convert pending to received (money coming IN from members)
+    } else if (currentPayment.type === 'due') {
+      newType = 'paid'; // Convert due to paid (money going OUT from gym)
+    }
+
     const payment = await Payment.findOneAndUpdate(
       { _id: id, gymId },
       { 
         status: 'completed',
+        type: newType, // Update type: pending→received, due→paid for proper stat tracking
         paidDate: new Date()
       },
       { new: true }
     );
 
-    if (!payment) {
-      return res.status(404).json({ success: false, message: 'Payment not found' });
-    }
-
     // If it's a recurring payment, create next payment
     if (payment.isRecurring && payment.recurringDetails.nextDueDate) {
       const nextPayment = new Payment({
         gymId,
-        type: payment.type,
+        type: currentPayment.type, // Keep original type for next payment (pending/due)
         category: payment.category,
         amount: payment.amount,
         description: payment.description,
@@ -457,7 +531,7 @@ const markPaymentAsPaid = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Payment marked as paid',
+      message: 'Payment marked as paid and moved to received payments',
       data: payment
     });
   } catch (error) {

@@ -12,6 +12,7 @@ const Gym = require('../models/gym');
 const membershipPlanController = require('../controllers/membershipPlanController');
 // Get all membership plans for the logged-in gym admin
 router.get('/membership-plans', gymadminAuth, membershipPlanController.getMembershipPlans);
+
 // Update all membership plans for the logged-in gym admin
 router.put('/membership-plans', gymadminAuth, membershipPlanController.updateMembershipPlans);
 // 🔧 Multer Storage Setup
@@ -70,6 +71,9 @@ router.post('/verify-password-otp', require('../controllers/gymController').veri
 // ⭐ Get and Update Logged-in Gym's Profile [GET, PUT] /profile/me
 router.get('/profile/me', gymadminAuth, require('../controllers/gymController').getMyProfile);
 router.put('/profile/me', gymadminAuth, upload.single('gymLogo'), require('../controllers/gymController').updateMyProfile);
+
+// ⭐ Change Password for Logged-in Gym Admin [POST] /change-password
+router.post('/change-password', gymadminAuth, require('../controllers/gymController').changePassword);
 
 // ⭐ Upload Gym Photo (with metadata)
 router.post('/photos', gymadminAuth, upload.single('photo'), require('../controllers/gymController').uploadGymPhoto);
@@ -250,7 +254,5 @@ router.get('/:id', async (req, res) => {
 
 router.put('/activities', gymadminAuth, gymController.updateActivities);
 
-// Migration endpoint to convert old string equipment to new object format
-router.post('/migrate-equipment', gymController.migrateEquipment);
 
 module.exports = router;

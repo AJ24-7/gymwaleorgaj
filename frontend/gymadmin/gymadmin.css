@@ -217,50 +217,69 @@ body[data-theme="dark"] .profile-dropdown-menu .dropdown-divider {
 }
 .activities-list {
   width: 100%;
-  padding: 0 8px 8px 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
 .activities-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  box-sizing: border-box;
 }
 /* Activities Section - Use theme variables */
 .activity-badge {
   background: var(--bg-secondary, #f5f5f5);
   border-radius: 10px;
-  padding: 14px 8px;
+  padding: 12px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: box-shadow 0.2s, background 0.2s;
+  transition: box-shadow 0.2s, background 0.2s, transform 0.2s;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   min-width: 0;
-  min-height: 90px;
-  max-width: 140px;
-  margin: 0 auto;
+  min-height: 80px;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  text-align: center;
 }
+
 .activity-badge:hover {
   background: var(--primary);
   color: #fff;
   box-shadow: 0 2px 8px rgba(58,134,255,0.10);
+  transform: translateY(-2px);
 }
+
 .activity-badge i {
-  font-size: 1.7em;
+  font-size: 1.5em;
   color: var(--primary);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   transition: color 0.2s;
 }
+
 .activity-badge:hover i {
-  color: var(--secondary, #8338ec);
+  color: #fff;
 }
+
 .activity-badge span {
-  font-size: 1em;
+  font-size: 0.85em;
   font-weight: 600;
   text-align: center;
   word-break: break-word;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 @media (max-width: 900px) {
   .activities-offered-card {
@@ -274,15 +293,20 @@ body[data-theme="dark"] .profile-dropdown-menu .dropdown-divider {
 }
 /* --- Dashboard Row: Quick Actions & Activities Offered Side by Side --- */
 .dashboard-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
+
 /* Robust containment for dashboard cards */
-.quick-action-card {
-  flex: 1 1 0;
-  min-width: 280px;
+.quick-action-card, .activities-offered-card {
+  min-width: 0; /* Allow flex items to shrink below their content size */
   min-height: 220px;
+  max-height: 400px; /* Prevent cards from getting too tall */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -292,10 +316,35 @@ body[data-theme="dark"] .profile-dropdown-menu .dropdown-divider {
   border-radius: 14px;
   transition: border-color 0.22s, box-shadow 0.22s;
   background: #fff;
-  padding-bottom: 18px;
-  /* Remove overflow to allow dynamic height and prevent scrollbars */
+  padding: 16px;
   position: relative;
-  /* Remove fixed height and max-height to allow content to grow */
+  overflow: hidden; /* Prevent content overflow */
+  width: 100%;
+  max-width: 100%;
+}
+
+.quick-action-list, .activities-list {
+  flex: 1;
+  overflow-y: auto; /* Allow scrolling if content exceeds container */
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.quick-action-list::-webkit-scrollbar,
+.activities-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.quick-action-list::-webkit-scrollbar-track,
+.activities-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.quick-action-list::-webkit-scrollbar-thumb,
+.activities-list::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 2px;
 }
 
 .quick-action-card:hover, .quick-action-card:focus {
@@ -308,10 +357,31 @@ body[data-theme="dark"] .profile-dropdown-menu .dropdown-divider {
 }
 
 
+@media (max-width: 1200px) {
+  .dashboard-row {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  
+  .quick-action-card, .activities-offered-card {
+    min-height: 200px;
+  }
+}
+
 @media (max-width: 900px) {
   .dashboard-row {
-    flex-direction: column;
-    gap: 18px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .activities-offered-card {
+    max-width: 100%;
+    min-width: 0;
+  }
+  
+  .activities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    gap: 10px;
   }
 }
 
@@ -542,18 +612,23 @@ body {
 /* Enhanced Quick Action Buttons */
 .quick-action-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-top: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
+
 /* White quick action button with colored icon/text */
 .quick-action-btn {
   background: #fff;
   color: var(--primary);
   border: 2px solid var(--primary);
   border-radius: 10px;
-  padding: 18px 0 14px 0;
-  font-size: 1.08rem;
+  padding: 14px 8px 12px 8px;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(58,134,255,0.10);
@@ -561,25 +636,39 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   position: relative;
   transition: box-shadow 0.18s, transform 0.18s, background 0.18s, color 0.18s, border 0.18s;
-  min-height: 90px;
-  letter-spacing: 0.2px;
+  min-height: 80px;
+  max-height: 120px;
+  letter-spacing: 0.1px;
   overflow: hidden;
+  text-align: center;
+  box-sizing: border-box;
+  min-width: 0;
 }
+
 .quick-action-btn i {
-  font-size: 2.1em;
-  margin-bottom: 6px;
+  font-size: 1.8em;
+  margin-bottom: 4px;
   color: var(--primary);
   transition: color 0.18s;
 }
+
 .quick-action-btn .quick-action-title {
-  font-size: 1.08em;
+  font-size: 0.9em;
   font-weight: 600;
   color: var(--primary);
   margin: 0;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
+  line-height: 1.2;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .quick-action-btn::after {
   content: '';
@@ -615,74 +704,114 @@ body {
 .quick-action-btn:active {
   transform: scale(0.97);
   filter: brightness(0.95);
-@media (max-width: 600px) {
+}
+@media (max-width: 768px) {
+  .dashboard-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
   .quick-action-card, .activities-offered-card {
     min-width: 0;
     width: 100%;
-    max-width: 100vw;
-    /* Remove overflow to allow dynamic height and prevent scrollbars */
-    padding: 10px 6px 10px 6px;
+    max-width: 100%;
+    padding: 12px;
     box-sizing: border-box;
+    min-height: 180px;
   }
+  
+  .quick-action-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 4px;
+    margin-top: 4px;
+  }
+  
+  .quick-action-btn {
+    font-size: 0.9rem;
+    padding: 12px 6px 10px 6px;
+    min-height: 70px;
+    max-height: 100px;
+    border-radius: 8px;
+  }
+  
+  .quick-action-btn i {
+    font-size: 1.5em;
+    margin-bottom: 3px;
+  }
+  
+  .quick-action-btn .quick-action-title {
+    font-size: 0.8em;
+    line-height: 1.1;
+  }
+  
+  .activities-list {
+    padding: 6px;
+  }
+  
+  .activities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 8px;
+  }
+  
+  .activity-badge {
+    font-size: 0.85em;
+    padding: 8px 4px;
+    min-height: 65px;
+    border-radius: 8px;
+  }
+  
+  .activity-badge i {
+    font-size: 1.3em;
+    margin-bottom: 2px;
+  }
+  
+  .activity-badge span {
+    font-size: 0.75em;
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 480px) {
   .quick-action-list {
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100%;
-    flex-wrap: wrap;
-    margin: 0;
-    box-sizing: border-box;
+    gap: 6px;
   }
-  .activities-list {
-    flex-wrap: wrap;
-    gap: 10px;
-    width: 100%;
-    margin: 0;
-    box-sizing: border-box;
-    padding-bottom: 0;
-    max-width: 100%;
-    max-height: 100%;
-    overflow: hidden;
+  
+  .activities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 6px;
   }
+  
   .activity-badge {
-    font-size: 0.98em;
-    padding: 7px 10px;
-    margin-bottom: 4px;
-    max-width: 100%;
-    box-sizing: border-box;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 6px 3px;
+    min-height: 55px;
   }
+  
+  .activity-badge i {
+    font-size: 1.2em;
   }
-  .quick-action-btn {
-    font-size: 1rem;
-    padding: 14px 0 10px 0;
-    min-height: 70px;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-    overflow-wrap: break-word;
-    margin: 0;
-    border-radius: 8px;
-    max-width: 100%;
-    max-height: 100%;
+  
+  .activity-badge span {
+    font-size: 0.7em;
   }
-  .activities-list {
-    flex-wrap: wrap;
-    gap: 10px;
-    width: 100%;
-    margin: 0;
-    box-sizing: border-box;
-    padding-bottom: 0;
+}
+
+@media (min-width: 1400px) {
+  .dashboard-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
   }
-  .activity-badge {
-    font-size: 0.98em;
-    padding: 7px 10px;
-    margin-bottom: 4px;
-    max-width: 100%;
-    box-sizing: border-box;
-    word-break: break-word;
+  
+  .quick-action-list {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+  }
+  
+  .activities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
   }
 }
 
@@ -1956,7 +2085,7 @@ tr:hover {
     position: fixed;
     top: 0;
     z-index: 1203;
-    min-height: 64px;
+    min-height: 60px;
     transition: left 0.3s, width 0.3s, box-shadow 0.2s;
     left: 250px;
     width: calc(100vw - 250px);
@@ -2768,6 +2897,109 @@ tr:hover {
 
 .toggle-switch input:checked + .toggle-label::after {
   transform: translateX(26px);
+}
+
+/* Enhanced Switch Styles for Customize Dashboard */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: var(--primary, #2196F3);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary, #2196F3);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Customize Dashboard Section Styles */
+#customizeDashboardSection {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  transition: all 0.3s ease;
+}
+
+#customizeDashboardSection:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+#customizeDashboardSection .form-group {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-light, #f5f5f5);
+}
+
+#customizeDashboardSection .form-group:last-of-type {
+  border-bottom: none;
+}
+
+#customizeDashboardSection h2 {
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary, #2196F3), var(--primary-dark, #1976D2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#customizeDashboardSection label[for^="toggle"] {
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+#customizeDashboardSection label[for^="toggle"]:hover {
+  color: var(--primary, #2196F3);
+}
+
+#customizeDashboardSection small {
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* Settings Button Styles */

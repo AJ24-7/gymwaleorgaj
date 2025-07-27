@@ -26,6 +26,7 @@ const supportRoutes = require('./backend/routes/supportRoutes');
 const attendanceRoutes = require('./backend/routes/attendanceRoutes');
 const paymentRoutes = require('./backend/routes/paymentRoutes');
 const equipmentRoutes = require('./backend/routes/equipmentRoutes');
+const qrCodeRoutes = require('./backend/routes/qrCodeRoutes');
 const NotificationScheduler = require('./backend/services/notificationScheduler');  
 
 console.log("[DEBUG] server.js: trainerRoutes type is:", typeof trainerRoutes);
@@ -102,6 +103,22 @@ app.use('/api/equipment', (req, res, next) => {
   next();
 }, equipmentRoutes);
 
+// QR Code routes
+
+app.use('/api/qr-codes', (req, res, next) => {
+  console.log(`📱 QR Code route accessed: ${req.method} ${req.url}`);
+  next();
+}, qrCodeRoutes);
+
+// Serve register.html for /register route (for QR code registration)
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'register.html'));
+});
+
+// QR-based member registration route
+const { registerMemberViaQR } = require('./backend/controllers/qrRegistrationController');
+app.post('/api/register-via-qr', registerMemberViaQR);
+
 // ✅ Connect MongoDB and Start Server
 const startServer = async () => {
   try {
@@ -114,6 +131,10 @@ const startServer = async () => {
 
     // Initialize notification scheduler
     const notificationScheduler = new NotificationScheduler();
+
+    // Initialize QR code cleanup scheduler
+    const QRCodeModel = require('./backend/models/QRCode');
+    QRCodeModel.scheduleCleanup();
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {

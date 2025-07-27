@@ -325,8 +325,17 @@ class PaymentManager {
     this.memberPendingAmount = 0;  // Store member pending payments
     this.recentRegularPendingPayments = [];
     this.recentMemberPendingPayments = [];
+    
+    // Enhanced notification system properties
+    this.seenNotifications = new Set();
+    this.lastNotificationCheck = new Date();
+    
     this.init();
     this.bindReceivedAmountStatCard();
+    
+    // Initialize enhanced payment reminders
+    this.initializePaymentReminders();
+    
     // Remove the setTimeout since loadPaymentData() already calls loadAllPendingPayments()
     // setTimeout(() => this.loadAllPendingPayments(), 1500);
   }
@@ -713,7 +722,11 @@ class PaymentManager {
 
   async loadRecurringPayments() {
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/recurring?status=${this.currentFilter}`, {
+      // For recurring payments section, we only want to show pending payments (not completed ones)
+      // Use 'pending' status to avoid getting paid/completed payments that create duplicates
+      const statusFilter = this.currentFilter === 'all' ? 'pending' : this.currentFilter;
+      
+      const response = await fetch(`http://localhost:5000/api/payments/recurring?status=${statusFilter}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
         }
@@ -724,10 +737,57 @@ class PaymentManager {
       const data = await response.json();
       // Include recurring payments but exclude manual pending payments created via "Add Payment" modal
       // Only show true recurring obligations (rent, salaries, etc.) not one-time pending payments
-      const filtered = Array.isArray(data.data) ? data.data.filter(p => 
-        p.isRecurring === true || // Include all truly recurring payments
-        (p.type !== 'pending') // Exclude manual pending payments from "Add Payment" modal
-      ) : [];
+      // Also apply 7-day filter for recurring payments and exclude completed/paid payments
+      const now = new Date();
+      const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+      
+      const filtered = Array.isArray(data.data) ? data.data.filter(p => {
+        // Double-check: Exclude ANY completed payments - be very explicit about this
+        // Check both status and type to catch all possible completed payment states
+        if (p.status === 'completed') {
+          console.log(`Excluding completed payment: ${p.description} (status: ${p.status}, type: ${p.type})`);
+          return false;
+        }
+        
+        // Exclude payments that have been converted to paid/received types
+        if (p.type === 'paid' || p.type === 'received') {
+          console.log(`Excluding paid/received payment: ${p.description} (type: ${p.type})`);
+          return false;
+        }
+        
+        // Only show pending and due payments that haven't been completed
+        if (p.type !== 'due' && p.type !== 'pending') {
+          console.log(`Excluding non-due/pending payment: ${p.description} (type: ${p.type})`);
+          return false;
+        }
+        
+        // Ensure status is still pending (not completed)
+        if (p.status !== 'pending') {
+          console.log(`Excluding non-pending status payment: ${p.description} (status: ${p.status})`);
+          return false;
+        }
+        
+        // If it's recurring, only show if due within 7 days
+        if (p.isRecurring === true) {
+          const dueDate = new Date(p.dueDate);
+          const withinTimeframe = dueDate <= sevenDaysFromNow;
+          if (!withinTimeframe) {
+            console.log(`Excluding recurring payment outside timeframe: ${p.description}`);
+          }
+          return withinTimeframe;
+        }
+        
+        // For non-recurring payments from "Add Payment" modal, show only 'due' type payments
+        // Exclude 'pending' type payments as these are usually member-related
+        if (p.type === 'pending') {
+          console.log(`Excluding manual pending payment: ${p.description}`);
+          return false;
+        }
+        
+        return true;
+      }) : [];
+      
+      console.log(`Filtered recurring payments: ${filtered.length} items from ${data.data?.length || 0} total`);
       this.renderRecurringPayments(filtered);
     } catch (error) {
       console.error('Error loading recurring payments:', error);
@@ -742,56 +802,94 @@ class PaymentManager {
       container.innerHTML = `
         <div class="payment-empty-state">
           <i class="fas fa-calendar-alt"></i>
-          <h3>No Recurring Payments</h3>
-          <p>No recurring payment obligations found</p>
+          <h3>No Recurring Payments Due</h3>
+          <p>No recurring payment obligations due within 7 days</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Final safety check: remove any completed/paid payments that somehow made it through
+    const safetFilteredPayments = payments.filter(payment => {
+      const isValid = payment.status === 'pending' && (payment.type === 'due' || payment.type === 'pending');
+      if (!isValid) {
+        console.warn(`Filtering out invalid payment in render: ${payment.description} (status: ${payment.status}, type: ${payment.type})`);
+      }
+      return isValid;
+    });
+
+    if (safetFilteredPayments.length === 0) {
+      container.innerHTML = `
+        <div class="payment-empty-state">
+          <i class="fas fa-calendar-alt"></i>
+          <h3>No Recurring Payments Due</h3>
+          <p>No recurring payment obligations due within 7 days</p>
         </div>
       `;
       return;
     }
 
     // Add reminder badges to payments
-    const paymentsWithReminders = this.renderPaymentWithReminders(payments);
+    const paymentsWithReminders = this.renderPaymentWithReminders(safetFilteredPayments);
 
     container.innerHTML = paymentsWithReminders.map(payment => {
       const isOverdue = payment.dueDate && new Date(payment.dueDate) < new Date() && payment.status === 'pending';
       const isPending = payment.status === 'pending';
       const isCompleted = payment.status === 'completed';
+      
+      // Calculate days until due
+      const dueDate = new Date(payment.dueDate);
+      const now = new Date();
+      const diffTime = dueDate - now;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      // Badge logic: show timer for pending, show paid for completed
+      // Badge logic: show timer for pending, show paid for completed, special handling for recurring
       let statusBadge = '';
-      if (isPending) {
-        statusBadge = `<span class="recurring-badge pending" style="background:#ffe066;color:#a67c00;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-clock" style="margin-right:4px;"></i> Pending</span>`;
-      } else if (isCompleted) {
-        statusBadge = `<span class="recurring-badge paid" style="background:#d4edda;color:#256029;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-check-circle" style="margin-right:4px;"></i> Paid</span>`;
-      } else if (isOverdue) {
+      if (isPending && isOverdue) {
         statusBadge = `<span class="recurring-badge overdue" style="background:#ffd6d6;color:#b71c1c;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-exclamation-triangle" style="margin-right:4px;"></i> Overdue</span>`;
+      } else if (isPending && diffDays <= 7) {
+        if (diffDays <= 0) {
+          statusBadge = `<span class="recurring-badge critical" style="background:#ff6b6b;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-bell" style="margin-right:4px;"></i> Due ${diffDays === 0 ? 'Today' : `${Math.abs(diffDays)} days ago`}</span>`;
+        } else if (diffDays === 1) {
+          statusBadge = `<span class="recurring-badge urgent" style="background:#ff9500;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-clock" style="margin-right:4px;"></i> Due Tomorrow</span>`;
+        } else {
+          statusBadge = `<span class="recurring-badge pending" style="background:#ffe066;color:#a67c00;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-clock" style="margin-right:4px;"></i> Due in ${diffDays} days</span>`;
+        }
+      } else if (isPending) {
+        statusBadge = `<span class="recurring-badge pending" style="background:#ffe066;color:#a67c00;padding:2px 10px;border-radius:12px;font-size:0.85em;margin-left:8px;display:inline-flex;align-items:center;"><i class="fas fa-clock" style="margin-right:4px;"></i> Pending</span>`;
       }
 
+      // Add recurring indicator
+      const recurringIndicator = payment.isRecurring ? 
+        `<span class="recurring-indicator" style="background:#e3f2fd;color:#1976d2;padding:1px 6px;border-radius:8px;font-size:0.75em;margin-left:6px;"><i class="fas fa-sync-alt" style="margin-right:2px;"></i> Recurring</span>` : '';
+
       return `
-        <div class="recurring-payment-item ${isOverdue ? 'overdue' : isPending ? 'pending' : 'completed'}">
+        <div class="recurring-payment-item ${isOverdue ? 'overdue' : isPending ? 'pending' : 'completed'}" data-payment-id="${payment._id}">
           <div class="payment-item-info">
             <div class="payment-item-title">
               ${payment.description}
+              ${recurringIndicator}
               ${statusBadge}
             </div>
             <div class="payment-item-details">
               <span>${this.getCategoryDisplayName(payment.category)}</span>
               <span>Due: ${payment.dueDate ? this.formatDate(payment.dueDate) : 'N/A'}</span>
               <span class="status-${payment.status}">${payment.status.toUpperCase()}</span>
+              ${payment.isRecurring ? `<span style="color:#1976d2;">• Monthly Recurring</span>` : ''}
             </div>
           </div>
           <div class="payment-item-amount">₹${this.formatAmount(payment.amount)}</div>
           <div class="payment-item-actions">
             ${payment.status === 'pending' ? `
               <button class="payment-action-btn mark-paid" data-action="mark-paid" data-payment-id="${payment._id}">
-                Mark Paid
+                <i class="fas fa-check"></i> Mark Paid
               </button>
             ` : ''}
             <button class="payment-action-btn edit" data-action="edit" data-payment-id="${payment._id}">
-              Edit
+              <i class="fas fa-edit"></i> Edit
             </button>
             <button class="payment-action-btn delete" data-action="delete" data-payment-id="${payment._id}">
-              Delete
+              <i class="fas fa-trash"></i> Delete
             </button>
           </div>
         </div>
@@ -1036,22 +1134,17 @@ class PaymentManager {
         const result = await response.json();
         
         // Show success message
-        if (window.NotificationManager) {
-          window.NotificationManager.showSuccess('Payment marked as paid successfully!');
-        } else {
-          alert('Payment marked as paid successfully!');
-        }
+        this.showSuccess('Payment marked as paid successfully!');
 
         // Refresh payment data to update stats and lists
-        await this.forceRefreshStats();
+        await Promise.all([
+          this.forceRefreshStats(),
+          this.loadAllPendingPayments()
+        ]);
         
       } catch (error) {
         console.error('Error marking manual payment as paid:', error);
-        if (window.NotificationManager) {
-          window.NotificationManager.showError('Failed to mark payment as paid: ' + error.message);
-        } else {
-          alert('Failed to mark payment as paid: ' + error.message);
-        }
+        this.showError('Failed to mark payment as paid: ' + error.message);
         
         // Reset button state
         const button = document.querySelector(`[data-payment-id="${paymentId}"]`);
@@ -1156,24 +1249,19 @@ class PaymentManager {
         }
 
         // Show success message
-        if (window.NotificationManager) {
-          window.NotificationManager.showSuccess(
-            `Membership renewed successfully! New expiry: ${endDate.toLocaleDateString()}`
-          );
-        } else {
-          alert(`Membership renewed successfully! New expiry: ${endDate.toLocaleDateString()}`);
-        }
+        this.showSuccess(
+          `Membership renewed successfully! New expiry: ${endDate.toLocaleDateString()}`
+        );
 
         // Refresh payment data to update stats and lists
-        await this.forceRefreshStats();
+        await Promise.all([
+          this.forceRefreshStats(),
+          this.loadAllPendingPayments()
+        ]);
         
       } catch (error) {
         console.error('Error marking member payment as paid:', error);
-        if (window.NotificationManager) {
-          window.NotificationManager.showError('Failed to process payment: ' + error.message);
-        } else {
-          alert('Failed to process payment: ' + error.message);
-        }
+        this.showError('Failed to process payment: ' + error.message);
         
         // Reset button state
         const button = document.querySelector(`[data-member-id="${memberId}"]`);
@@ -1771,9 +1859,17 @@ class PaymentManager {
   }
 
   async handlePaymentAction(action, paymentId) {
+    let button;
     try {
       let response;
-      
+      // Find the button to show loading state
+      if (action === 'mark-paid') {
+        button = document.querySelector(`[data-payment-id="${paymentId}"][data-action="mark-paid"]`);
+        if (button) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        }
+      }
       switch (action) {
         case 'mark-paid':
           response = await fetch(`http://localhost:5000/api/payments/${paymentId}/mark-paid`, {
@@ -1801,11 +1897,46 @@ class PaymentManager {
       if (!response.ok) throw new Error(`Failed to ${action} payment`);
 
       const result = await response.json();
-      this.showSuccess(result.message);
-      this.loadPaymentData();
+      
+      // Immediately update UI for mark-paid action
+      if (action === 'mark-paid') {
+        // Remove the payment item from the UI immediately
+        const paymentItem = document.querySelector(`[data-payment-id="${paymentId}"]`);
+        if (paymentItem) {
+          // Find the parent payment item container
+          const paymentContainer = paymentItem.closest('.recurring-payment-item, .payment-item, .pending-payment-item');
+          if (paymentContainer) {
+            paymentContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            paymentContainer.style.opacity = '0';
+            paymentContainer.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+              if (paymentContainer.parentNode) {
+                paymentContainer.parentNode.removeChild(paymentContainer);
+              }
+            }, 300);
+          }
+        }
+      }
+      
+      // Show success message
+      this.showSuccess(result.message || `Payment ${action} successfully!`);
+      
+      // Force refresh stats and data to reflect changes immediately
+      await Promise.all([
+        this.forceRefreshStats(),
+        this.loadRecurringPayments(), // Refresh recurring payments list
+        this.loadAllPendingPayments() // Refresh pending payments list
+      ]);
     } catch (error) {
       console.error(`Error ${action} payment:`, error);
-      this.showError(`Failed to ${action} payment`);
+      // Show error message
+      this.showError(`Failed to ${action} payment: ${error.message}`);
+    } finally {
+      // Always reset button state after operation
+      if (button && action === 'mark-paid') {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-check"></i> Mark Paid';
+      }
     }
   }
 
@@ -1927,8 +2058,8 @@ class PaymentManager {
       console.log('Force refreshed payment stats:', data.data);
       this.updatePaymentStats(data.data);
       
-      // After refreshing stats, also refresh the unified pending payments to ensure correct combined total
-      await this.loadAllPendingPayments();
+      // Note: loadAllPendingPayments() should be called separately by the caller when needed
+      // to avoid unnecessary duplicate calls
     } catch (error) {
       console.error('Error force refreshing payment stats:', error);
       this.showError('Failed to refresh payment statistics');
@@ -1989,7 +2120,7 @@ class PaymentManager {
     this.loadAllPendingPayments();
   }
 
-  updateMemberPendingPaymentStatus(memberId, action) {
+  async updateMemberPendingPaymentStatus(memberId, action) {
     // This function is called from the seven-day allowance system
     // to update the member pending payments UI and stats
     console.log(`Updating member pending payment status: ${memberId} - ${action}`);
@@ -1998,8 +2129,11 @@ class PaymentManager {
       // Remove the member from pending payments
       this.removeMemberPendingPayment(memberId);
       
-      // Update stats by refreshing pending stats
-      this.forceRefreshStats();
+      // Update stats by refreshing pending stats and lists
+      await Promise.all([
+        this.forceRefreshStats(),
+        this.loadAllPendingPayments()
+      ]);
       
       console.log(`Payment completed for member: ${memberId}`);
     } else if (action === 'allowance_granted') {
@@ -2285,15 +2419,114 @@ class PaymentManager {
     }
   }
 
-  // Payment Reminder System
+  // Enhanced Payment Reminder System
   initializePaymentReminders() {
+    // Initialize seen notifications tracking
+    this.seenNotifications = new Set();
+    this.lastNotificationCheck = new Date();
+    
     // Check for payment reminders on initialization
     this.checkPaymentReminders();
     
-    // Set up recurring check every hour
+    // Set up recurring check every 2 hours for due payment notifications
     setInterval(() => {
-      this.checkPaymentReminders();
-    }, 3600000); // 1 hour in milliseconds
+      this.checkEnhancedPaymentReminders();
+    }, 7200000); // 2 hours in milliseconds
+    
+    // Set up daily reset of seen notifications at midnight
+    this.scheduleDailyReset();
+  }
+
+  scheduleDailyReset() {
+    // Calculate time until next midnight
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    // Reset seen notifications at midnight
+    setTimeout(() => {
+      this.resetSeenNotifications();
+      // Schedule daily reset for subsequent days
+      setInterval(() => {
+        this.resetSeenNotifications();
+      }, 86400000); // 24 hours
+    }, timeUntilMidnight);
+  }
+
+  resetSeenNotifications() {
+    this.seenNotifications.clear();
+    console.log('Reset seen notifications for new day');
+  }
+
+  async checkEnhancedPaymentReminders() {
+    try {
+      console.log('Checking enhanced payment reminders...');
+      
+      // Get all monthly recurring payments that are due within 7 days
+      const response = await fetch('http://localhost:5000/api/payments/recurring?status=pending', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch recurring payments');
+      
+      const data = await response.json();
+      const payments = data.data || [];
+      const today = new Date();
+      
+      for (const payment of payments) {
+        if (!payment.dueDate || !payment.recurringDetails || !payment.recurringDetails.frequency) continue;
+        
+        // Only process monthly recurring payments
+        if (payment.recurringDetails.frequency.toLowerCase() !== 'monthly') continue;
+        
+        const dueDate = new Date(payment.dueDate);
+        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+        
+        // Show notification if due in 7 days or less (including overdue)
+        if (daysUntilDue <= 7) {
+          const notificationId = `recurring_${payment._id}_${today.toDateString()}`;
+          
+          // Check if notification was already seen today
+          if (!this.seenNotifications.has(notificationId)) {
+            this.showUnifiedPaymentNotification(payment, daysUntilDue, notificationId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking enhanced payment reminders:', error);
+    }
+  }
+
+  showUnifiedPaymentNotification(payment, daysUntilDue, notificationId) {
+    // Use the unified notification system instead of custom toasts
+    if (!window.notificationSystem) {
+      console.warn('Unified notification system not available');
+      return;
+    }
+
+    // Create notification data for the unified system
+    const paymentData = {
+      _id: payment._id,
+      description: payment.description || 'Monthly Recurring Payment',
+      amount: payment.amount
+    };
+
+    // Use the existing notifyPaymentDue method from the unified notification system
+    window.notificationSystem.notifyPaymentDue(paymentData, daysUntilDue);
+    
+    // Mark notification as seen for tracking
+    this.markNotificationAsSeen(notificationId);
+    
+    console.log(`Payment due notification sent via unified system for: ${payment.description} (${daysUntilDue} days)`);
+  }
+
+  markNotificationAsSeen(notificationId) {
+    this.seenNotifications.add(notificationId);
+    console.log(`Marked notification as seen: ${notificationId}`);
   }
 
   async checkPaymentReminders() {
@@ -2312,50 +2545,15 @@ class PaymentManager {
       console.error('Error checking payment reminders:', error);
     }
 
-    // Also check for monthly recurring payments and notify 7, 3, 1 days before due date
-    this.checkMonthlyRecurringPaymentNotifications();
+    // Also check for enhanced payment reminders
+    this.checkEnhancedPaymentReminders();
   }
 
   async checkMonthlyRecurringPaymentNotifications() {
-    try {
-      const response = await fetch('http://localhost:5000/api/payments/recurring?status=pending', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch recurring payments');
-      const data = await response.json();
-      const payments = data.data || [];
-      const today = new Date();
-      for (const payment of payments) {
-        if (!payment.dueDate || !payment.recurringDetails || !payment.recurringDetails.frequency) continue;
-        // Only for monthly recurring payments
-        if (payment.recurringDetails.frequency.toLowerCase() !== 'monthly') continue;
-        const dueDate = new Date(payment.dueDate);
-        // Calculate days until due
-        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-        if ([7, 3, 1].includes(daysUntilDue)) {
-          // Use unified notification system if available
-          const notificationManager = await this.waitForNotificationManager(2000);
-          if (notificationManager) {
-            await notificationManager.notifyPayment(
-              payment.description || 'Recurring Payment',
-              payment.amount,
-              'warning',
-              `Monthly recurring payment due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}: ${payment.description || ''}`
-            );
-          } else if (window.notificationSystem) {
-            // Fallback to legacy notification system
-            window.notificationSystem.show(
-              `Monthly recurring payment due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}: ${payment.description || ''} (₹${this.formatAmount(payment.amount)})`,
-              'warning'
-            );
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Error checking monthly recurring payment reminders:', error);
-    }
+    // This method is now replaced by checkEnhancedPaymentReminders()
+    // Keeping for compatibility, but redirecting to enhanced version
+    console.log('Legacy checkMonthlyRecurringPaymentNotifications called - redirecting to enhanced version');
+    return this.checkEnhancedPaymentReminders();
   }
 
   processPaymentReminders(reminders) {
@@ -2386,42 +2584,22 @@ class PaymentManager {
   }
 
   showPaymentReminderNotification(payment, type) {
-    if (!window.notificationSystem) return;
-
-    const daysUntilDue = this.calculateDaysUntilDue(payment.dueDate);
-    let message, urgency, notificationType = 'warning';
-
-    // Adjust notification based on payment type
-    const paymentTypeText = payment.type === 'pending' ? 'pending' : 
-                           payment.type === 'due' ? 'due' : 'payment';
-
-    if (type === 'overdue') {
-      message = `Payment overdue: ${payment.description} (₹${this.formatAmount(payment.amount)}) - ${Math.abs(daysUntilDue)} days overdue`;
-      urgency = 'high';
-      notificationType = 'error';
-    } else if (daysUntilDue === 0) {
-      message = `Payment ${paymentTypeText} today: ${payment.description} (₹${this.formatAmount(payment.amount)})`;
-      urgency = 'high';
-      notificationType = payment.type === 'pending' ? 'info' : 'warning';
-    } else if (daysUntilDue === 1) {
-      message = `Payment ${paymentTypeText} tomorrow: ${payment.description} (₹${this.formatAmount(payment.amount)})`;
-      urgency = 'medium';
-      notificationType = payment.type === 'pending' ? 'info' : 'warning';
-    } else if (daysUntilDue <= 7) {
-      message = `Payment ${paymentTypeText} in ${daysUntilDue} days: ${payment.description} (₹${this.formatAmount(payment.amount)})`;
-      urgency = 'low';
-      notificationType = payment.type === 'pending' ? 'info' : 'warning';
-    } else if (payment.type === 'pending' && daysUntilDue <= 14) {
-      // Show longer reminder period for pending payments
-      message = `Pending payment in ${daysUntilDue} days: ${payment.description} (₹${this.formatAmount(payment.amount)})`;
-      urgency = 'low';
-      notificationType = 'info';
+    // Use the unified notification system instead of the old notification system
+    if (!window.notificationSystem) {
+      console.warn('Unified notification system not available');
+      return;
     }
 
-    // Add specific title based on payment type
-    const title = payment.type === 'pending' ? 'Pending Payment Reminder' : 'Payment Reminder';
+    const daysUntilDue = this.calculateDaysUntilDue(payment.dueDate);
     
-    window.notificationSystem.showNotification(title, message, urgency, notificationType);
+    // Use the unified system's notifyPaymentDue method
+    const paymentData = {
+      _id: payment._id,
+      description: payment.description || 'Payment',
+      amount: payment.amount
+    };
+
+    window.notificationSystem.notifyPaymentDue(paymentData, daysUntilDue);
   }
 
   schedulePaymentReminder(payment) {

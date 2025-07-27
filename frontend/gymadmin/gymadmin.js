@@ -54,14 +54,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- Fetch and Render Activities ---
   async function fetchAndRenderActivities() {
-    // Fetch gym profile (with activities)
-    const token = localStorage.getItem('gymAdminToken');
-    if (!token) return;
     try {
-      const res = await fetch('http://localhost:5000/api/gyms/profile/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      // Use global gym profile if available, otherwise fetch it
+      let data = window.currentGymProfile;
+      
+      if (!data || Object.keys(data).length === 0) {
+        const token = localStorage.getItem('gymAdminToken');
+        if (!token) return;
+        
+        const res = await fetch('http://localhost:5000/api/gyms/profile/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        data = await res.json();
+        window.currentGymProfile = data; // Store globally
+      }
+      
       // Handle activities data - ensure proper structure
       let activities = [];
       if (Array.isArray(data.activities)) {
@@ -156,13 +163,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
         
     const isDark = document.body.getAttribute('data-theme') === 'dark';
-    activitiesList.innerHTML = '<div class="activities-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;">' +
+    activitiesList.innerHTML = '<div class="activities-grid">' +
       validActivities.map(a => `
-        <div class="activity-badge" tabindex="0" style="background:${isDark ? 'var(--primary)' : '#f5f5f5'};border-radius:12px;width:110px;height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:box-shadow 0.2s;aspect-ratio:1/1;overflow:hidden;${isDark ? 'color:#fff!important;' : ''}" title="${a.description || a.name}">
-          <i class="fas ${a.icon || 'fa-dumbbell'} activity-icon" style="font-size:1.7em;${isDark ? 'color:#fff!important;' : 'color:var(--primary);'}margin-bottom:6px;transition:color 0.2s;"></i>
-          <span style="font-size:1em;font-weight:600;${isDark ? 'color:#fff!important;' : ''}">${a.name}</span>
+        <div class="activity-badge" tabindex="0" title="${a.description || a.name}">
+          <i class="fas ${a.icon || 'fa-dumbbell'} activity-icon"></i>
+          <span>${a.name}</span>
         </div>
       `).join('') + '</div>';
+    
     // Add hover effect for activity icons using --primaryDark (only in light mode)
     if (!isDark) {
       Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach(badge => {
@@ -299,6 +307,59 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
   }
+
+  // Add window resize handler for responsive behavior
+  function handleResponsiveLayout() {
+    const quickActionList = document.querySelector('.quick-action-list');
+    const activitiesGrid = document.querySelector('.activities-grid');
+    const windowWidth = window.innerWidth;
+    
+    if (quickActionList) {
+      // Adjust quick actions grid based on container width
+      const containerWidth = quickActionList.offsetWidth;
+      let columns;
+      
+      if (windowWidth <= 480) {
+        columns = 2;
+      } else if (windowWidth <= 768) {
+        columns = 2;
+      } else if (containerWidth < 400) {
+        columns = 2;
+      } else {
+        columns = Math.floor(containerWidth / 130); // Minimum 130px per column
+        columns = Math.max(2, Math.min(5, columns)); // Between 2 and 5 columns
+      }
+      
+      quickActionList.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    }
+    
+    if (activitiesGrid) {
+      // Adjust activities grid based on container width
+      const containerWidth = activitiesGrid.offsetWidth;
+      let minSize;
+      
+      if (windowWidth <= 480) {
+        minSize = '60px';
+      } else if (windowWidth <= 768) {
+        minSize = '70px';
+      } else {
+        minSize = '100px';
+      }
+      
+      activitiesGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${minSize}, 1fr))`;
+    }
+  }
+  
+  // Call on load and resize
+  window.addEventListener('resize', handleResponsiveLayout);
+  document.addEventListener('DOMContentLoaded', handleResponsiveLayout);
+  
+  // Call after activities are rendered
+  const originalRenderActivitiesList = renderActivitiesList;
+  renderActivitiesList = function() {
+    originalRenderActivitiesList.call(this);
+    setTimeout(handleResponsiveLayout, 100); // Small delay to ensure DOM is updated
+  };
 
   // Initial render
   fetchAndRenderActivities();
@@ -1480,27 +1541,33 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fetch gym activities from backend
   async function fetchActivitiesForModal() {
     try {
-      const token = await waitForToken('gymAdminToken', 10, 100);
+      // Use global gym profile if available, otherwise fetch it
+      let data = window.currentGymProfile;
       
-      if (!token) {
-        console.warn('[AddMember] No authentication token found for activities fetch');
-        activitiesCache = [];
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      if (!data || Object.keys(data).length === 0) {
+        const token = await waitForToken('gymAdminToken', 10, 100);
+        
+        if (!token) {
+          console.warn('[AddMember] No authentication token found for activities fetch');
+          activitiesCache = [];
+          return;
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+        const response = await fetch('http://localhost:5000/api/gyms/profile/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        data = await response.json();
+        window.currentGymProfile = data; // Store globally
       }
-      
-      const data = await response.json();
       
       // Extract activities from gym profile
       if (data && Array.isArray(data.activities)) {
@@ -2678,76 +2745,8 @@ document.addEventListener('DOMContentLoaded', function() {
             };
            
         }
-        // Update gym information section
-        updateGymInformationSection(profile);
     }
 
-    // Function to update gym information section with profile data
-    function updateGymInformationSection(profile) {
-        
-        // Basic Information
-        const gymInfoName = document.getElementById('gymInfoName');
-        const gymInfoOwner = document.getElementById('gymInfoOwner');
-        const gymInfoEmail = document.getElementById('gymInfoEmail');
-        const gymInfoPhone = document.getElementById('gymInfoPhone');
-        const gymInfoSupportEmail = document.getElementById('gymInfoSupportEmail');
-        const gymInfoSupportPhone = document.getElementById('gymInfoSupportPhone');
-        
-        if (gymInfoName) gymInfoName.textContent = profile.gymName || 'N/A';
-        if (gymInfoOwner) gymInfoOwner.textContent = profile.contactPerson || 'N/A';
-        if (gymInfoEmail) gymInfoEmail.textContent = profile.email || 'N/A';
-        if (gymInfoPhone) gymInfoPhone.textContent = profile.phone || 'N/A';
-        if (gymInfoSupportEmail) gymInfoSupportEmail.textContent = profile.supportEmail || 'N/A';
-        if (gymInfoSupportPhone) gymInfoSupportPhone.textContent = profile.supportPhone || 'N/A';
-        
-        // Location Information
-        const gymInfoAddress = document.getElementById('gymInfoAddress');
-        const gymInfoCity = document.getElementById('gymInfoCity');
-        const gymInfoState = document.getElementById('gymInfoState');
-        const gymInfoPincode = document.getElementById('gymInfoPincode');
-        const gymInfoLandmark = document.getElementById('gymInfoLandmark');
-        
-        if (gymInfoAddress) gymInfoAddress.textContent = profile.location?.address || 'N/A';
-        if (gymInfoCity) gymInfoCity.textContent = profile.location?.city || 'N/A';
-        if (gymInfoState) gymInfoState.textContent = profile.location?.state || 'N/A';
-        if (gymInfoPincode) gymInfoPincode.textContent = profile.location?.pincode || 'N/A';
-        if (gymInfoLandmark) gymInfoLandmark.textContent = profile.location?.landmark || 'N/A';
-        
-        // Operational Information
-        const gymInfoOpeningTime = document.getElementById('gymInfoOpeningTime');
-        const gymInfoClosingTime = document.getElementById('gymInfoClosingTime');
-        const gymInfoCurrentMembers = document.getElementById('gymInfoCurrentMembers');
-        const gymInfoStatus = document.getElementById('gymInfoStatus');
-        
-        if (gymInfoOpeningTime) gymInfoOpeningTime.textContent = profile.openingTime || 'N/A';
-        if (gymInfoClosingTime) gymInfoClosingTime.textContent = profile.closingTime || 'N/A';
-        if (gymInfoCurrentMembers) gymInfoCurrentMembers.textContent = profile.membersCount || '0';
-        if (gymInfoStatus) {
-            gymInfoStatus.textContent = profile.status || 'Unknown';
-            gymInfoStatus.className = `gym-info-value gym-status ${profile.status || ''}`;
-        }
-        
-        // Description
-        const gymInfoDescription = document.getElementById('gymInfoDescription');
-        if (gymInfoDescription) {
-            gymInfoDescription.textContent = profile.description || 'No description available';
-        }
-        
-        // Equipment
-        const gymInfoEquipment = document.getElementById('gymInfoEquipment');
-        if (gymInfoEquipment) {
-            if (Array.isArray(profile.equipment) && profile.equipment.length > 0) {
-                gymInfoEquipment.innerHTML = profile.equipment.map(eq => {
-                    // Handle both old string format and new object format
-                    const equipmentName = typeof eq === 'string' ? eq : (eq.name || 'Unknown Equipment');
-                    return `<span class="gym-info-equipment-item">${equipmentName}</span>`;
-                }).join('');
-            } else {
-                gymInfoEquipment.innerHTML = '<span style="color:#888;">No equipment listed</span>';
-            }
-        }
-        
-    }
     
     function handleProfileFetchException(error, adminNameElement, adminAvatarElement) {
         console.error('Comprehensive error fetching or updating admin profile:', error);
@@ -3096,7 +3095,6 @@ function clearUploadPhotoMsgAndCloseModal() {
         // Profile Dropdown Toggle Functionality
         const userProfileToggle = document.getElementById('userProfileToggle');
         const profileDropdownMenu = document.getElementById('profileDropdownMenu');
-        const editProfileLink = document.getElementById('editProfileLink');
         const logoutLink = document.getElementById('logoutLink');
 
         if (userProfileToggle && profileDropdownMenu) {
@@ -3183,14 +3181,7 @@ function clearUploadPhotoMsgAndCloseModal() {
             
         }
 
-        if (editProfileLink) {
-            editProfileLink.addEventListener('click', function(event) {
-                event.preventDefault(); // Prevent default anchor behavior
-                populateEditProfileModal(); // Populate data before showing
-                editProfileModal.style.display = 'flex';
-                if (profileDropdownMenu) profileDropdownMenu.classList.remove('show'); // Close dropdown
-            });
-        }
+        // Note: Old edit profile functionality removed - now handled by gym-profile.js
 
         if (logoutLink) {
             logoutLink.addEventListener('click', function(event) {
@@ -4007,6 +3998,42 @@ sidebarMenuLinks.forEach(link => {
     }
     e.preventDefault();
   });
+});
+
+// Initialize dashboard customization on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Apply saved dashboard customization settings for this specific gym
+  setTimeout(() => {
+    const gymId = getGymId ? getGymId() : null;
+    if (!gymId) {
+      console.warn('No gym ID available for dashboard customization');
+      return;
+    }
+    
+    const savedEquipmentVisible = getGymSpecificSetting ? 
+      getGymSpecificSetting(`dashboardEquipmentVisible_${gymId}`) !== 'false' : true;
+    const savedPaymentVisible = getGymSpecificSetting ? 
+      getGymSpecificSetting(`dashboardPaymentVisible_${gymId}`) !== 'false' : true;
+    
+    console.log(`Gymadmin.js applying customization for gym ${gymId}:`, {
+      equipment: savedEquipmentVisible,
+      payment: savedPaymentVisible
+    });
+    
+    // Apply customization settings using the new unified function
+    if (typeof applyTabVisibility === 'function') {
+      applyTabVisibility('equipment', savedEquipmentVisible);
+      applyTabVisibility('payment', savedPaymentVisible);
+    } else {
+      // Fallback to old functions if new one isn't available yet
+      if (typeof toggleEquipmentTabVisibility === 'function') {
+        toggleEquipmentTabVisibility(savedEquipmentVisible);
+      }
+      if (typeof togglePaymentTabVisibility === 'function') {
+        togglePaymentTabVisibility(savedPaymentVisible);
+      }
+    }
+  }, 100); // Reduced delay for faster application
 });
 
 
@@ -4868,594 +4895,3 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// ===== SETTINGS TAB FUNCTIONALITY =====
-document.addEventListener('DOMContentLoaded', function() {
-  // Theme Management
-  const themeOptions = document.querySelectorAll('.theme-option');
-  const colorOptions = document.querySelectorAll('.color-option');
-
-  // Load saved theme and color
-  const savedTheme = localStorage.getItem('gymAdminTheme') || 'light';
-  const savedColor = localStorage.getItem('gymAdminColor') || 'blue';
-
-  // Apply saved theme and color
-  applyTheme(savedTheme);
-  applyColorScheme(savedColor);
-
-  // Update UI to reflect saved theme
-  themeOptions.forEach(option => {
-    option.classList.toggle('active', option.dataset.theme === savedTheme);
-    // Add click handler for theme selection
-    option.addEventListener('click', function() {
-      themeOptions.forEach(opt => opt.classList.remove('active'));
-      this.classList.add('active');
-      const theme = this.dataset.theme;
-      applyTheme(theme);
-      localStorage.setItem('gymAdminTheme', theme);
-    });
-  });
-
-  // --- Enhanced Color Scheme Selector: always visible, interactive, horizontal ---
-  const colorMap = {
-    blue: '#1976d2',
-    green: '#388e3c',
-    purple: '#7b1fa2',
-    orange: '#f57c00',
-    red: '#d32f2f'
-  };
-  colorOptions.forEach(option => {
-    const color = option.dataset.color;
-    const circle = option.querySelector('.color-circle');
-    if (circle) {
-      circle.style.background = colorMap[color] || '#1976d2';
-      circle.style.border = '2px solid #fff';
-      circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
-      circle.style.width = '28px';
-      circle.style.height = '28px';
-      circle.style.borderRadius = '50%';
-      circle.style.display = 'inline-block';
-      circle.style.transition = 'box-shadow 0.2s, border 0.2s';
-      option.style.display = 'inline-block';
-      option.style.marginRight = '18px';
-      option.style.cursor = 'pointer';
-      option.style.verticalAlign = 'middle';
-    }
-    // Set active state
-    if (color === savedColor) {
-      option.classList.add('active');
-      if (circle) {
-        circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
-        circle.style.border = '2px solid var(--primary, #1976d2)';
-      }
-    } else {
-      option.classList.remove('active');
-      if (circle) {
-        circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
-        circle.style.border = '2px solid #fff';
-      }
-    }
-    // Hover effect
-    option.addEventListener('mouseenter', function() {
-      if (circle) {
-        circle.style.boxShadow = '0 0 0 3px var(--primary-dark, #0056b3)';
-        circle.style.border = '2px solid var(--primary-dark, #0056b3)';
-      }
-    });
-    option.addEventListener('mouseleave', function() {
-      if (option.classList.contains('active')) {
-        if (circle) {
-          circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
-          circle.style.border = '2px solid var(--primary, #1976d2)';
-        }
-      } else {
-        if (circle) {
-          circle.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
-          circle.style.border = '2px solid #fff';
-        }
-      }
-    });
-    // Click handler
-    option.addEventListener('click', function() {
-      const color = this.dataset.color;
-      // Update active state
-      colorOptions.forEach(opt => {
-        opt.classList.remove('active');
-        const c = opt.querySelector('.color-circle');
-        if (c) {
-          c.style.boxShadow = '0 1px 6px rgba(0,0,0,0.10)';
-          c.style.border = '2px solid #fff';
-        }
-      });
-      this.classList.add('active');
-      if (circle) {
-        circle.style.boxShadow = '0 0 0 3px var(--primary, #1976d2)';
-        circle.style.border = '2px solid var(--primary, #1976d2)';
-      }
-      // Apply color scheme
-      applyColorScheme(color);
-      // Save preference
-      localStorage.setItem('gymAdminColor', color);
-    });
-  });
-  
-  // Settings action handlers
-  document.getElementById('saveSettingsBtn')?.addEventListener('click', saveAllSettings);
-  document.getElementById('resetSettingsBtn')?.addEventListener('click', resetSettings);
-  document.getElementById('changePasswordBtn')?.addEventListener('click', openChangePasswordModal);
-  document.getElementById('updateProfileBtn')?.addEventListener('click', openUpdateProfileModal);
-  
-  // Data export handlers
-  document.getElementById('exportMembersBtn')?.addEventListener('click', () => exportData('members'));
-  document.getElementById('exportPaymentsBtn')?.addEventListener('click', () => exportData('payments'));
-  document.getElementById('exportAttendanceBtn')?.addEventListener('click', () => exportData('attendance'));
-  
-  // Operating hours handlers
-  setupOperatingHoursHandlers();
-  
-  // Load and apply saved settings
-  loadSavedSettings();
-});
-
-function applyTheme(theme) {
-  const root = document.documentElement;
-  
-  if (theme === 'dark') {
-    root.style.setProperty('--bg-primary', '#18191a');
-    root.style.setProperty('--bg-secondary', '#23272f');
-    root.style.setProperty('--card-bg', '#23272f');
-    root.style.setProperty('--text-primary', '#ffffff');
-    root.style.setProperty('--text-secondary', '#cccccc');
-    root.style.setProperty('--border-color', '#33363d');
-    root.style.setProperty('--border-light', '#23272f');
-    root.style.setProperty('--bg-light', '#23272f');
-    // Make all text white for visibility
-    document.body.style.background = '#18191a';
-    document.body.style.color = '#fff';
-    // Set all headings, paragraphs, links, labels, etc. to white
-    const allTextEls = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, label, li, th, td, .menu-text, .stat-title, .stat-value, .stat-change, .member-detail-label, .plan-badge, .edit-input, .sidebar, .sidebar .menu-link, .sidebar .menu-link .fa, .content, .modal-content, .modal, .tab-title, .tab-header, .tab-content, .quick-action, .info-list, .member-name, .member-id, .member-detail-title, .member-detail-modal, .profile-pic, .stat-card, .toggle-switch, .toggle-switch input, .toggle-switch label, .theme-option, .color-option, .settings-section, .settings-label, .settings-value, .settings-row, .settings-tab, .settings-content, .settings-header, .settings-title, .settings-description, .settings-group, .settings-btn, .settings-btn-primary, .settings-btn-secondary, .settings-btn-danger, .settings-btn-warning, .settings-btn-info, .settings-btn-success, .settings-btn-light, .settings-btn-dark, .settings-btn-outline, .settings-btn-link, .settings-btn-block, .settings-btn-lg, .settings-btn-sm, .settings-btn-xs, .settings-btn-icon, .settings-btn-circle, .settings-btn-square, .settings-btn-pill, .settings-btn-round, .settings-btn-flat, .settings-btn-ghost, .settings-btn-shadow, .settings-btn-gradient, .settings-btn-glow, .settings-btn-inverse, .settings-btn-transparent, .settings-btn-borderless, .settings-btn-text, .settings-btn-label, .settings-btn-value, .settings-btn-group, .settings-btn-toolbar, .settings-btn-dropdown, .settings-btn-toggle, .settings-btn-switch, .settings-btn-radio, .settings-btn-checkbox, .settings-btn-segment, .settings-btn-step, .settings-btn-progress, .settings-btn-spinner, .settings-btn-badge, .settings-btn-dot, .settings-btn-icon-left, .settings-btn-icon-right, .settings-btn-icon-top, .settings-btn-icon-bottom, .settings-btn-icon-only, .settings-btn-icon-text, .settings-btn-text-icon, .settings-btn-label-icon, .settings-btn-value-icon, .settings-btn-group-icon, .settings-btn-toolbar-icon, .settings-btn-dropdown-icon, .settings-btn-toggle-icon, .settings-btn-switch-icon, .settings-btn-radio-icon, .settings-btn-checkbox-icon, .settings-btn-segment-icon, .settings-btn-step-icon, .settings-btn-progress-icon, .settings-btn-spinner-icon, .settings-btn-badge-icon, .settings-btn-dot-icon');
-    allTextEls.forEach(el => {
-      el.style.color = '#fff';
-    });
-    // Set all links to white
-    const allLinks = document.querySelectorAll('a');
-    allLinks.forEach(a => {
-      a.style.color = '#fff';
-    });
-    // Set all dashboard containers, cards, and sections to dark backgrounds
-    const darkBgEls = document.querySelectorAll(`
-      .stat-card,
-      .content,
-      .modal-content,
-      .tab-content,
-      .settings-section,
-      .settings-tab,
-      .settings-content,
-      .settings-header,
-      .settings-row,
-      .settings-group,
-      .dashboard-section,
-      .dashboard-container,
-      .dashboard-card,
-      .card-bg,
-      .section-bg,
-      .admin-section,
-      .admin-container,
-      .admin-card,
-      .quick-actions,
-      .quick-action,
-      .activities-offered,
-      .activities-section,
-      .activities-list,
-      .gym-info,
-      .gym-info-section,
-      .membership-plan,
-      .membership-plan-section,
-      .membership-plans,
-      .new-members,
-      .new-members-section,
-      .recent-activity,
-      .recent-activity-section,
-      .attendance-chart,
-      .attendance-chart-section,
-      .equipment-gallery,
-      .equipment-gallery-section
-    `);
-    darkBgEls.forEach(el => {
-      // Use a lighter dark/greyish shade for all cards/sections for contrast
-      if (
-        el.classList.contains('stat-card') ||
-        el.classList.contains('dashboard-card') ||
-        el.classList.contains('card-bg') ||
-        el.classList.contains('modal-content') ||
-        el.classList.contains('tab-content') ||
-        el.classList.contains('settings-section') ||
-        el.classList.contains('admin-card') ||
-        el.classList.contains('quick-actions') ||
-        el.classList.contains('activities-offered') ||
-        el.classList.contains('activities-section') ||
-        el.classList.contains('activities-list') ||
-        el.classList.contains('quick-action-card') ||
-        el.classList.contains('activities-offered-card') ||
-        el.classList.contains('membership-plans-section') ||
-        el.classList.contains('membership-plans') ||
-        el.classList.contains('membership-plan-section') ||
-        el.classList.contains('membership-plan') ||
-        el.classList.contains('card') ||
-        el.classList.contains('card-header') ||
-        el.classList.contains('card-body') ||
-        el.classList.contains('gym-info-card') ||
-        el.classList.contains('gym-info-section') ||
-        el.classList.contains('plans-list') ||
-        el.classList.contains('main-content') ||
-        el.classList.contains('dashboard-row') ||
-        el.classList.contains('main-grid') ||
-        el.classList.contains('left-column') ||
-        el.classList.contains('right-column') ||
-        el.id === 'membershipPlansSection' ||
-        el.id === 'photoGridSection' ||
-        el.id === 'newMembersCard'
-      ) {
-        el.style.background = '#23262b'; // slightly lighter black for all cards/sections
-        el.style.backgroundColor = '#23262b';
-        el.style.boxShadow = '0 2px 16px 0 rgba(0,0,0,0.18)';
-        el.style.borderColor = '#3a3f4b';
-        el.style.color = '#fff';
-      } else {
-        el.style.background = '#18191a';
-        el.style.backgroundColor = '#18191a';
-        el.style.boxShadow = 'none';
-        el.style.borderColor = '#33363d';
-        el.style.color = '#fff';
-      }
-    });
-    // Force all card titles, headers, and section headings to white
-    const cardTitles = document.querySelectorAll('.card-title, .card-header h2, .card-header h1, .gym-info-section-title, .page-title, .card-header, .card-header h3');
-    cardTitles.forEach(h => { h.style.color = '#fff'; });
-    // Card header backgrounds
-    const cardHeaders = document.querySelectorAll('.card-header');
-    cardHeaders.forEach(h => { h.style.background = 'transparent'; h.style.backgroundColor = 'transparent'; });
-    // Card body backgrounds
-    const cardBodies = document.querySelectorAll('.card-body, .plans-list, .activities-list, .gym-info-content, .table-responsive, .equipment-gallery, .activity-list, .chart-container');
-    cardBodies.forEach(b => { b.style.background = 'transparent'; b.style.backgroundColor = 'transparent'; b.style.color = '#fff'; });
-    // Table backgrounds
-    const tables = document.querySelectorAll('table, thead, tbody, tr, th, td');
-    tables.forEach(t => { t.style.background = 'transparent'; t.style.backgroundColor = 'transparent'; t.style.color = '#fff'; });
-    // Modal backgrounds
-    const modals = document.querySelectorAll('.modal, .modal-content');
-    modals.forEach(m => { m.style.background = '#23262b'; m.style.backgroundColor = '#23262b'; m.style.color = '#fff'; });
-    // Button styles: use default (light) styles in dark mode for contrast
-    const allBtns = document.querySelectorAll('button, .btn, .upload-photo-btn');
-    allBtns.forEach(btn => {
-      btn.style.background = '';
-      btn.style.color = '';
-      btn.style.border = '';
-      btn.style.boxShadow = '';
-      btn.onmouseenter = null;
-      btn.onmouseleave = null;
-    });
-    // Quick action buttons: use primary color with white icons/text in dark mode
-    const qaBtns = document.querySelectorAll('.quick-action-btn');
-    qaBtns.forEach(btn => {
-      btn.style.background = 'var(--primary)';
-      btn.style.color = '#fff';
-      btn.style.border = 'none';
-      btn.style.boxShadow = '0 2px 8px 0 rgba(0,0,0,0.10)';
-      // Style icons inside button
-      const icon = btn.querySelector('i');
-      if (icon) icon.style.color = '#fff';
-      btn.onmouseenter = function() {
-        btn.style.background = 'var(--primary-dark)';
-      };
-      btn.onmouseleave = function() {
-        btn.style.background = 'var(--primary)';
-      };
-    });
-
-    // Activity badges: use primary color with white icon/text in dark mode
-    const activityBadges = document.querySelectorAll('.activity-badge');
-    activityBadges.forEach(badge => {
-      badge.style.setProperty('background', 'var(--primary)', 'important');
-      badge.style.setProperty('color', '#fff', 'important');
-      badge.style.setProperty('border', 'none', 'important');
-      badge.style.setProperty('box-shadow', '0 2px 8px 0 rgba(0,0,0,0.10)', 'important');
-      // Style icon inside badge
-      const icon = badge.querySelector('.activity-icon');
-      if (icon) icon.style.setProperty('color', '#fff', 'important');
-      badge.onmouseenter = function() {
-        badge.style.setProperty('background', 'var(--primary-dark)', 'important');
-        if (icon) icon.style.setProperty('color', '#fff', 'important');
-      };
-      badge.onmouseleave = function() {
-        badge.style.setProperty('background', 'var(--primary)', 'important');
-        if (icon) icon.style.setProperty('color', '#fff', 'important');
-      };
-    });
-    // Inputs and selects
-    const allInputs = document.querySelectorAll('input, select, textarea');
-    allInputs.forEach(inp => {
-      inp.style.background = '#23262b';
-      inp.style.color = '#fff';
-      inp.style.border = '1px solid #3a3f4b';
-    });
-    // Misc: Remove any white backgrounds from .card, .modal, .main-content, .dashboard, .dashboard-row, .main-grid, .left-column, .right-column
-    const miscBgEls = document.querySelectorAll('.card, .modal, .main-content, .dashboard, .dashboard-row, .main-grid, .left-column, .right-column');
-    miscBgEls.forEach(el => {
-      el.style.background = '#23262b';
-      el.style.backgroundColor = '#23262b';
-      el.style.color = '#fff';
-    });
-    // Extra: force quick action and activities headings to white
-    const qaHeadings = document.querySelectorAll('.quick-actions h2, .quick-action h2, .activities-offered h2, .activities-section h2, .activities-list h2');
-    qaHeadings.forEach(h => { h.style.color = '#fff'; });
-  } else if (theme === 'auto') {
-    // Auto theme based on system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyTheme(prefersDark ? 'dark' : 'light');
-    return;
-  } else {
-    // Light theme (default)
-    root.style.setProperty('--bg-primary', '#ffffff');
-    root.style.setProperty('--bg-secondary', '#f8f9fa');
-    root.style.setProperty('--card-bg', '#ffffff');
-    root.style.setProperty('--text-primary', '#333333');
-    root.style.setProperty('--text-secondary', '#666666');
-    root.style.setProperty('--border-color', '#e0e0e0');
-    root.style.setProperty('--border-light', '#f0f0f0');
-    root.style.setProperty('--bg-light', '#f8f9fa');
-    // Reset text color for all elements
-    document.body.style.background = '#fff';
-    document.body.style.color = '#333';
-    const allTextEls = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, label, li, th, td, .menu-text, .stat-title, .stat-value, .stat-change, .member-detail-label, .plan-badge, .edit-input, .sidebar, .sidebar .menu-link, .sidebar .menu-link .fa, .content, .modal-content, .modal, .tab-title, .tab-header, .tab-content, .quick-action, .info-list, .member-name, .member-id, .member-detail-title, .member-detail-modal, .profile-pic, .stat-card, .toggle-switch, .toggle-switch input, .toggle-switch label, .theme-option, .color-option, .settings-section, .settings-label, .settings-value, .settings-row, .settings-tab, .settings-content, .settings-header, .settings-title, .settings-description, .settings-group, .settings-btn, .settings-btn-primary, .settings-btn-secondary, .settings-btn-danger, .settings-btn-warning, .settings-btn-info, .settings-btn-success, .settings-btn-light, .settings-btn-dark, .settings-btn-outline, .settings-btn-link, .settings-btn-block, .settings-btn-lg, .settings-btn-sm, .settings-btn-xs, .settings-btn-icon, .settings-btn-circle, .settings-btn-square, .settings-btn-pill, .settings-btn-round, .settings-btn-flat, .settings-btn-ghost, .settings-btn-shadow, .settings-btn-gradient, .settings-btn-glow, .settings-btn-inverse, .settings-btn-transparent, .settings-btn-borderless, .settings-btn-text, .settings-btn-label, .settings-btn-value, .settings-btn-group, .settings-btn-toolbar, .settings-btn-dropdown, .settings-btn-toggle, .settings-btn-switch, .settings-btn-radio, .settings-btn-checkbox, .settings-btn-segment, .settings-btn-step, .settings-btn-progress, .settings-btn-spinner, .settings-btn-badge, .settings-btn-dot, .settings-btn-icon-left, .settings-btn-icon-right, .settings-btn-icon-top, .settings-btn-icon-bottom, .settings-btn-icon-only, .settings-btn-icon-text, .settings-btn-text-icon, .settings-btn-label-icon, .settings-btn-value-icon, .settings-btn-group-icon, .settings-btn-toolbar-icon, .settings-btn-dropdown-icon, .settings-btn-toggle-icon, .settings-btn-switch-icon, .settings-btn-radio-icon, .settings-btn-checkbox-icon, .settings-btn-segment-icon, .settings-btn-step-icon, .settings-btn-progress-icon, .settings-btn-spinner-icon, .settings-btn-badge-icon, .settings-btn-dot-icon');
-    allTextEls.forEach(el => {
-      el.style.color = '';
-    });
-    const allLinks = document.querySelectorAll('a');
-    allLinks.forEach(a => {
-      a.style.color = '';
-    });
-  }
-  document.body.setAttribute('data-theme', theme);
-}
-
-function applyColorScheme(color) {
-  const root = document.documentElement;
-  const colorSchemes = {
-    blue: { primary: '#007bff', primaryDark: '#0056b3', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
-    green: { primary: '#28a745', primaryDark: '#1e7e34', success: '#20c997', warning: '#ffc107', danger: '#dc3545' },
-    purple: { primary: '#6f42c1', primaryDark: '#5a32a3', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
-    orange: { primary: '#fd7e14', primaryDark: '#e55a00', success: '#28a745', warning: '#ffc107', danger: '#dc3545' },
-    red: { primary: '#dc3545', primaryDark: '#c82333', success: '#28a745', warning: '#ffc107', danger: '#e74c3c' }
-  };
-  
-  const scheme = colorSchemes[color];
-  if (scheme) {
-    Object.entries(scheme).forEach(([key, value]) => {
-      // Use --primary for primary, --primary-dark for primaryDark, etc.
-      let cssVar = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
-      // Special case: primaryDark should be --primary-dark
-      if (key === 'primaryDark') cssVar = '--primary-dark';
-      root.style.setProperty(cssVar, value);
-    });
-  }
-}
-
-function saveAllSettings() {
-  const settings = {
-    theme: document.querySelector('.theme-option.active')?.dataset.theme || 'light',
-    color: document.querySelector('.color-option.active')?.dataset.color || 'blue',
-    notifications: {
-      newMembers: document.getElementById('newMemberNotif')?.checked || false,
-      payments: document.getElementById('paymentNotif')?.checked || false,
-      trainers: document.getElementById('trainerNotif')?.checked || false,
-      email: document.getElementById('emailNotif')?.checked || false
-    },
-    services: {
-      onlineBooking: document.getElementById('onlineBooking')?.checked || false,
-      personalTraining: document.getElementById('personalTraining')?.checked || false,
-      groupClasses: document.getElementById('groupClasses')?.checked || false,
-      equipmentReservation: document.getElementById('equipmentReservation')?.checked || false,
-      memberCheckin: document.getElementById('memberCheckin')?.checked || false
-    },
-    security: {
-      twoFactorAuth: document.getElementById('twoFactorAuth')?.checked || false,
-      loginAlerts: document.getElementById('loginAlerts')?.checked || false
-    },
-    operatingHours: getOperatingHours()
-  };
-  
-  // Save to localStorage
-  localStorage.setItem('gymAdminSettings', JSON.stringify(settings));
-  
-  // Show success message
-  showNotification('Settings saved successfully!', 'success');
-}
-
-function resetSettings() {
-  if (confirm('Are you sure you want to reset all settings to default?')) {
-    // Clear saved settings
-    localStorage.removeItem('gymAdminSettings');
-    localStorage.removeItem('gymAdminTheme');
-    localStorage.removeItem('gymAdminColor');
-    
-    // Reset UI to defaults
-    applyTheme('light');
-    applyColorScheme('blue');
-    
-    // Reset all toggles and inputs
-    document.querySelectorAll('.toggle-switch input').forEach(input => {
-      input.checked = input.id.includes('newMemberNotif') || 
-                      input.id.includes('paymentNotif') || 
-                      input.id.includes('trainerNotif') ||
-                      input.id.includes('onlineBooking') ||
-                      input.id.includes('personalTraining') ||
-                      input.id.includes('groupClasses') ||
-                      input.id.includes('memberCheckin') ||
-                      input.id.includes('loginAlerts');
-    });
-    
-    // Reset theme and color selections
-    document.querySelectorAll('.theme-option').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.theme === 'light');
-    });
-    
-    document.querySelectorAll('.color-option').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.color === 'blue');
-    });
-    
-    showNotification('Settings reset to defaults!', 'info');
-  }
-}
-
-function loadSavedSettings() {
-  const saved = localStorage.getItem('gymAdminSettings');
-  if (saved) {
-    try {
-      const settings = JSON.parse(saved);
-      
-      // Apply notification settings
-      if (settings.notifications) {
-        Object.entries(settings.notifications).forEach(([key, value]) => {
-          const element = document.getElementById(key === 'newMembers' ? 'newMemberNotif' : 
-                                              key === 'payments' ? 'paymentNotif' :
-                                              key === 'trainers' ? 'trainerNotif' : 'emailNotif');
-          if (element) element.checked = value;
-        });
-      }
-      
-      // Apply service settings
-      if (settings.services) {
-        Object.entries(settings.services).forEach(([key, value]) => {
-          const element = document.getElementById(key);
-          if (element) element.checked = value;
-        });
-      }
-      
-      // Apply security settings
-      if (settings.security) {
-        Object.entries(settings.security).forEach(([key, value]) => {
-          const element = document.getElementById(key);
-          if (element) element.checked = value;
-        });
-      }
-      
-      // Apply operating hours
-      if (settings.operatingHours) {
-        setOperatingHours(settings.operatingHours);
-      }
-      
-    } catch (e) {
-      console.error('Error loading settings:', e);
-    }
-  }
-}
-
-function getOperatingHours() {
-  const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-  const hours = {};
-  
-  days.forEach(day => {
-    const openTime = document.getElementById(`${day}Open`)?.value;
-    const closeTime = document.getElementById(`${day}Close`)?.value;
-    const isClosed = document.getElementById(`${day}Closed`)?.checked;
-    
-    hours[day] = {
-      open: openTime,
-      close: closeTime,
-      closed: isClosed
-    };
-  });
-  
-  return hours;
-}
-
-function setOperatingHours(hours) {
-  Object.entries(hours).forEach(([day, schedule]) => {
-    const openInput = document.getElementById(`${day}Open`);
-    const closeInput = document.getElementById(`${day}Close`);
-    const closedInput = document.getElementById(`${day}Closed`);
-    
-    if (openInput) openInput.value = schedule.open || '06:00';
-    if (closeInput) closeInput.value = schedule.close || '22:00';
-    if (closedInput) closedInput.checked = schedule.closed || false;
-  });
-}
-
-function setupOperatingHoursHandlers() {
-  const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-  
-  days.forEach(day => {
-    const closedCheckbox = document.getElementById(`${day}Closed`);
-    const openInput = document.getElementById(`${day}Open`);
-    const closeInput = document.getElementById(`${day}Close`);
-    
-    if (closedCheckbox) {
-      closedCheckbox.addEventListener('change', function() {
-        if (openInput) openInput.disabled = this.checked;
-        if (closeInput) closeInput.disabled = this.checked;
-      });
-    }
-  });
-}
-
-function exportData(type) {
-  // Placeholder for data export functionality
-  showNotification(`Exporting ${type} data...`, 'info');
-  
-  // In a real implementation, this would call an API endpoint
-  setTimeout(() => {
-    showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`, 'success');
-  }, 2000);
-}
-
-function openChangePasswordModal() {
-  // Placeholder for change password modal
-  alert('Change password functionality would be implemented here');
-}
-
-function openUpdateProfileModal() {
-  // Placeholder for update profile modal
-  alert('Update profile functionality would be implemented here');
-}
-
-function showNotification(message, type = 'info') {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-    z-index: 10000;
-    transform: translateX(400px);
-    transition: transform 0.3s ease;
-  `;
-  
-  // Set background color based on type
-  const colors = {
-    success: '#28a745',
-    error: '#dc3545',
-    warning: '#ffc107',
-    info: '#007bff'
-  };
-  notification.style.backgroundColor = colors[type] || colors.info;
-  
-  notification.textContent = message;
-  document.body.appendChild(notification);
-  
-  // Animate in
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 100);
-  
-  // Remove after 3 seconds
-  setTimeout(() => {
-    notification.style.transform = 'translateX(400px)';
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 300);
-  }, 3000);
-}
