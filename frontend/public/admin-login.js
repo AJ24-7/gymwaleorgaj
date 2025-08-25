@@ -417,319 +417,36 @@ document.addEventListener('DOMContentLoaded', function() {
     loginForm.addEventListener('submit', handleLogin);
     loginButton.addEventListener('click', handleLogin);
   
-    // Error and success messages
+    // Error and success messages - unified system
     function showErrorMessage(message) {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'error-message';
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      errorDiv.style.textAlign = 'center';
-      errorDiv.style.marginTop = '15px';
+      // Remove any existing messages
+      const existingMessages = loginForm.querySelectorAll('.submit-error, .success-message-container');
+      existingMessages.forEach(msg => msg.remove());
       
-      const existingError = loginForm.querySelector('.submit-error');
-      if (existingError) {
-        existingError.remove();
-      }
+      // Show notification instead of inline message for consistency
+      showNotification('error', 'Login Failed', message);
       
-      errorDiv.classList.add('submit-error');
-      loginForm.appendChild(errorDiv);
+      // Add shake animation to form
+      loginForm.classList.add('shake');
+      setTimeout(() => loginForm.classList.remove('shake'), 500);
+    }    function showAnimatedSuccess() {
+      console.log('🎉 Showing enhanced success message...');
       
-      setTimeout(() => {
-        if (errorDiv.parentNode) {
-          errorDiv.remove();
-        }
-      }, 5000);
-    }
-
-    function showAnimatedSuccess() {
-      console.log('🎉 Showing animated success message...');
-      
-      // Create professional success message with checkmark and text
+      // Create consistent success message with the new UI style
       const successDiv = document.createElement('div');
-      successDiv.className = 'success-container';
+      successDiv.className = 'success-message-container';
       successDiv.innerHTML = `
-        <div class="success-animation" style="text-align: center; margin: 30px 0;">
-          <div class="success-checkmark">
-            <div class="check-icon">
-              <span class="icon-line line-tip"></span>
-              <span class="icon-line line-long"></span>
-              <div class="icon-circle"></div>
-              <div class="icon-fix"></div>
-            </div>
+        <div class="success-header">
+          <div class="success-icon">
+            <i class="fas fa-check" aria-hidden="true"></i>
           </div>
-          <div class="success-content">
-            <h3 class="success-title">Login Successful!</h3>
-            <p class="success-message">Welcome back! Redirecting to your dashboard...</p>
-            <div class="success-progress">
-              <div class="progress-bar"></div>
-            </div>
-          </div>
+          <h3 class="success-title">Login Successful!</h3>
+        </div>
+        <p class="success-message">Welcome back! Redirecting to your dashboard...</p>
+        <div class="success-progress">
+          <div class="progress-bar"></div>
         </div>
       `;
-      
-      // Add enhanced CSS for the success animation
-      const style = document.createElement('style');
-      style.textContent = `
-        .success-container {
-          position: relative;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 15px;
-          padding: 30px 20px;
-          box-shadow: 0 10px 30px rgba(76, 175, 80, 0.15);
-          border: 2px solid rgba(76, 175, 80, 0.2);
-          margin: 20px 0;
-          animation: slideInScale 0.6s ease-out;
-        }
-        
-        @keyframes slideInScale {
-          0% {
-            opacity: 0;
-            transform: translateY(30px) scale(0.9);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        
-        .success-animation {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        
-        .success-checkmark {
-          width: 80px;
-          height: 80px;
-          margin-bottom: 20px;
-          position: relative;
-        }
-        
-        .check-icon {
-          width: 80px;
-          height: 80px;
-          position: relative;
-          border-radius: 50%;
-          box-sizing: content-box;
-          border: 4px solid #4CAF50;
-          background: white;
-          box-shadow: 0 4px 20px rgba(76, 175, 80, 0.25);
-          animation: checkmark-appear 0.8s ease-out;
-        }
-        
-        @keyframes checkmark-appear {
-          0% {
-            opacity: 0;
-            transform: scale(0.5);
-            border-color: #ddd;
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.1);
-            border-color: #4CAF50;
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-            border-color: #4CAF50;
-          }
-        }
-        
-        .check-icon::before {
-          top: 3px;
-          left: -2px;
-          width: 30px;
-          transform-origin: 100% 50%;
-          border-radius: 100px 0 0 100px;
-        }
-        
-        .check-icon::after {
-          top: 0;
-          left: 30px;
-          width: 60px;
-          transform-origin: 0 50%;
-          border-radius: 0 100px 100px 0;
-          animation: rotate-circle 1.2s ease-in;
-        }
-        
-        .check-icon::before, .check-icon::after {
-          content: '';
-          height: 100px;
-          position: absolute;
-          background: #FFFFFF;
-          transform: rotate(-45deg);
-        }
-        
-        .check-icon .icon-line {
-          height: 5px;
-          background-color: #4CAF50;
-          display: block;
-          border-radius: 2px;
-          position: absolute;
-          z-index: 10;
-        }
-        
-        .check-icon .icon-line.line-tip {
-          top: 46px;
-          left: 14px;
-          width: 25px;
-          transform: rotate(45deg);
-          animation: icon-line-tip 0.9s ease-out 0.3s both;
-        }
-        
-        .check-icon .icon-line.line-long {
-          top: 38px;
-          right: 8px;
-          width: 47px;
-          transform: rotate(-45deg);
-          animation: icon-line-long 0.9s ease-out 0.3s both;
-        }
-        
-        .check-icon .icon-circle {
-          top: -4px;
-          left: -4px;
-          z-index: 10;
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          position: absolute;
-          box-sizing: content-box;
-          border: 4px solid rgba(76, 175, 80, .5);
-        }
-        
-        .check-icon .icon-fix {
-          top: 8px;
-          width: 5px;
-          left: 26px;
-          z-index: 1;
-          height: 85px;
-          position: absolute;
-          transform: rotate(-45deg);
-          background-color: #FFFFFF;
-        }
-        
-        .success-content {
-          text-align: center;
-          animation: fadeInUp 0.8s ease-out 0.4s both;
-        }
-        
-        .success-title {
-          color: #2c5530;
-          font-size: 1.5em;
-          font-weight: 700;
-          margin: 0 0 8px 0;
-          letter-spacing: 0.5px;
-        }
-        
-        .success-message {
-          color: #5a6c57;
-          font-size: 1em;
-          margin: 0 0 20px 0;
-          font-weight: 500;
-          line-height: 1.4;
-        }
-        
-        .success-progress {
-          width: 200px;
-          height: 4px;
-          background: rgba(76, 175, 80, 0.2);
-          border-radius: 2px;
-          overflow: hidden;
-          margin: 0 auto;
-        }
-        
-        .progress-bar {
-          width: 0%;
-          height: 100%;
-          background: linear-gradient(90deg, #4CAF50, #66BB6A);
-          border-radius: 2px;
-          animation: progress-fill 2s ease-out 0.6s both;
-        }
-        
-        @keyframes fadeInUp {
-          0% {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes progress-fill {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        
-        @keyframes rotate-circle {
-          0% {
-            transform: rotate(-45deg);
-          }
-          5% {
-            transform: rotate(-45deg);
-          }
-          12% {
-            transform: rotate(-405deg);
-          }
-          100% {
-            transform: rotate(-405deg);
-          }
-        }
-        
-        @keyframes icon-line-tip {
-          0% {
-            width: 0;
-            left: 1px;
-            top: 19px;
-          }
-          54% {
-            width: 0;
-            left: 1px;
-            top: 19px;
-          }
-          70% {
-            width: 50px;
-            left: -8px;
-            top: 37px;
-          }
-          84% {
-            width: 17px;
-            left: 21px;
-            top: 48px;
-          }
-          100% {
-            width: 25px;
-            left: 14px;
-            top: 45px;
-          }
-        }
-        
-        @keyframes icon-line-long {
-          0% {
-            width: 0;
-            right: 46px;
-            top: 54px;
-          }
-          65% {
-            width: 0;
-            right: 46px;
-            top: 54px;
-          }
-          84% {
-            width: 55px;
-            right: 0px;
-            top: 35px;
-          }
-          100% {
-            width: 47px;
-            right: 8px;
-            top: 38px;
-          }
-        }
-      `;
-      
-      document.head.appendChild(style);
       
       // Display the success message in the feedback area
       const feedback = document.getElementById('login-feedback');
@@ -742,10 +459,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.appendChild(successDiv);
       }
       
-      // Also show a notification
-      if (window.showNotification) {
-        window.showNotification('success', 'Login Successful!', 'Welcome back! Redirecting to your dashboard...');
-      }
+      // Also show a notification using the enhanced system
+      showNotification('success', 'Login Successful!', 'Welcome back! Redirecting to your dashboard...');
     }
     
     // 2FA Modal Functions
@@ -1125,69 +840,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function showProfessionalSuccess(message) {
         console.log('🎯 Showing professional success:', message);
         
-        const feedback = document.getElementById('login-feedback');
-        if (!feedback) {
-            console.error('❌ login-feedback element not found!');
-            return;
-        }
-        
-        feedback.innerHTML = `
-            <div style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                color: #10b981;
-                font-weight: 600;
-                font-size: 1.1rem;
-                padding: 16px;
-                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%);
-                border: 1px solid rgba(16, 185, 129, 0.3);
-                border-radius: 12px;
-                backdrop-filter: blur(10px);
-                animation: fadeInScale 0.5s ease-out;
-            " role="status" aria-live="polite">
-                <div style="
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: #10b981;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: checkmark 0.6s ease-out 0.2s both;
-                ">
-                    <i class="fas fa-check" style="color: white; font-size: 12px;" aria-hidden="true"></i>
-                </div>
-                <span>${message}</span>
-            </div>
-        `;
-        
-        feedback.style.display = 'block';
-        feedback.setAttribute('aria-live', 'polite');
-        
-        // Progress indicator
-        const progressBar = document.createElement('div');
-        progressBar.style.cssText = `
-            width: 100%;
-            height: 3px;
-            background: rgba(16, 185, 129, 0.2);
-            border-radius: 2px;
-            margin-top: 12px;
-            overflow: hidden;
-        `;
-        
-        const progress = document.createElement('div');
-        progress.style.cssText = `
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #059669);
-            border-radius: 2px;
-            width: 0%;
-            animation: progressFill 2s ease-out;
-        `;
-        
-        progressBar.appendChild(progress);
-        feedback.firstElementChild.appendChild(progressBar);
+        // Use the unified success system
+        showAnimatedSuccess();
         
         return showNotification('success', 'Login Successful', message);
     }

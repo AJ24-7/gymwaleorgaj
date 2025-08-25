@@ -28,6 +28,7 @@
     <script defer src="payment.js"></script>
     <script defer src="equipment.js"></script>
     <script defer src="cash-validation.js"></script>
+    <script defer src="quick-actions-customizer.js"></script>
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
@@ -147,7 +148,7 @@
             <!-- Dashboard Content -->
             <div class="content">
                 <div class="page-header">
-                    <h1 class="page-title">Dashboard Overview</h1>
+                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h1>
                     <div class="page-actions">
                         <button id="openNotificationModalBtn">
                             <i class="fas fa-bell"></i> Send Notification
@@ -256,55 +257,54 @@
                         Quick Actions
                       </h2>
                       <div class="card-actions">
-                        <button class="secondary">
-                          <i class="fas fa-cog"></i>
-                          Customize
+                        <button id="customizeQuickActionsBtn" type="button" class="secondary customize-btn">
+                          <i class="fas fa-palette"></i> Customize
                         </button>
                       </div>
                     </div>
-                    <div class="quick-action-list">
-                      <button class="quick-action-btn" id="addMemberBtn" type="button">
+                    <div class="quick-actions-grid" id="quickActionsGrid">
+                      <div class="quick-action-badge" data-action="add-member" id="addMemberBtn">
                         <i class="fas fa-user-plus"></i>
-                        <span class="quick-action-title">Add Member</span>
-                      </button>
-                      <button class="quick-action-btn" id="recordPaymentBtn" type="button">
+                        <span>Add Member</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="record-payment" id="recordPaymentBtn">
                         <i class="fas fa-money-bill-wave"></i>
-                        <span class="quick-action-title">Record Payment</span>
-                      </button>
-                      <button class="quick-action-btn" id="addTrainerBtn" type="button">
+                        <span>Record Payment</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="add-trainer" id="addTrainerBtn">
                         <i class="fas fa-user-tie"></i>
-                        <span class="quick-action-title">Add Trainer</span>
-                      </button>
-                      <button class="quick-action-btn" id="uploadEquipmentBtn" type="button">
+                        <span>Add Trainer</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="add-equipment" id="uploadEquipmentBtn">
                         <i class="fas fa-dumbbell"></i>
-                        <span class="quick-action-title">Add Equipment</span>
-                      </button>
-                      <button class="quick-action-btn" id="generateQRCodeBtn" type="button">
+                        <span>Add Equipment</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="generate-qr" id="generateQRCodeBtn">
                         <i class="fas fa-qrcode"></i>
-                        <span class="quick-action-title">Generate QR Code</span>
-                      </button>
-                      <button class="quick-action-btn" id="biometricEnrollBtn" type="button">
+                        <span>Generate QR Code</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="biometric-enroll" id="biometricEnrollBtn">
                         <i class="fas fa-fingerprint"></i>
-                        <span class="quick-action-title">Biometric Enrollment</span>
-                      </button>
-                      <button class="quick-action-btn" id="deviceSetupBtn" type="button">
+                        <span>Biometric Enrollment</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="device-setup" id="deviceSetupBtn">
                         <i class="fas fa-cogs"></i>
-                        <span class="quick-action-title">Setup Devices</span>
-                      </button>
-                      <button class="quick-action-btn" id="sendNotificationQuickBtn" type="button">
+                        <span>Setup Devices</span>
+                      </div>
+                      <div class="quick-action-badge" data-action="send-notification" id="sendNotificationQuickBtn">
                         <i class="fas fa-bell"></i>
-                        <span class="quick-action-title">Send Notification</span>
-                      </button>
+                        <span>Send Notification</span>
+                      </div>
                     </div>
                   </div>
                   <div class="card activities-offered-card">
-                    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div class="card-header">
                       <h2 class="card-title">
                         <i class="fas fa-heart"></i>
                         Activities Offered
                       </h2>
                       <div class="card-actions">
-                        <button id="addActivitiesBtn" type="button" style="display:flex;align-items:center;gap:8px;font-size:1rem;padding:10px 18px;background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);color:#fff;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(25,118,210,0.3);cursor:pointer;transition: all 0.3s ease;">
+                        <button id="addActivitiesBtn" type="button" class="secondary">
                           <i class="fas fa-plus-circle"></i> Add Activities
                         </button>
                       </div>
@@ -318,7 +318,7 @@
                  <!-- Interactive Gym Photos Grid -->
                 <section id="photoGridSection" class="card" style="margin-top: 24px;">
                   <div class="card-header">
-                    <h1 class="card-title">Previously Uploaded Gym Photos</h1>
+                    <h1 class="card-title"><i class="fas fa-images"></i> Previously Uploaded Gym Photos</h1>
                     <button class="upload-photo-btn" id="uploadPhotoBtn">
                             <i class="fas fa-camera"></i> Upload Photo
                         </button>
@@ -336,7 +336,7 @@
 <div class="plans-list" id="plansList"></div>
                         </div>
                         <!-- Membership Plan Editor Modal -->
-                        <div class="modal" id="planEditorModal" style="display:none;z-index:10001;align-items:flex-start;">
+                        <div class="modal" id="planEditorModal" style="display:none;z-index:100000;align-items:flex-start;">
                           <div class="modal-content" style="max-width:700px;margin-top:48px;">
                             <div style="display:flex;align-items:center;justify-content:space-between;">
                               <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-crown" style="color:#ffbe0b;"></i> Edit Membership Plans</h3>
@@ -552,7 +552,7 @@
                     </div>
 
                     <!-- Received Payments Details Modal -->
-                    <div class="modal" id="receivedPaymentsModal" style="display:none;z-index:10010;align-items:flex-start;">
+                    <div class="modal" id="receivedPaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:520px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                           <h3 style="margin:0;color:#22c55e;font-weight:600;"><i class="fas fa-wallet"></i> Amount Received Breakdown</h3>
@@ -577,7 +577,7 @@
                     </div>
 
                     <!-- Paid Amounts Details Modal -->
-                    <div class="modal" id="paidAmountsModal" style="display:none;z-index:10010;align-items:flex-start;">
+                    <div class="modal" id="paidAmountsModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:520px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                           <h3 style="margin:0;color:#ef4444;font-weight:600;"><i class="fas fa-money-bill-wave"></i> Amount Paid Breakdown</h3>
@@ -598,7 +598,7 @@
                     </div>
 
                     <!-- Pending Payments Details Modal -->
-                    <div class="modal" id="pendingPaymentsModal" style="display:none;z-index:10010;align-items:flex-start;">
+                    <div class="modal" id="pendingPaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:700px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                           <h3 style="margin:0;color:#f59e0b;font-weight:600;"><i class="fas fa-clock"></i> Pending Payments Details</h3>
@@ -623,7 +623,7 @@
                     </div>
 
                     <!-- Due Payments Details Modal -->
-                    <div class="modal" id="duePaymentsModal" style="display:none;z-index:10010;align-items:flex-start;">
+                    <div class="modal" id="duePaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:700px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                           <h3 style="margin:0;color:#dc2626;font-weight:600;"><i class="fas fa-calendar-times"></i> Due Payments Details</h3>
@@ -648,7 +648,7 @@
                     </div>
 
                     <!-- Profit/Loss Details Modal -->
-                    <div class="modal" id="profitLossModal" style="display:none;z-index:10010;align-items:flex-start;">
+                    <div class="modal" id="profitLossModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:600px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                           <h3 style="margin:0;color:#3b82f6;font-weight:600;"><i class="fas fa-chart-line"></i> Profit/Loss Analysis</h3>
@@ -751,6 +751,238 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Quick Actions Floating Bar -->
+<div id="quickActionsFloatingBar" class="quick-actions-floating-bar" style="display: none;">
+  <div class="floating-bar-container">
+    <button class="floating-action-btn" data-action="add-member" title="Add Member">
+      <i class="fas fa-user-plus"></i>
+    </button>
+    <button class="floating-action-btn" data-action="record-payment" title="Record Payment">
+      <i class="fas fa-money-bill-wave"></i>
+    </button>
+    <button class="floating-action-btn" data-action="add-trainer" title="Add Trainer">
+      <i class="fas fa-user-tie"></i>
+    </button>
+    <button class="floating-action-btn" data-action="add-equipment" title="Add Equipment">
+      <i class="fas fa-dumbbell"></i>
+    </button>
+    <button class="floating-action-btn" data-action="generate-qr" title="Generate QR Code">
+      <i class="fas fa-qrcode"></i>
+    </button>
+    <button class="floating-action-btn" data-action="biometric-enroll" title="Biometric Enrollment">
+      <i class="fas fa-fingerprint"></i>
+    </button>
+    <button class="floating-action-btn" data-action="device-setup" title="Setup Devices">
+      <i class="fas fa-cogs"></i>
+    </button>
+    <button class="floating-action-btn" data-action="send-notification" title="Send Notification">
+      <i class="fas fa-bell"></i>
+    </button>
+    <button class="floating-bar-toggle" id="floatingBarToggle" title="Toggle Floating Bar">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Quick Actions Circular Assistant -->
+<div id="quickActionsCircularAssistant" class="quick-actions-circular-assistant collapsed" style="display: none;">
+  <div class="circular-toggle" id="circularToggle">
+    <i class="fas fa-bolt"></i>
+    <div class="circular-arrow">
+      <i class="fas fa-chevron-left"></i>
+    </div>
+  </div>
+  
+  <div class="circular-panel">
+    <div class="circular-panel-header">
+      <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+      <button class="circular-panel-close" id="circularPanelClose">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="circular-panel-content">
+      <div class="circular-search">
+        <input type="text" id="circularSearch" placeholder="Search actions..." />
+        <i class="fas fa-search"></i>
+      </div>
+      
+      <div class="circular-actions-grid">
+        <div class="circular-action-item" data-action="add-member">
+          <div class="circular-action-icon">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <span class="circular-action-title">Add Member</span>
+        </div>
+        <div class="circular-action-item" data-action="record-payment">
+          <div class="circular-action-icon">
+            <i class="fas fa-money-bill-wave"></i>
+          </div>
+          <span class="circular-action-title">Record Payment</span>
+        </div>
+        <div class="circular-action-item" data-action="add-trainer">
+          <div class="circular-action-icon">
+            <i class="fas fa-user-tie"></i>
+          </div>
+          <span class="circular-action-title">Add Trainer</span>
+        </div>
+        <div class="circular-action-item" data-action="add-equipment">
+          <div class="circular-action-icon">
+            <i class="fas fa-dumbbell"></i>
+          </div>
+          <span class="circular-action-title">Add Equipment</span>
+        </div>
+        <div class="circular-action-item" data-action="generate-qr">
+          <div class="circular-action-icon">
+            <i class="fas fa-qrcode"></i>
+          </div>
+          <span class="circular-action-title">Generate QR</span>
+        </div>
+        <div class="circular-action-item" data-action="biometric-enroll">
+          <div class="circular-action-icon">
+            <i class="fas fa-fingerprint"></i>
+          </div>
+          <span class="circular-action-title">Biometric</span>
+        </div>
+        <div class="circular-action-item" data-action="device-setup">
+          <div class="circular-action-icon">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <span class="circular-action-title">Device Setup</span>
+        </div>
+        <div class="circular-action-item" data-action="send-notification">
+          <div class="circular-action-icon">
+            <i class="fas fa-bell"></i>
+          </div>
+          <span class="circular-action-title">Notification</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions Customization Modal -->
+<div class="modal" id="quickActionsCustomizeModal" style="display: none;">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header-style">
+      <h3 class="modal-title-style">
+        <i class="fas fa-palette"></i> Customize Quick Actions
+      </h3>
+      <button class="modal-close" id="closeQuickActionsCustomizeModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="customize-sections">
+        <!-- Layout Options -->
+        <div class="customize-section">
+          <h4><i class="fas fa-layout"></i> Layout Style</h4>
+          <div class="layout-options">
+            <label class="layout-option">
+              <input type="radio" name="quickActionsLayout" value="default" checked>
+              <div class="layout-preview default">
+                <div class="layout-title">Default Grid</div>
+                <div class="layout-description">Standard card layout with grid buttons</div>
+              </div>
+            </label>
+            <label class="layout-option">
+              <input type="radio" name="quickActionsLayout" value="floating">
+              <div class="layout-preview floating">
+                <div class="layout-title">Floating Bar</div>
+                <div class="layout-description">Fixed floating action buttons</div>
+              </div>
+            </label>
+            <label class="layout-option">
+              <input type="radio" name="quickActionsLayout" value="circular">
+              <div class="layout-preview circular">
+                <div class="layout-title">Circular Assistant</div>
+                <div class="layout-description">Collapsible circular panel from edge</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Action Visibility -->
+        <div class="customize-section">
+          <h4><i class="fas fa-eye"></i> Visible Actions</h4>
+          <div class="action-toggles">
+            <label class="action-toggle">
+              <input type="checkbox" data-action="add-member" checked>
+              <span class="action-icon"><i class="fas fa-user-plus"></i></span>
+              <span class="action-label">Add Member</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="record-payment" checked>
+              <span class="action-icon"><i class="fas fa-money-bill-wave"></i></span>
+              <span class="action-label">Record Payment</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="add-trainer" checked>
+              <span class="action-icon"><i class="fas fa-user-tie"></i></span>
+              <span class="action-label">Add Trainer</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="add-equipment" checked>
+              <span class="action-icon"><i class="fas fa-dumbbell"></i></span>
+              <span class="action-label">Add Equipment</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="generate-qr" checked>
+              <span class="action-icon"><i class="fas fa-qrcode"></i></span>
+              <span class="action-label">Generate QR Code</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="biometric-enroll" checked>
+              <span class="action-icon"><i class="fas fa-fingerprint"></i></span>
+              <span class="action-label">Biometric Enrollment</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="device-setup" checked>
+              <span class="action-icon"><i class="fas fa-cogs"></i></span>
+              <span class="action-label">Setup Devices</span>
+            </label>
+            <label class="action-toggle">
+              <input type="checkbox" data-action="send-notification" checked>
+              <span class="action-icon"><i class="fas fa-bell"></i></span>
+              <span class="action-label">Send Notification</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Position Settings (for floating bar) -->
+        <div class="customize-section" id="floatingPositionSection" style="display: none;">
+          <h4><i class="fas fa-arrows-alt"></i> Floating Bar Position</h4>
+          <div class="position-options">
+            <label class="position-option">
+              <input type="radio" name="floatingPosition" value="bottom">
+              <span>Bottom</span>
+            </label>
+            <label class="position-option">
+              <input type="radio" name="floatingPosition" value="top">
+              <span>Top</span>
+            </label>
+            <label class="position-option">
+              <input type="radio" name="floatingPosition" value="left">
+              <span>Left</span>
+            </label>
+            <label class="position-option">
+              <input type="radio" name="floatingPosition" value="right" checked>
+              <span>Right</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="resetQuickActionsCustomization">
+        <i class="fas fa-undo"></i> Reset to Default
+      </button>
+      <button type="button" class="btn btn-primary" id="saveQuickActionsCustomization">
+        <i class="fas fa-save"></i> Save Changes
+      </button>
+    </div>
+  </div>
+</div>
 
     <!-- Add Activities Modal -->
     <div class="modal" id="addActivitiesModal" style="display:none;">
@@ -1561,7 +1793,7 @@
 </div>
 
 <!-- QR Code Generator Modal -->
-<div class="modal" id="qrCodeGeneratorModal" style="display:none;z-index:10003;">
+<div class="modal" id="qrCodeGeneratorModal" style="display:none;z-index:100000;">
   <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
     <div class="modal-header-style">
       <h3 class="modal-title-style"><i class="fas fa-qrcode"></i> QR Code Generator - Member Registration</h3>
@@ -2768,42 +3000,177 @@
         </div>
       </div>
       
-      <!-- Admin Passkey Security Settings -->
+
+      
+      <!-- Enhanced Dashboard Customization Section -->
       <div class="settings-section">
-        <div class="settings-card">
-          <div class="section-info-icon" onclick="showAdminSecurityInfo()" title="Admin Security Information">
+        <div class="enhanced-settings-card enhanced-dashboard-section" id="customizeDashboardSection">
+          <div class="section-info-icon" onclick="showCustomizeDashboardInfo()" title="Dashboard Customization Information">
             <i class="fas fa-info"></i>
           </div>
-          <div class="settings-header">
-            <h3><i class="fas fa-shield-alt"></i> Admin Security</h3>
-            <p>Manage your admin passkey for secure payment access</p>
+          
+          <div class="enhanced-settings-header">
+            <h3 class="enhanced-settings-title">
+              <i class="fas fa-sliders-h"></i> Dashboard Customization
+            </h3>
+            <p class="enhanced-settings-description">
+              Personalize your dashboard layout, visibility settings, and quick action preferences for an optimized workflow experience.
+            </p>
           </div>
-          <div class="settings-content">
-            <div class="passkey-settings">
-              <div class="current-passkey-status">
-                <div class="status-indicator">
-                  <div class="status-dot active" id="passkeyStatusDot"></div>
-                  <span class="status-text" id="passkeyStatusText">Passkey Active</span>
+
+          <!-- Tab Visibility Controls -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-eye"></i> Tab Visibility
+            </h4>
+            
+            <div class="enhanced-form-group">
+              <div class="setting-info-enhanced">
+                <div class="enhanced-form-label">
+                  <i class="fas fa-dumbbell"></i> Equipment Management Tab
                 </div>
-                <p class="passkey-info">Your 4-digit passkey is required to access payment management</p>
+                <div class="enhanced-form-description">
+                  Control access to equipment tracking, maintenance logs, and gym inventory management features.
+                </div>
               </div>
-              
-              <div class="passkey-actions-settings">
-                <button type="button" class="settings-btn primary" id="changePasskeyBtn">
-                  <i class="fas fa-key"></i> Change Passkey
-                </button>
-                <button type="button" class="settings-btn secondary" id="generatePasskeyBtn">
-                  <i class="fas fa-random"></i> Generate Random
-                </button>
-                <button type="button" class="settings-btn danger" id="disablePasskeyBtn">
-                  <i class="fas fa-lock-open"></i> Disable Passkey
-                </button>
+              <div class="enhanced-toggle-switch">
+                <input type="checkbox" id="toggleEquipmentTab" checked>
+                <span class="enhanced-toggle-slider"></span>
               </div>
+            </div>
+
+            <div class="enhanced-form-group">
+              <div class="setting-info-enhanced">
+                <div class="enhanced-form-label">
+                  <i class="fas fa-credit-card"></i> Payment Management Tab
+                </div>
+                <div class="enhanced-form-description">
+                  Enable payment processing, billing management, and financial reporting capabilities.
+                </div>
+              </div>
+              <div class="enhanced-toggle-switch">
+                <input type="checkbox" id="togglePaymentTab" checked>
+                <span class="enhanced-toggle-slider"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Layout -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-bolt"></i> Quick Actions Layout
+            </h4>
+            
+            <div class="enhanced-layout-selector">
+              <label class="enhanced-layout-option">
+                <input type="radio" name="quickActionsLayoutSetting" value="default" checked>
+                <div class="enhanced-layout-preview">
+                  <i class="fas fa-th-large"></i>
+                  <span>Default Grid</span>
+                </div>
+              </label>
               
-              <!-- Change Passkey Form -->
-              <div class="change-passkey-form" id="changePasskeyForm" style="display: none;">
+              <label class="enhanced-layout-option">
+                <input type="radio" name="quickActionsLayoutSetting" value="floating">
+                <div class="enhanced-layout-preview">
+                  <i class="fas fa-layer-group"></i>
+                  <span>Floating Bar</span>
+                </div>
+              </label>
+              
+              <label class="enhanced-layout-option">
+                <input type="radio" name="quickActionsLayoutSetting" value="circular">
+                <div class="enhanced-layout-preview">
+                  <i class="fas fa-circle-notch"></i>
+                  <span>Circular Assistant</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Quick Actions Management -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-palette"></i> Quick Actions Management
+            </h4>
+            
+            <div class="enhanced-form-group">
+              <div class="setting-info-enhanced">
+                <div class="enhanced-form-label">
+                  <i class="fas fa-cogs"></i> Customize Quick Actions
+                </div>
+                <div class="enhanced-form-description">
+                  Configure which quick action buttons are visible and customize their arrangement for your workflow.
+                </div>
+              </div>
+              <button id="openQuickActionsCustomizeFromSettings" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Customize Actions
+              </button>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+              <strong>Pro Tip:</strong> Hidden tabs will not be accessible until re-enabled. Quick actions can be reordered by dragging in the customization panel.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhanced Security & Admin Management Section -->
+      <div class="settings-section">
+        <div class="enhanced-settings-card" id="securityAdminSection">
+          <div class="section-info-icon" onclick="showSecurityInfo()" title="Security & Admin Information">
+            <i class="fas fa-info"></i>
+          </div>
+          
+          <div class="enhanced-settings-header">
+            <h3 class="enhanced-settings-title">
+              <i class="fas fa-shield-alt"></i> Security & Admin Management
+            </h3>
+            <p class="enhanced-settings-description">
+              Comprehensive security controls, admin authentication, and privacy settings to protect your gym management system.
+            </p>
+          </div>
+
+          <!-- Admin Passkey Security -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-key"></i> Admin Passkey Protection
+            </h4>
+            
+            <div class="security-feature-grid">
+              <div class="security-feature-card">
+                <div class="security-feature-header">
+                  <div class="security-feature-title">
+                    <i class="fas fa-lock"></i> Payment Access Control
+                  </div>
+                  <span class="security-status-badge active" id="passkeyStatusBadge">Active</span>
+                </div>
+                <div class="security-feature-description">
+                  Your 4-digit admin passkey secures access to payment management, financial reports, and sensitive billing operations.
+                </div>
+                <div class="security-feature-actions">
+                  <button type="button" class="btn btn-primary" id="changePasskeyBtn">
+                    <i class="fas fa-key"></i> Change Passkey
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="generatePasskeyBtn">
+                    <i class="fas fa-random"></i> Generate Random
+                  </button>
+                  <button type="button" class="btn btn-danger" id="disablePasskeyBtn">
+                    <i class="fas fa-lock-open"></i> Disable
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Change Passkey Form -->
+            <div class="change-passkey-form" id="changePasskeyForm" style="display: none;">
+              <div class="enhanced-sub-section">
+                <h5>Update Admin Passkey</h5>
                 <div class="form-section">
-                  <h4>Current Passkey</h4>
+                  <label class="enhanced-form-label">Current Passkey</label>
                   <div class="passkey-input-row">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="0">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="1">
@@ -2813,7 +3180,7 @@
                 </div>
                 
                 <div class="form-section">
-                  <h4>New Passkey</h4>
+                  <label class="enhanced-form-label">New Passkey</label>
                   <div class="passkey-input-row">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="0">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="1">
@@ -2823,7 +3190,7 @@
                 </div>
                 
                 <div class="form-section">
-                  <h4>Confirm New Passkey</h4>
+                  <label class="enhanced-form-label">Confirm New Passkey</label>
                   <div class="passkey-input-row">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="0">
                     <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="1">
@@ -2832,9 +3199,9 @@
                   </div>
                 </div>
                 
-                <div class="form-actions">
-                  <button type="button" class="settings-btn secondary" id="cancelChangePasskey">Cancel</button>
-                  <button type="button" class="settings-btn primary" id="saveNewPasskey">Save Passkey</button>
+                <div class="form-actions" style="display: flex; gap: 12px; margin-top: 20px;">
+                  <button type="button" class="btn btn-secondary" id="cancelChangePasskey">Cancel</button>
+                  <button type="button" class="btn btn-primary" id="saveNewPasskey">Save Passkey</button>
                 </div>
                 
                 <div class="passkey-form-error" id="passkeyFormError" style="display: none;">
@@ -2842,39 +3209,132 @@
                   <span class="error-message"></span>
                 </div>
               </div>
-              
+            </div>
+          </div>
+
+          <!-- Account Security -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-user-shield"></i> Account Security
+            </h4>
+            
+            <div class="enhanced-setting-item">
+              <div class="setting-info-enhanced">
+                <div class="setting-label-enhanced">
+                  <i class="fas fa-mobile-alt"></i> Two-Factor Authentication
+                </div>
+                <div class="setting-description-enhanced">
+                  Add an extra layer of security to your account with SMS or authenticator app verification.
+                </div>
+              </div>
+              <div class="setting-controls-enhanced">
+                <div class="enhanced-toggle-switch">
+                  <input type="checkbox" id="twoFactorAuth">
+                  <span class="enhanced-toggle-slider"></span>
+                </div>
+                <button class="enhanced-action-btn" onclick="window.twoFactorManager.showBackupCodes(['ABC123', 'DEF456', 'GHI789'])" title="View backup codes">
+                  <i class="fas fa-key"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="enhanced-setting-item">
+              <div class="setting-info-enhanced">
+                <div class="setting-label-enhanced">
+                  <i class="fas fa-bell"></i> Login Notifications
+                </div>
+                <div class="setting-description-enhanced">
+                  Get notified via email and app notifications when someone accesses your admin account.
+                </div>
+              </div>
+              <div class="setting-controls-enhanced">
+                <div class="enhanced-toggle-switch">
+                  <input type="checkbox" id="loginNotifications" checked>
+                  <span class="enhanced-toggle-slider"></span>
+                </div>
+                <button class="enhanced-action-btn" onclick="window.loginNotificationsManager.showNotificationPreferences()" title="Notification preferences">
+                  <i class="fas fa-cog"></i>
+                </button>
+                <button class="enhanced-action-btn" onclick="window.loginNotificationsManager.showRecentLogins()" title="View recent logins">
+                  <i class="fas fa-history"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="enhanced-setting-item">
+              <div class="setting-info-enhanced">
+                <div class="setting-label-enhanced">
+                  <i class="fas fa-clock"></i> Session Timeout
+                </div>
+                <div class="setting-description-enhanced">
+                  Automatically log out after a period of inactivity to protect your account.
+                </div>
+              </div>
+              <div class="setting-controls-enhanced">
+                <select class="enhanced-form-select" id="sessionTimeoutSelect" style="width: 150px;">
+                  <option value="30">30 minutes</option>
+                  <option value="60" selected>1 hour</option>
+                  <option value="120">2 hours</option>
+                  <option value="240">4 hours</option>
+                  <option value="480">8 hours</option>
+                  <option value="0">Never</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Privacy Controls -->
+          <div class="enhanced-sub-section">
+            <h4 class="enhanced-sub-section-title">
+              <i class="fas fa-eye-slash"></i> Privacy Controls
+            </h4>
+            
+            <div class="enhanced-setting-item">
+              <div class="setting-info-enhanced">
+                <div class="setting-label-enhanced">
+                  <i class="fas fa-chart-line"></i> Analytics & Tracking
+                </div>
+                <div class="setting-description-enhanced">
+                  Allow system analytics to help improve platform performance and user experience.
+                </div>
+              </div>
+              <div class="setting-controls-enhanced">
+                <div class="enhanced-toggle-switch">
+                  <input type="checkbox" id="analyticsTracking" checked>
+                  <span class="enhanced-toggle-slider"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="enhanced-setting-item">
+              <div class="setting-info-enhanced">
+                <div class="setting-label-enhanced">
+                  <i class="fas fa-database"></i> Data Retention
+                </div>
+                <div class="setting-description-enhanced">
+                  Control how long inactive member data and logs are retained in the system.
+                </div>
+              </div>
+              <div class="setting-controls-enhanced">
+                <select class="enhanced-form-select" id="dataRetentionSelect" style="width: 150px;">
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="180" selected>6 months</option>
+                  <option value="365">1 year</option>
+                  <option value="0">Never delete</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="fas fa-shield-alt"></i>
+            <div>
+              <strong>Security Reminder:</strong> Regular security audits and strong authentication help protect your gym's sensitive data and member information.
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Customize Dashboard Section in Settings Tab -->
-    <div class="settings-section card" id="customizeDashboardSection">
-      <div class="section-info-icon" onclick="showCustomizeDashboardInfo()" title="Dashboard Customization Information">
-        <i class="fas fa-info"></i>
-      </div>
-      <h2 style="margin-bottom: 18px; color: var(--primary); display: flex; align-items: center; gap: 10px; font-size: 1.4rem;">
-        <i class="fas fa-sliders-h"></i> Customize Dashboard
-      </h2>
-      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
-        <label for="toggleEquipmentTab" style="font-weight: 500; font-size: 1rem;">Show Equipment Tab</label>
-        <label class="switch">
-          <input type="checkbox" id="toggleEquipmentTab" checked>
-          <span class="slider round"></span>
-        </label>
-      </div>
-      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
-        <label for="togglePaymentTab" style="font-weight: 500; font-size: 1rem;">Show Payment Tab</label>
-        <label class="switch">
-          <input type="checkbox" id="togglePaymentTab" checked>
-          <span class="slider round"></span>
-        </label>
-      </div>
-      <div class="alert alert-info" style="margin-top: 20px; padding: 12px 16px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 6px;">
-        <i class="fas fa-info-circle" style="margin-right: 8px; color: #2196F3;"></i>
-        <strong>Note:</strong> You can customize which tabs are visible on your dashboard. Hidden tabs will not be accessible until re-enabled.
-      </div>
-    </div>
+      }
 
     <!-- Subscription Management Section -->
     <div class="settings-section card" id="subscriptionManagementSection">
@@ -3363,88 +3823,7 @@
         </div>
       </div>
 
-      <!-- Security Settings -->
-      <div class="settings-section">
-        <div class="settings-card">
-          <div class="section-info-icon" onclick="showSecurityInfo()" title="Security Information & Tips">
-            <i class="fas fa-info"></i>
-          </div>
-          <div class="settings-header">
-            <h3><i class="fas fa-shield-alt"></i> Security & Privacy</h3>
-            <p>Manage your account security settings and privacy preferences</p>
-          </div>
-          <div class="settings-content">
-            <div class="setting-item">
-              <div class="setting-info">
-                <div class="setting-label">Two-Factor Authentication</div>
-                <div class="setting-description">Add an extra layer of security to your account with 2FA</div>
-              </div>
-              <div class="setting-controls">
-                <div class="toggle-switch">
-                  <input type="checkbox" id="twoFactorAuth">
-                  <label for="twoFactorAuth" class="toggle-label"></label>
-                </div>
-                <button class="security-action-btn" onclick="window.twoFactorManager.showBackupCodes(['ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345', 'PQR678'])" title="View backup codes">
-                  <i class="fas fa-key"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div class="setting-item">
-              <div class="setting-info">
-                <div class="setting-label">Login Notifications</div>
-                <div class="setting-description">Get notified of new login attempts to your account</div>
-              </div>
-              <div class="setting-controls">
-                <div class="toggle-switch">
-                  <input type="checkbox" id="loginNotifications" checked>
-                  <label for="loginNotifications" class="toggle-label"></label>
-                </div>
-                <button class="security-action-btn" onclick="window.loginNotificationsManager.showNotificationPreferences()" title="Notification preferences">
-                  <i class="fas fa-cog"></i>
-                </button>
-                <button class="security-action-btn" onclick="window.loginNotificationsManager.showRecentLogins()" title="View recent logins">
-                  <i class="fas fa-history"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div class="setting-item">
-              <div class="setting-info">
-                <div class="setting-label">Session Timeout</div>
-                <div class="setting-description">Automatically log out after period of inactivity</div>
-              </div>
-              <div class="setting-controls">
-                <select class="setting-select" id="sessionTimeoutSelect">
-                  <option value="30">30 minutes</option>
-                  <option value="60" selected>1 hour</option>
-                  <option value="120">2 hours</option>
-                  <option value="240">4 hours</option>
-                  <option value="480">8 hours</option>
-                  <option value="0">Never</option>
-                </select>
-              </div>
-            </div>
 
-            <!-- Security Actions -->
-            <div class="security-actions-section">
-              <h4><i class="fas fa-tools"></i> Security Actions</h4>
-              <div class="security-action-buttons">
-                <button class="security-btn secondary" onclick="window.loginNotificationsManager.showRecentLogins()">
-                  <i class="fas fa-history"></i> View Login History
-                </button>
-                <button class="security-btn secondary" onclick="window.twoFactorManager.showBackupCodes(['Loading...'])">
-                  <i class="fas fa-download"></i> Download Backup Codes
-                </button>
-                <button class="security-btn secondary" onclick="showChangePasswordModal()">
-                  <i class="fas fa-lock"></i> Change Password
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
 
       <!-- Data Management -->
       <div class="settings-section">
@@ -4319,58 +4698,8 @@
    <!-- Notification Configuration -->
    <script src="notification-config.js"></script>
    
-   <!-- Security Info Modal Function -->
+   <!-- Enhanced Security Info Modal Functions -->
    <script>
-   function showSecurityInfo() {
-     const modal = document.createElement('div');
-     modal.className = 'modal';
-     modal.style.display = 'flex';
-     modal.innerHTML = `
-       <div class="modal-content security-modal-content" style="max-width: 600px;">
-         <div class="modal-header-style">
-           <h3 class="modal-title-style">
-             <i class="fas fa-shield-alt"></i> Security Information & Tips
-           </h3>
-           <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-         </div>
-         <div class="modal-body">
-           <div class="security-tips">
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Use a unique, strong password for your account</span>
-             </div>
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Enable two-factor authentication for enhanced security</span>
-             </div>
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Regularly review your login activity for suspicious access</span>
-             </div>
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Keep your backup codes in a secure location</span>
-             </div>
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Never share your login credentials with others</span>
-             </div>
-             <div class="security-tip">
-               <i class="fas fa-check-circle"></i>
-               <span>Log out from shared or public computers</span>
-             </div>
-           </div>
-         </div>
-         <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #eee; text-align: right;">
-           <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
-             Close
-           </button>
-         </div>
-       </div>
-     `;
-     document.body.appendChild(modal);
-   }
-
    function showChangePasswordModal() {
      const modal = document.createElement('div');
      modal.className = 'modal';
@@ -4461,14 +4790,17 @@
      ]);
    }
 
-   // Admin Security Info Modal
-   function showAdminSecurityInfo() {
-     createInfoModal('Admin Security Tips', 'shield-alt', [
-       'Use a unique 4-digit passkey that\'s easy to remember but hard to guess',
-       'Change your passkey regularly for enhanced security',
-       'Never share your admin passkey with unauthorized personnel',
-       'Use the generate random option for maximum security',
-       'Admin passkey protects sensitive payment and financial data'
+   // Enhanced Security & Admin Management Info Modal
+   function showSecurityInfo() {
+     createInfoModal('Security & Admin Management Tips', 'shield-alt', [
+       'Use a unique 4-digit admin passkey that\'s easy to remember but hard to guess',
+       'Enable two-factor authentication for enhanced account security',
+       'Change your passkey regularly and never share with unauthorized personnel',
+       'Monitor login notifications to detect unauthorized access attempts',
+       'Use strong session timeout settings to protect your account',
+       'Admin passkey protects sensitive payment and financial data',
+       'Review and manage privacy settings to control data usage',
+       'Regular security audits help maintain optimal protection'
      ]);
    }
 
@@ -4478,8 +4810,10 @@
        'Hide tabs you don\'t use to simplify your dashboard interface',
        'Equipment tab provides detailed equipment management features',
        'Payment tab requires admin security verification for access',
-       'Customization settings are saved automatically',
-       'You can always re-enable hidden tabs from this settings page'
+       'Choose from multiple quick actions layout styles for optimal workflow',
+       'Customization settings are saved automatically across sessions',
+       'You can always re-enable hidden tabs from this settings page',
+       'Drag and drop quick actions to reorder them according to your preferences'
      ]);
    }
 

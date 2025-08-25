@@ -189,7 +189,7 @@ class NotificationSystem {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        z-index: 1205;
+        z-index: 999999;
         display: none;
         overflow: hidden;
         max-height: calc(100vh - 120px);
@@ -416,8 +416,10 @@ class NotificationSystem {
         position: fixed;
         top: 80px;
         right: 20px;
-        z-index: 1210;
+        z-index: 999999;
         pointer-events: none;
+        width: auto;
+        max-width: 350px;
         max-height: calc(100vh - 100px);
         overflow-y: auto;
       }
@@ -429,12 +431,15 @@ class NotificationSystem {
         padding: 15px 20px;
         margin-bottom: 10px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        width: 100%;
         max-width: 350px;
+        min-width: 280px;
         animation: slideInRight 0.3s ease;
         pointer-events: auto;
         position: relative;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        box-sizing: border-box;
       }
 
       .notification-toast.grievance {
@@ -526,13 +531,15 @@ class NotificationSystem {
           right: 10px;
           left: 10px;
           width: auto;
+          max-width: none;
         }
         
         .notification-toast {
           max-width: none;
-          width: 100%;
+          width: calc(100% - 20px);
           margin-left: 0;
           margin-right: 0;
+          min-width: auto;
         }
         
         .notification-filters {
@@ -661,7 +668,11 @@ class NotificationSystem {
     // Mark all read button
     const markAllRead = document.getElementById('markAllRead');
     if (markAllRead) {
-      markAllRead.addEventListener('click', () => this.markAllNotificationsRead());
+      markAllRead.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.markAllNotificationsRead();
+      });
     }
 
     // View all notifications button

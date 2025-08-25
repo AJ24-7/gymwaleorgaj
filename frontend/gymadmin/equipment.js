@@ -118,6 +118,12 @@ class EquipmentManager {
             
             this.renderEquipmentGrid();
             this.updateStatistics();
+            
+            // Refresh dashboard equipment gallery if we're not on equipment tab
+            if (!document.getElementById('equipmentTab')?.style.display || 
+                document.getElementById('equipmentTab').style.display === 'none') {
+                this.refreshDashboardEquipmentGallery();
+            }
         } catch (error) {
             console.error('Error loading equipment data:', error);
             this.showErrorState(`Failed to load equipment data: ${error.message}`);
@@ -469,6 +475,9 @@ class EquipmentManager {
                 this.updateStatistics();
                 this.showSuccessMessage('Equipment deleted successfully');
                 this.closeEquipmentDetailModal();
+                
+                // Refresh dashboard equipment gallery
+                this.refreshDashboardEquipmentGallery();
             } else {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to delete equipment');
@@ -695,6 +704,9 @@ class EquipmentManager {
             this.updateStatistics();
             this.closeEquipmentModal();
             
+            // Refresh dashboard equipment gallery
+            this.refreshDashboardEquipmentGallery();
+            
             // Enhanced notification refresh using unified system
             if (window.NotificationManager && window.NotificationManager.getInstance()) {
                 window.NotificationManager.getInstance().loadExistingNotifications();
@@ -838,6 +850,16 @@ class EquipmentManager {
     openBulkImportModal() {
         // Placeholder for bulk import functionality
         alert('Bulk import feature coming soon! You can manually add equipment for now.');
+    }
+
+    // Refresh dashboard equipment gallery
+    refreshDashboardEquipmentGallery() {
+        // Call the global loadDashboardEquipment function if it exists
+        if (typeof window.loadDashboardEquipment === 'function') {
+            window.loadDashboardEquipment();
+        } else if (typeof loadDashboardEquipment === 'function') {
+            loadDashboardEquipment();
+        }
     }
 }
 

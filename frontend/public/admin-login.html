@@ -14,15 +14,98 @@
   <link rel="icon" type="image/png" href="../gymadmin/public/Gym-Wale.png">
 </head>
 <body>
+  <!-- Gym-Wale Brand Specific Animated Background -->
+  <div class="gym-animation-container">
+    <!-- Dumbbell Icons -->
+    <div class="floating-element dumbbell-1">
+      <i class="fas fa-dumbbell"></i>
+    </div>
+    <div class="floating-element dumbbell-2">
+      <i class="fas fa-dumbbell"></i>
+    </div>
+    <div class="floating-element dumbbell-3">
+      <i class="fas fa-dumbbell"></i>
+    </div>
+    
+    <!-- User Management Icons -->
+    <div class="floating-element user-icon-1">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="floating-element user-icon-2">
+      <i class="fas fa-user-plus"></i>
+    </div>
+    
+    <!-- Analytics/Chart Icons -->
+    <div class="floating-element chart-icon-1">
+      <i class="fas fa-chart-line"></i>
+    </div>
+    <div class="floating-element chart-icon-2">
+      <i class="fas fa-chart-bar"></i>
+    </div>
+    
+    <!-- Fitness Equipment -->
+    <div class="floating-element equipment-1">
+      <i class="fas fa-running"></i>
+    </div>
+    <div class="floating-element equipment-2">
+      <i class="fas fa-bicycle"></i>
+    </div>
+    
+    <!-- Health/Heartbeat Icons -->
+    <div class="floating-element heartbeat-1">
+      <i class="fas fa-heart"></i>
+    </div>
+    <div class="floating-element heartbeat-2">
+      <i class="fas fa-heartbeat"></i>
+    </div>
+    
+    <!-- Technology/QR Code Icons -->
+    <div class="floating-element tech-icon-1">
+      <i class="fas fa-qrcode"></i>
+    </div>
+    <div class="floating-element tech-icon-2">
+      <i class="fas fa-fingerprint"></i>
+    </div>
+    
+    <!-- Membership/Payment Icons -->
+    <div class="floating-element membership-1">
+      <i class="fas fa-id-card"></i>
+    </div>
+    <div class="floating-element membership-2">
+      <i class="fas fa-credit-card"></i>
+    </div>
+
+    <!-- Additional Gym Management Elements -->
+    <div class="floating-element equipment-3" style="top: 35%; right: 8%; color: var(--primary-color); animation: swingEquipment 11s infinite; animation-delay: -2s;">
+      <i class="fas fa-stopwatch"></i>
+    </div>
+    
+    <div class="floating-element management-1" style="bottom: 50%; left: 12%; color: var(--secondary-color); animation: pulseUser 7s infinite; animation-delay: -1s;">
+      <i class="fas fa-calendar-check"></i>
+    </div>
+    
+    <div class="floating-element tech-icon-3" style="top: 65%; left: 60%; color: var(--success-color); animation: digitalPulse 5s infinite; animation-delay: -2.5s;">
+      <i class="fas fa-mobile-alt"></i>
+    </div>
+    
+    <div class="floating-element fitness-1" style="bottom: 25%; right: 30%; color: var(--warning-color); animation: bounceChart 6s infinite; animation-delay: -1.5s;">
+      <i class="fas fa-trophy"></i>
+    </div>
+
+    <div class="floating-element admin-1" style="top: 45%; left: 25%; color: var(--primary-dark); animation: rotateChart 12s linear infinite; animation-delay: -3s;">
+      <i class="fas fa-cog"></i>
+    </div>
+  </div>
+
   <main class="login-wrapper">
-    <header class="brand-header" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:40px 0 24px 0;">
-      <img src="../gymadmin/public/Gym-Wale.png" alt="Gym-Wale Logo" style="height:52px;width:52px;border-radius:12px;box-shadow:0 4px 12px rgba(79, 70, 229, 0.15);">
-      <h1 style="font-size:2.4rem;font-weight:800;color:rgb(15, 3, 185);letter-spacing:1.5px;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,0.1);">Gym-Wale</h1>
+    <header class="brand-header" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:24px 0 20px 0;">
+      <img src="../gymadmin/public/Gym-Wale.png" alt="Gym-Wale Logo" style="height:48px;width:48px;border-radius:12px;box-shadow:0 4px 12px rgba(79, 70, 229, 0.15);">
+      <h1 style="font-size:2.2rem;font-weight:800;color:rgb(15, 3, 185);letter-spacing:1.5px;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,0.1);">Gym-Wale</h1>
     </header>
     
     <section class="login-container" role="main" aria-label="Admin Login Form">
       <h2>Welcome Back</h2>
-      <p style="text-align:center;color:var(--text-secondary);margin-bottom:32px;font-weight:500;">Please sign in to your admin account</p>
+      <p style="text-align:center;color:var(--text-secondary);margin-bottom:28px;font-weight:500;">Please sign in to your admin account</p>
       
       <form id="adminLoginForm" autocomplete="off" novalidate>
         <div class="form-group">

@@ -1754,20 +1754,30 @@ function openUpdateProfileModal() {
 
 // ===== NOTIFICATION SYSTEM =====
 function showNotification(message, type = 'info') {
+  // Check if mobile
+  const isMobile = window.innerWidth <= 768;
+  
   // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.style.cssText = `
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: ${isMobile ? '70px' : '80px'};
+    right: ${isMobile ? '10px' : '20px'};
+    ${isMobile ? 'left: 10px;' : ''}
     padding: 12px 20px;
     border-radius: 8px;
     color: white;
     font-weight: 600;
-    z-index: 10000;
+    z-index: 999999;
     transform: translateX(400px);
     transition: transform 0.3s ease;
+    max-width: ${isMobile ? 'none' : '350px'};
+    min-width: ${isMobile ? 'auto' : '280px'};
+    width: ${isMobile ? 'calc(100% - 20px)' : 'auto'};
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
   `;
   
   // Set background color based on type
@@ -1798,6 +1808,9 @@ function showNotification(message, type = 'info') {
 
 // ===== BIOMETRIC FEEDBACK SYSTEM =====
 function showBiometricFeedback(message, type = 'info') {
+  // Check if mobile
+  const isMobile = window.innerWidth <= 768;
+  
   const colors = {
     success: '#4CAF50',
     error: '#f44336',
@@ -1808,18 +1821,24 @@ function showBiometricFeedback(message, type = 'info') {
   const toast = document.createElement('div');
   toast.style.cssText = `
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: ${isMobile ? '70px' : '80px'};
+    right: ${isMobile ? '10px' : '20px'};
+    ${isMobile ? 'left: 10px;' : ''}
     background: ${colors[type] || colors.info};
     color: white;
     padding: 12px 24px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10001;
+    z-index: 999999;
     transform: translateX(100%);
     transition: transform 0.3s ease;
-    max-width: 300px;
+    max-width: ${isMobile ? 'none' : '350px'};
+    min-width: ${isMobile ? 'auto' : '280px'};
+    width: ${isMobile ? 'calc(100% - 20px)' : 'auto'};
     font-weight: 500;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
   `;
   
   toast.innerHTML = `
@@ -3250,23 +3269,33 @@ function showCustomizationFeedback(message) {
   const gymId = getGymId();
   const gymSpecificMessage = `${message} (Gym: ${gymId ? gymId.substring(0, 8) + '...' : 'Unknown'})`;
   
+  // Check if mobile
+  const isMobile = window.innerWidth <= 768;
+  
   // Create feedback toast
   const toast = document.createElement('div');
   toast.className = 'customization-feedback-toast';
   toast.textContent = gymSpecificMessage;
   toast.style.cssText = `
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: ${isMobile ? '70px' : '80px'};
+    right: ${isMobile ? '10px' : '20px'};
+    ${isMobile ? 'left: 10px;' : ''}
     background: var(--success, #28a745);
     color: white;
     padding: 12px 20px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 500;
-    z-index: 10000;
+    z-index: 999999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transform: translateX(100%);
     transition: transform 0.3s ease;
+    max-width: ${isMobile ? 'none' : '350px'};
+    min-width: ${isMobile ? 'auto' : '280px'};
+    width: ${isMobile ? 'calc(100% - 20px)' : 'auto'};
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
   `;
   
   document.body.appendChild(toast);

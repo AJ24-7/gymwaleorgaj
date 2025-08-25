@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // === Dynamic Activities Offered Section ===
 document.addEventListener('DOMContentLoaded', function() {
-  // --- State ---
   // Use the same hardcoded activities as registration form for full sync
   const allPossibleActivities = [
     { name: 'Yoga', icon: 'fa-person-praying', description: 'Improve flexibility, balance, and mindfulness.' },
@@ -207,20 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `).join('') + '</div>';
     
-    // Add hover effect for activity icons using --primaryDark (only in light mode)
-    if (!isDark) {
-      Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach(badge => {
-        const icon = badge.querySelector('.activity-icon');
-        if (icon) {
-          badge.addEventListener('mouseenter', () => {
-            icon.style.color = 'var(--primaryDark)';
-          });
-          badge.addEventListener('mouseleave', () => {
-            icon.style.color = 'var(--primary)';
-          });
-        }
-      });
-    }
+    // Removed inline hover effects - now handled by CSS for better consistency
       
     // Show description on click
     Array.from(activitiesList.querySelectorAll('.activity-badge')).forEach((el, idx) => {
@@ -5385,55 +5371,225 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Load sample equipment for dashboard gallery
-  function loadDashboardEquipment() {
-    const sampleEquipment = [
-      {
-        id: 1,
-        name: 'Treadmill Pro X300',
-        image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-        category: 'Cardio'
-      },
-      {
-        id: 2,
-        name: 'Dumbbell Set',
-        image: 'https://images.unsplash.com/photo-1571019614245-c5f2ba9806b1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-        category: 'Strength'
-      },
-      {
-        id: 3,
-        name: 'Bench Press Station',
-        image: 'https://images.unsplash.com/photo-1534258936925-c58bed479fcb?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-        category: 'Strength'
-      },
-      {
-        id: 4,
-        name: 'Rowing Machine',
-        image: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-        category: 'Cardio'
-      }
-    ];
+  // Load real equipment for dashboard gallery
+  async function loadDashboardEquipment() {
+    const dashboardEquipmentGallery = document.getElementById('dashboardEquipmentGallery');
+    if (!dashboardEquipmentGallery) return;
 
-    setTimeout(() => {
-      const equipmentHTML = sampleEquipment.map(equipment => `
-        <div class="equipment-item" data-equipment-id="${equipment.id}">
-          <img src="${equipment.image}" alt="${equipment.name}" loading="lazy">
-          <div class="equipment-overlay">${equipment.name}</div>
-        </div>
-      `).join('');
+    try {
+      // Get authentication data
+      const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
       
-      dashboardEquipmentGallery.innerHTML = equipmentHTML;
-      
-      // Add click listeners
-      dashboardEquipmentGallery.querySelectorAll('.equipment-item').forEach(item => {
-        item.addEventListener('click', function() {
-          const equipmentId = this.dataset.equipmentId;
-          // Navigate to equipment tab or show details
-          alert(`Equipment details for: ${this.querySelector('.equipment-overlay').textContent}`);
-        });
+      if (!token) {
+        console.warn('No auth token found for equipment loading');
+        showDashboardEquipmentError('Authentication required');
+        return;
+      }
+
+      // Fetch real equipment data from backend
+      const response = await fetch('/api/gyms/profile/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
-    }, 800);
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const gymData = await response.json();
+      const equipmentData = gymData.equipment || [];
+
+      if (equipmentData.length === 0) {
+        showDashboardEquipmentEmpty();
+        return;
+      }
+
+      // Render equipment gallery with real data
+      renderDashboardEquipmentGallery(equipmentData);
+
+    } catch (error) {
+      console.error('Error loading dashboard equipment:', error);
+      showDashboardEquipmentError('Failed to load equipment');
+    }
   }
+
+  // Render dashboard equipment gallery
+  function renderDashboardEquipmentGallery(equipmentData) {
+    const dashboardEquipmentGallery = document.getElementById('dashboardEquipmentGallery');
+    if (!dashboardEquipmentGallery) return;
+
+    // Show up to 6 items in dashboard gallery
+    const displayItems = equipmentData.slice(0, 6);
+    
+    const equipmentHTML = displayItems.map(equipment => {
+      const equipmentId = equipment.id || equipment._id;
+      const hasPhoto = equipment.photos && equipment.photos.length > 0;
+      const imageUrl = hasPhoto ? equipment.photos[0] : null;
+      const categoryIcon = getCategoryIcon(equipment.category);
+      const statusClass = (equipment.status || 'available').toLowerCase();
+
+      return `
+        <div class="equipment-item ${hasPhoto ? '' : 'no-photo'}" data-equipment-id="${equipmentId}">
+          ${hasPhoto ? `
+            <img src="${imageUrl}" alt="${equipment.name}" loading="lazy"
+                 onerror="this.style.display='none'; this.parentNode.classList.add('image-error');">
+            <div class="equipment-overlay">
+              <div class="equipment-name">${equipment.name}</div>
+              <div class="equipment-category">
+                <i class="${categoryIcon}"></i>
+                ${equipment.category || 'Equipment'}
+              </div>
+            </div>
+          ` : `
+            <div class="equipment-no-photo">
+              <div class="no-photo-icon">
+                <i class="${categoryIcon}"></i>
+              </div>
+              <div class="equipment-overlay">
+                <div class="equipment-name">${equipment.name}</div>
+                <div class="equipment-category">
+                  <i class="${categoryIcon}"></i>
+                  ${equipment.category || 'Equipment'}
+                </div>
+              </div>
+              <button class="add-photo-btn" onclick="addEquipmentPhoto('${equipmentId}')" title="Add Photo">
+                <i class="fas fa-camera-plus"></i>
+                <span>Add Photo</span>
+              </button>
+            </div>
+          `}
+          <div class="equipment-status-indicator ${statusClass}" title="${equipment.status || 'Available'}">
+            <i class="fas fa-circle"></i>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    dashboardEquipmentGallery.innerHTML = equipmentHTML;
+    
+    // Add click listeners for equipment items
+    dashboardEquipmentGallery.querySelectorAll('.equipment-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        // Don't trigger if clicking add photo button
+        if (e.target.closest('.add-photo-btn')) return;
+        
+        const equipmentId = this.dataset.equipmentId;
+        viewEquipmentFromDashboard(equipmentId);
+      });
+    });
+  }
+
+  // Show empty state for equipment
+  function showDashboardEquipmentEmpty() {
+    const dashboardEquipmentGallery = document.getElementById('dashboardEquipmentGallery');
+    if (!dashboardEquipmentGallery) return;
+
+    dashboardEquipmentGallery.innerHTML = `
+      <div class="equipment-empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-dumbbell"></i>
+        </div>
+        <div class="empty-content">
+          <h3>No Equipment Added</h3>
+          <p>Start by adding your first piece of equipment</p>
+          <button class="add-equipment-btn" onclick="openAddEquipmentFromDashboard()">
+            <i class="fas fa-plus"></i>
+            Add Equipment
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Show error state for equipment
+  function showDashboardEquipmentError(message) {
+    const dashboardEquipmentGallery = document.getElementById('dashboardEquipmentGallery');
+    if (!dashboardEquipmentGallery) return;
+
+    dashboardEquipmentGallery.innerHTML = `
+      <div class="equipment-error-state">
+        <div class="error-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="error-content">
+          <h3>Error Loading Equipment</h3>
+          <p>${message}</p>
+          <button class="retry-btn" onclick="loadDashboardEquipment()">
+            <i class="fas fa-redo"></i>
+            Try Again
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Get category icon for equipment
+  function getCategoryIcon(category) {
+    const categoryIcons = {
+      'cardio': 'fas fa-heartbeat',
+      'strength': 'fas fa-dumbbell', 
+      'functional': 'fas fa-running',
+      'flexibility': 'fas fa-child',
+      'conditioning': 'fas fa-fire',
+      'other': 'fas fa-cog'
+    };
+    
+    return categoryIcons[category?.toLowerCase()] || 'fas fa-dumbbell';
+  }
+
+  // View equipment from dashboard
+  function viewEquipmentFromDashboard(equipmentId) {
+    // Show equipment details modal directly instead of navigating to equipment tab
+    if (window.equipmentManager && typeof window.equipmentManager.viewEquipment === 'function') {
+      window.equipmentManager.viewEquipment(equipmentId);
+    } else {
+      // Fallback: wait for equipment manager to load
+      setTimeout(() => {
+        if (window.equipmentManager && typeof window.equipmentManager.viewEquipment === 'function') {
+          window.equipmentManager.viewEquipment(equipmentId);
+        }
+      }, 500);
+    }
+  }
+
+  // Open add equipment modal from dashboard
+  function openAddEquipmentFromDashboard() {
+    // Open add equipment modal directly instead of navigating to equipment tab
+    if (window.equipmentManager && typeof window.equipmentManager.openAddEquipmentModal === 'function') {
+      window.equipmentManager.openAddEquipmentModal();
+    } else {
+      // Fallback: wait for equipment manager to load
+      setTimeout(() => {
+        if (window.equipmentManager && typeof window.equipmentManager.openAddEquipmentModal === 'function') {
+          window.equipmentManager.openAddEquipmentModal();
+        }
+      }, 500);
+    }
+  }
+
+  // Add photo to equipment from dashboard
+  function addEquipmentPhoto(equipmentId) {
+    // Open edit equipment modal directly to add photo
+    if (window.equipmentManager && typeof window.equipmentManager.editEquipment === 'function') {
+      window.equipmentManager.editEquipment(equipmentId);
+    } else {
+      // Fallback: wait for equipment manager to load
+      setTimeout(() => {
+        if (window.equipmentManager && typeof window.equipmentManager.editEquipment === 'function') {
+          window.equipmentManager.editEquipment(equipmentId);
+        }
+      }, 500);
+    }
+  }
+
+  // Make functions globally available
+  window.viewEquipmentFromDashboard = viewEquipmentFromDashboard;
+  window.openAddEquipmentFromDashboard = openAddEquipmentFromDashboard;
+  window.addEquipmentPhoto = addEquipmentPhoto;
+  window.loadDashboardEquipment = loadDashboardEquipment;
 
   // Event Listeners
   if (refreshActivitiesBtn) {
@@ -5455,30 +5611,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (viewAllEquipmentBtn) {
     viewAllEquipmentBtn.addEventListener('click', function() {
-      // Navigate to equipment tab
-      const equipmentTab = document.querySelector('[data-tab="equipmentTab"]') || 
-                          document.querySelector('.menu-link[href="#"]:nth-child(6)');
-      if (equipmentTab) {
-        equipmentTab.click();
+      // Navigate to equipment tab by triggering the sidebar link
+      const equipmentMenuItem = document.querySelector('.menu-link[href="#"]:nth-child(6)') || 
+                               document.querySelector('.sidebar .menu-item:nth-child(6) .menu-link');
+      
+      if (equipmentMenuItem) {
+        equipmentMenuItem.click();
+      } else {
+        // Fallback: manual tab switching
+        const equipmentTab = document.getElementById('equipmentTab');
+        const dashboardContent = document.querySelector('.content');
+        
+        if (equipmentTab && dashboardContent) {
+          dashboardContent.style.display = 'none';
+          equipmentTab.style.display = 'block';
+          
+          // Update sidebar active state
+          const sidebarLinks = document.querySelectorAll('.menu-link');
+          sidebarLinks.forEach(link => link.classList.remove('active'));
+          const equipmentLink = document.querySelector('.menu-link[data-tab="equipmentTab"]') || 
+                                document.querySelector('a[href="#equipment"]');
+          if (equipmentLink) equipmentLink.classList.add('active');
+        }
       }
     });
   }
 
   if (addEquipmentQuickBtn) {
     addEquipmentQuickBtn.addEventListener('click', function() {
-      // Open add equipment modal
-      const equipmentTab = document.querySelector('[data-tab="equipmentTab"]') || 
-                          document.querySelector('.menu-link[href="#"]:nth-child(6)');
-      if (equipmentTab) {
-        equipmentTab.click();
-        // Trigger add equipment modal after a short delay
-        setTimeout(() => {
-          const addEquipmentBtn = document.getElementById('addEquipmentBtn');
-          if (addEquipmentBtn) {
-            addEquipmentBtn.click();
-          }
-        }, 300);
-      }
+      openAddEquipmentFromDashboard();
     });
   }
 
