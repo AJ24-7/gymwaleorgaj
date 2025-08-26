@@ -6,6 +6,7 @@ const LoginAttempt = require('../models/LoginAttempt');
 const SecuritySettings = require('../models/SecuritySettings');
 const sendEmail = require('../utils/sendEmail');
 const adminNotificationService = require('../services/adminNotificationService');
+const EmailService = require('../services/emailService');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
@@ -291,6 +292,38 @@ exports.login = async (req, res) => {
     
     // Record successful login
     await recordLoginAttempt(gym._id, true);
+    
+    // Send login notification if enabled
+    try {
+      if (securitySettings.loginNotifications && securitySettings.loginNotifications.enabled) {
+        const loginDetails = {
+          timestamp: new Date().toLocaleString('en-US', { 
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }),
+          ip: req.ip || req.connection.remoteAddress || 'Unknown',
+          device: extractDeviceInfo(req.get('User-Agent')),
+          browser: extractBrowserInfo(req.get('User-Agent')),
+          location: await getLocationFromIP(req.ip || req.connection.remoteAddress)
+        };
+        
+        const emailService = new EmailService();
+        await emailService.sendLoginAlert(
+          gym.email, 
+          gym.contactPerson || gym.gymName, 
+          loginDetails
+        );
+        console.log('✅ Login notification sent to:', gym.email);
+      }
+    } catch (notificationError) {
+      console.error('❌ Error sending login notification:', notificationError);
+      // Don't fail the login if notification fails
+    }
     
     res.status(200).json({
       success: true,

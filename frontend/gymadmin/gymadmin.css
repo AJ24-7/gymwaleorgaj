@@ -1228,74 +1228,98 @@ body {
 /* Quick Actions Circular Assistant */
 .quick-actions-circular-assistant {
   position: fixed;
-  right: 0;
+  right: -280px; /* Hide completely off-screen */
   top: 50%;
   transform: translateY(-50%);
   z-index: 99998;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .quick-actions-circular-assistant.collapsed {
-  right: -240px;
+  right: -280px; /* Completely hidden */
 }
 
 .quick-actions-circular-assistant.expanded {
-  right: 0;
+  right: 0; /* Slide in when expanded */
 }
 
 .circular-toggle {
   position: absolute;
-  left: -50px;
+  left: -30px; /* Position the toggle button on the edge */
   top: 50%;
   transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  border-radius: 50% 0 0 50%;
+  border-radius: 50%; /* Perfectly circular */
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  z-index: 2;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2), 0 4px 15px rgba(58, 134, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 99999;
+  border: 3px solid white;
 }
 
 .circular-toggle:hover {
-  transform: translateY(-50%) scale(1.05);
-  box-shadow: -6px 0 20px rgba(58, 134, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: -6px 0 25px rgba(0, 0, 0, 0.25), 0 6px 20px rgba(58, 134, 255, 0.4);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+}
+
+.circular-toggle:active {
+  transform: translateY(-50%) scale(0.95);
+  transition: all 0.1s ease;
 }
 
 .circular-toggle i {
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   position: relative;
   z-index: 3;
+  transition: transform 0.3s ease;
+}
+
+/* Add a subtle pulse animation when collapsed */
+.quick-actions-circular-assistant.collapsed .circular-toggle {
+  animation: subtlePulse 3s ease-in-out infinite;
+}
+
+@keyframes subtlePulse {
+  0%, 100% { 
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2), 0 4px 15px rgba(58, 134, 255, 0.3);
+  }
+  50% { 
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2), 0 4px 15px rgba(58, 134, 255, 0.5);
+  }
 }
 
 .circular-arrow {
   position: absolute;
-  right: 8px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   transition: transform 0.3s ease;
+  font-size: 0.9rem;
 }
 
-.quick-actions-circular-assistant.expanded .circular-arrow {
-  transform: translateY(-50%) rotate(180deg);
+.quick-actions-circular-assistant.expanded .circular-toggle i {
+  transform: rotate(180deg);
 }
 
 .circular-panel {
   width: 280px;
-  height: 400px;
+  height: 420px;
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(15px);
-  border-radius: 16px 0 0 16px;
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 20px 0 0 20px;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin-left: 0;
 }
 
 .circular-panel-header {
@@ -1442,34 +1466,51 @@ body {
   box-shadow: 0 4px 12px rgba(131, 56, 236, 0.3);
 }
 
-/* Quick Actions Floating Bar */
+/* Quick Actions Floating Dock */
 .quick-actions-floating-bar {
   position: fixed;
   right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 20px;
   z-index: 99999;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  padding: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 20px rgba(58, 134, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  max-height: 80vh;
-  overflow-y: auto;
+  padding: 8px;
+  cursor: grab;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  min-width: fit-content;
+  max-width: 400px;
+}
+
+.quick-actions-floating-bar:hover {
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2), 0 6px 25px rgba(58, 134, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.quick-actions-floating-bar.dragging {
+  cursor: grabbing;
+  transform: scale(1.05);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 8px 30px rgba(58, 134, 255, 0.2);
+  z-index: 999999;
 }
 
 .floating-bar-container {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .floating-action-btn {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   border: none;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
@@ -1477,25 +1518,83 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .floating-action-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(58, 134, 255, 0.4);
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 8px 25px rgba(58, 134, 255, 0.4);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary) 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.floating-action-btn:active {
+  transform: translateY(-1px) scale(1.05);
+  transition: all 0.1s ease;
 }
 
 .floating-action-btn i {
-  font-size: 1.2em;
+  font-size: 1.1em;
   z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.floating-action-btn:hover i {
+  transform: scale(1.1);
+}
+
+/* Dock Handle/Grip */
+.floating-dock-handle {
+  width: 24px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--text-secondary) 0%, var(--border-color) 100%);
+  border-radius: 8px;
+  margin-right: 4px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.floating-dock-handle:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+}
+
+.floating-dock-handle::before {
+  content: '';
+  width: 3px;
+  height: 20px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.6) 0px,
+    rgba(255, 255, 255, 0.6) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  border-radius: 2px;
+}
+
+.floating-dock-handle:hover::before {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.9) 0px,
+    rgba(255, 255, 255, 0.9) 2px,
+    transparent 2px,
+    transparent 4px
+  );
 }
 
 .floating-bar-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   border: none;
   background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
   color: white;
@@ -1504,12 +1603,19 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  margin-top: 8px;
+  margin-left: 4px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .floating-bar-toggle:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 16px rgba(239, 35, 60, 0.4);
+  box-shadow: 0 6px 20px rgba(239, 35, 60, 0.4);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.floating-bar-toggle i {
+  font-size: 0.9em;
 }
 
 /* Customization Modal Styles */
@@ -1691,53 +1797,80 @@ body {
   color: inherit;
 }
 
-/* Floating Bar Position Variants */
-.quick-actions-floating-bar.position-top {
-  top: 80px;
-  right: 20px;
-  transform: none;
-}
-
-.quick-actions-floating-bar.position-bottom {
-  bottom: 20px;
-  right: 20px;
-  top: auto;
-  transform: none;
-}
-
-.quick-actions-floating-bar.position-left {
-  left: 20px;
-  right: auto;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.quick-actions-floating-bar.position-right {
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .quick-actions-circular-assistant {
     width: 100%;
     max-width: 280px;
+    right: -280px; /* Ensure mobile also hides completely */
   }
   
   .quick-actions-circular-assistant.collapsed {
-    right: -260px;
+    right: -280px; /* Completely hidden on mobile */
   }
   
   .circular-panel {
     width: 260px;
-    height: 350px;
+    height: 380px;
+    border-radius: 16px 0 0 16px;
   }
   
   .circular-toggle {
-    left: -45px;
-    width: 45px;
-    height: 45px;
+    left: -28px; /* Adjust for mobile */
+    width: 50px;
+    height: 50px;
+    border: 2px solid white;
+  }
+  
+  .circular-toggle i {
+    font-size: 1.1rem;
+  }
+  
+  .quick-actions-floating-bar {
+    right: 10px;
+    bottom: 10px;
+    padding: 6px;
+    border-radius: 14px;
+    max-width: calc(100vw - 20px);
+  }
+  
+  .floating-bar-container {
+    gap: 4px;
+  }
+  
+  .floating-action-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  
+  .floating-action-btn i {
+    font-size: 1em;
+  }
+  
+  .floating-dock-handle {
+    width: 20px;
+    height: 38px;
+    margin-right: 2px;
+  }
+  
+  .floating-dock-handle::before {
+    width: 2px;
+    height: 16px;
+  }
+  
+  .floating-bar-toggle {
+    width: 28px;
+    height: 28px;
+    margin-left: 2px;
+  }
+  
+  .floating-bar-toggle i {
+    font-size: 0.8em;
+  }
+  
+  .circular-toggle i {
+    font-size: 1.1rem;
   }
   
   .quick-actions-floating-bar {

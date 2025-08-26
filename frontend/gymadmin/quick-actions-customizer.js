@@ -19,6 +19,11 @@ class QuickActionsCustomizer {
             'send-notification': { button: '#sendNotificationQuickBtn', title: 'Send Notification', icon: 'fas fa-bell' }
         };
         
+        // Drag state
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+        this.dockPosition = { x: null, y: null }; // Will be set to bottom-right initially
+        
         this.init();
     }
 
@@ -27,8 +32,11 @@ class QuickActionsCustomizer {
         this.bindEvents();
         this.applyLayout();
         this.updateVisibility();
+        this.initializeDockPosition();
         // Ensure dynamic sizing is applied on initialization
         this.applyDynamicSizing();
+        // Update settings radio buttons to reflect current state
+        this.updateSettingsRadioButtons();
     }
 
     bindEvents() {
@@ -72,6 +80,8 @@ class QuickActionsCustomizer {
         document.querySelectorAll('input[name="quickActionsLayoutSetting"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 this.handleLayoutChange(e.target.value);
+                this.applyLayout();
+                this.updateVisibility();
                 this.saveSettings();
             });
         });
@@ -121,6 +131,141 @@ class QuickActionsCustomizer {
         const circularSearch = document.getElementById('circularSearch');
         if (circularSearch) {
             circularSearch.addEventListener('input', (e) => this.filterCircularActions(e.target.value));
+        }
+
+        // Dock drag functionality
+        this.bindDockDragEvents();
+
+        // Window resize handler to maintain dock position
+        window.addEventListener('resize', () => {
+            if (this.currentLayout === 'floating') {
+                setTimeout(() => this.constrainDockPosition(), 100);
+            }
+        });
+    }
+
+    bindDockDragEvents() {
+        const dock = document.getElementById('quickActionsFloatingBar');
+        const handle = document.getElementById('floatingDockHandle');
+        
+        if (!dock || !handle) return;
+
+        // Mouse events
+        handle.addEventListener('mousedown', (e) => this.startDrag(e));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.stopDrag());
+
+        // Touch events for mobile
+        handle.addEventListener('touchstart', (e) => this.startDrag(e), { passive: false });
+        document.addEventListener('touchmove', (e) => this.drag(e), { passive: false });
+        document.addEventListener('touchend', () => this.stopDrag());
+
+        // Prevent default drag behavior
+        dock.addEventListener('dragstart', (e) => e.preventDefault());
+    }
+
+    startDrag(e) {
+        e.preventDefault();
+        this.isDragging = true;
+        
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (!dock) return;
+
+        dock.classList.add('dragging');
+        
+        // Get mouse/touch position
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
+        // Calculate offset from dock top-left to mouse position
+        const rect = dock.getBoundingClientRect();
+        this.dragOffset.x = clientX - rect.left;
+        this.dragOffset.y = clientY - rect.top;
+    }
+
+    drag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (!dock) return;
+
+        // Get mouse/touch position
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
+        // Calculate new position
+        let newX = clientX - this.dragOffset.x;
+        let newY = clientY - this.dragOffset.y;
+        
+        // Constrain to viewport
+        const rect = dock.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        // Apply position
+        dock.style.left = newX + 'px';
+        dock.style.top = newY + 'px';
+        dock.style.right = 'auto';
+        dock.style.bottom = 'auto';
+        
+        // Store position
+        this.dockPosition.x = newX;
+        this.dockPosition.y = newY;
+    }
+
+    stopDrag() {
+        if (!this.isDragging) return;
+        
+        this.isDragging = false;
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (dock) {
+            dock.classList.remove('dragging');
+        }
+        
+        // Save position
+        this.saveDockPosition();
+    }
+
+    initializeDockPosition() {
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (!dock) return;
+
+        // Load saved position or use default
+        const saved = this.loadDockPosition();
+        if (saved.x !== null && saved.y !== null) {
+            this.dockPosition = saved;
+            dock.style.left = saved.x + 'px';
+            dock.style.top = saved.y + 'px';
+            dock.style.right = 'auto';
+            dock.style.bottom = 'auto';
+        } else {
+            // Default position (bottom-right)
+            this.dockPosition = { 
+                x: window.innerWidth - dock.offsetWidth - 20, 
+                y: window.innerHeight - dock.offsetHeight - 20 
+            };
+        }
+    }
+
+    loadDockPosition() {
+        try {
+            const saved = localStorage.getItem('floatingDockPosition');
+            return saved ? JSON.parse(saved) : { x: null, y: null };
+        } catch (error) {
+            console.warn('Failed to load dock position:', error);
+            return { x: null, y: null };
+        }
+    }
+
+    saveDockPosition() {
+        try {
+            localStorage.setItem('floatingDockPosition', JSON.stringify(this.dockPosition));
+        } catch (error) {
+            console.warn('Failed to save dock position:', error);
         }
     }
 
@@ -236,10 +381,7 @@ class QuickActionsCustomizer {
         this.closeCustomizeModal();
 
         // Update settings radio buttons
-        const settingsRadio = document.querySelector(`input[name="quickActionsLayoutSetting"][value="${this.currentLayout}"]`);
-        if (settingsRadio) {
-            settingsRadio.checked = true;
-        }
+        this.updateSettingsRadioButtons();
 
         this.showNotification('Quick Actions customization saved!', 'success');
     }
@@ -253,6 +395,9 @@ class QuickActionsCustomizer {
         this.updateVisibility();
         this.saveSettings();
         this.populateModalSettings();
+        
+        // Update settings radio buttons
+        this.updateSettingsRadioButtons();
         
         this.showNotification('Quick Actions reset to default!', 'info');
     }
@@ -283,7 +428,10 @@ class QuickActionsCustomizer {
             case 'floating':
                 if (floatingBar) {
                     floatingBar.style.display = 'block';
-                    this.updateFloatingBarPosition();
+                    // Remove position classes as dock is now draggable
+                    floatingBar.classList.remove('position-top', 'position-bottom', 'position-left', 'position-right');
+                    // Initialize or restore dock position
+                    this.initializeDockPosition();
                 }
                 break;
             case 'circular':
@@ -312,10 +460,12 @@ class QuickActionsCustomizer {
             badge.style.display = this.visibleActions.has(action) ? 'flex' : 'none';
         });
 
-        // Update floating bar visibility
+        // Update floating dock visibility - only show visible actions
         document.querySelectorAll('.floating-action-btn').forEach(btn => {
             const action = btn.dataset.action;
-            btn.style.display = this.visibleActions.has(action) ? 'flex' : 'none';
+            if (action) { // Exclude the toggle button which doesn't have data-action
+                btn.style.display = this.visibleActions.has(action) ? 'flex' : 'none';
+            }
         });
 
         // Update circular assistant visibility
@@ -326,6 +476,44 @@ class QuickActionsCustomizer {
 
         // Apply dynamic sizing to quick actions grid
         this.applyDynamicSizing();
+        
+        // Update dock layout after visibility change
+        this.updateDockLayout();
+    }
+
+    updateDockLayout() {
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (!dock || this.currentLayout !== 'floating') return;
+
+        // Force reflow to ensure proper sizing
+        dock.style.display = 'none';
+        dock.offsetHeight; // Trigger reflow
+        dock.style.display = 'block';
+        
+        // Reposition if needed to stay within bounds
+        setTimeout(() => {
+            this.constrainDockPosition();
+        }, 10);
+    }
+
+    constrainDockPosition() {
+        const dock = document.getElementById('quickActionsFloatingBar');
+        if (!dock) return;
+
+        const rect = dock.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
+        
+        let newX = Math.max(0, Math.min(this.dockPosition.x || 0, maxX));
+        let newY = Math.max(0, Math.min(this.dockPosition.y || 0, maxY));
+        
+        if (newX !== this.dockPosition.x || newY !== this.dockPosition.y) {
+            this.dockPosition.x = newX;
+            this.dockPosition.y = newY;
+            dock.style.left = newX + 'px';
+            dock.style.top = newY + 'px';
+            this.saveDockPosition();
+        }
     }
 
     applyDynamicSizing() {
@@ -351,6 +539,7 @@ class QuickActionsCustomizer {
         this.currentLayout = 'default';
         this.applyLayout();
         this.saveSettings();
+        this.updateSettingsRadioButtons();
         this.showNotification('Switched to default layout', 'info');
     }
 
@@ -358,6 +547,7 @@ class QuickActionsCustomizer {
         this.currentLayout = 'default';
         this.applyLayout();
         this.saveSettings();
+        this.updateSettingsRadioButtons();
         this.showNotification('Switched to default layout', 'info');
     }
 
@@ -372,6 +562,14 @@ class QuickActionsCustomizer {
                 circularAssistant.classList.remove('expanded');
                 circularAssistant.classList.add('collapsed');
             }
+        }
+    }
+
+    updateSettingsRadioButtons() {
+        // Update settings radio buttons to reflect current layout
+        const settingsRadio = document.querySelector(`input[name="quickActionsLayoutSetting"][value="${this.currentLayout}"]`);
+        if (settingsRadio) {
+            settingsRadio.checked = true;
         }
     }
 

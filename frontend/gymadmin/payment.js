@@ -137,19 +137,27 @@ class PaymentManager {
     }
 
     if (disableBtn) {
-      disableBtn.addEventListener('click', () => {
-        console.log('Toggle passkey button clicked');
+      // Remove any existing event listeners
+      const newDisableBtn = disableBtn.cloneNode(true);
+      disableBtn.parentNode.replaceChild(newDisableBtn, disableBtn);
+      
+      newDisableBtn.addEventListener('click', () => {
+        console.log('Disable passkey button clicked');
         const gymId = this.getCurrentGymAdminId();
         const storedPasskey = localStorage.getItem(`gymAdminPasskey_${gymId}`);
         
         if (storedPasskey) {
           // Passkey exists - disable it
+          console.log('Passkey exists, calling disablePasskey()');
           this.disablePasskey();
         } else {
           // No passkey - enable it
+          console.log('No passkey found, calling enablePasskey()');
           this.enablePasskey();
         }
       });
+    } else {
+      console.warn('⚠️ Disable passkey button not found - ID should be "disablePasskeyBtn"');
     }
 
     if (cancelChangeBtn) {
@@ -950,14 +958,96 @@ class PaymentManager {
   }
 
   disablePasskey() {
-    if (confirm('Are you sure you want to disable the admin passkey? This will allow unrestricted access to payment management.')) {
-      localStorage.removeItem(`gymAdminPasskey_${this.getCurrentGymAdminId()}`);
-      // Also remove any skip setup flags
-      localStorage.removeItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
-      this.isPaymentTabAuthorized = true;
-      this.updatePasskeySettingsUI();
-      this.showNotification('Admin passkey disabled', 'warning');
-    }
+    // Create styled confirmation dialog
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'confirmation-dialog';
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="margin-bottom: 20px;">
+            <div style="width: 60px; height: 60px; background: #ff5722; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-exclamation-triangle" style="color: white; font-size: 24px;"></i>
+            </div>
+            <h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">Disable Admin Passkey</h3>
+            <p style="margin: 0; color: #666; line-height: 1.5;">
+                Are you sure you want to disable the admin passkey? This will allow unrestricted access to payment management.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="cancelDisablePasskey" style="padding: 12px 24px; border: 2px solid #ddd; background: white; color: #666; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s;">
+                Cancel
+            </button>
+            <button id="confirmDisablePasskey" style="padding: 12px 24px; border: none; background: #ff5722; color: white; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s;">
+                Disable Passkey
+            </button>
+        </div>
+    `;
+    
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        #cancelDisablePasskey:hover { background: #f5f5f5; border-color: #bbb; }
+        #confirmDisablePasskey:hover { background: #e64a19; }
+    `;
+    document.head.appendChild(style);
+    
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+    
+    // Handle button clicks
+    document.getElementById('cancelDisablePasskey').onclick = () => {
+        document.body.removeChild(modal);
+        document.head.removeChild(style);
+    };
+    
+    document.getElementById('confirmDisablePasskey').onclick = () => {
+        // Remove passkey for current gym admin
+        localStorage.removeItem(`gymAdminPasskey_${this.getCurrentGymAdminId()}`);
+        // Also remove any skip setup flags
+        localStorage.removeItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
+        this.isPaymentTabAuthorized = true;
+        this.updatePasskeySettingsUI();
+        this.showNotification('Admin passkey disabled', 'warning');
+        
+        document.body.removeChild(modal);
+        document.head.removeChild(style);
+    };
+    
+    // Close on backdrop click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+            document.head.removeChild(style);
+        }
+    };
   }
 
   enablePasskey() {

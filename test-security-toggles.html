@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Toggles Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-result { margin: 10px 0; padding: 8px; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { margin: 5px; padding: 8px 15px; cursor: pointer; }
+        .toggle-container { margin: 10px 0; }
+        .toggle { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Security Toggles and Passkey Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Security Toggles</h2>
+        <div class="toggle-container">
+            <label class="toggle">
+                <input type="checkbox" id="twoFactorAuth"> Two-Factor Authentication
+            </label>
+        </div>
+        <div class="toggle-container">
+            <label class="toggle">
+                <input type="checkbox" id="loginNotifications" checked> Login Notifications
+            </label>
+        </div>
+        <button onclick="testToggles()">Test Toggles</button>
+        <button onclick="setupToggles()">Setup Toggles</button>
+        <div id="toggleResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Passkey Dialog</h2>
+        <button type="button" class="btn btn-danger" id="disablePasskeyBtn">
+            <i class="fas fa-key"></i> Test Passkey Dialog
+        </button>
+        <button onclick="testPasskeyDialog()">Test Passkey Function</button>
+        <div id="passkeyResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Debug Information</h2>
+        <button onclick="showDebugInfo()">Show Debug Info</button>
+        <button onclick="runCompleteFix()">Run Complete Fix</button>
+        <button onclick="clearOldSettings()">Clean Old Settings</button>
+        <button onclick="loadSavedStates()">Load Saved States</button>
+        <div id="debugResults"></div>
+    </div>
+
+    <script>
+        // Mock functions for testing
+        function getGymId() {
+            return 'test_gym_123';
+        }
+        
+        function setGymSpecificSetting(key, value) {
+            localStorage.setItem(key, value);
+            console.log(`Setting saved: ${key} = ${value}`);
+        }
+        
+        function getGymSpecificSetting(key) {
+            return localStorage.getItem(key);
+        }
+        
+        function showNotification(message, type = 'info') {
+            const result = document.createElement('div');
+            result.className = `test-result ${type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning'}`;
+            result.textContent = message;
+            return result;
+        }
+        
+        // Test functions
+        function testToggles() {
+            const results = document.getElementById('toggleResults');
+            results.innerHTML = '';
+            
+            const gymId = getGymId();
+            const twoFactorToggle = document.getElementById('twoFactorAuth');
+            const loginToggle = document.getElementById('loginNotifications');
+            
+            results.appendChild(showNotification(`Testing with gym ID: ${gymId}`, 'info'));
+            results.appendChild(showNotification(`2FA Toggle found: ${!!twoFactorToggle}`, twoFactorToggle ? 'success' : 'error'));
+            results.appendChild(showNotification(`Login Toggle found: ${!!loginToggle}`, loginToggle ? 'success' : 'error'));
+            
+            if (twoFactorToggle) {
+                results.appendChild(showNotification(`2FA current state: ${twoFactorToggle.checked}`, 'info'));
+            }
+            
+            if (loginToggle) {
+                results.appendChild(showNotification(`Login notifications current state: ${loginToggle.checked}`, 'info'));
+            }
+        }
+        
+        function setupToggles() {
+            const results = document.getElementById('toggleResults');
+            results.innerHTML = '';
+            
+            const gymId = getGymId();
+            
+            // Setup 2FA toggle
+            const twoFactorToggle = document.getElementById('twoFactorAuth');
+            if (twoFactorToggle) {
+                // Remove existing listeners
+                const newTwoFactorToggle = twoFactorToggle.cloneNode(true);
+                twoFactorToggle.parentNode.replaceChild(newTwoFactorToggle, twoFactorToggle);
+                
+                newTwoFactorToggle.addEventListener('change', function() {
+                    const isEnabled = this.checked;
+                    setGymSpecificSetting(`twoFactorEnabled_${gymId}`, isEnabled.toString());
+                    results.appendChild(showNotification(`2FA ${isEnabled ? 'enabled' : 'disabled'}`, 'success'));
+                    console.log(`2FA set to: ${isEnabled} for gym: ${gymId}`);
+                });
+                results.appendChild(showNotification('2FA toggle handler added', 'success'));
+            }
+            
+            // Setup login notifications toggle
+            const loginToggle = document.getElementById('loginNotifications');
+            if (loginToggle) {
+                // Remove existing listeners
+                const newLoginToggle = loginToggle.cloneNode(true);
+                loginToggle.parentNode.replaceChild(newLoginToggle, loginToggle);
+                
+                newLoginToggle.addEventListener('change', function() {
+                    const isEnabled = this.checked;
+                    setGymSpecificSetting(`loginNotifications_${gymId}`, isEnabled.toString());
+                    results.appendChild(showNotification(`Login notifications ${isEnabled ? 'enabled' : 'disabled'}`, 'success'));
+                    console.log(`Login notifications set to: ${isEnabled} for gym: ${gymId}`);
+                    
+                    // Force update the debug info immediately
+                    setTimeout(showDebugInfo, 100);
+                });
+                results.appendChild(showNotification('Login notifications toggle handler added', 'success'));
+            }
+        }
+        
+        function testPasskeyDialog() {
+            const results = document.getElementById('passkeyResults');
+            results.innerHTML = '';
+            
+            // Create styled confirmation dialog
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            const dialog = document.createElement('div');
+            dialog.className = 'confirmation-dialog';
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 450px;
+                width: 90%;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+                text-align: center;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            dialog.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; background: #ff5722; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-exclamation-triangle" style="color: white; font-size: 24px;">⚠️</i>
+                    </div>
+                    <h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">Test Passkey Dialog</h3>
+                    <p style="margin: 0; color: #666; line-height: 1.5;">
+                        This is a test of the passkey disable confirmation dialog. The dialog is working correctly!
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="cancelTest" style="padding: 12px 24px; border: 2px solid #ddd; background: white; color: #666; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button id="confirmTest" style="padding: 12px 24px; border: none; background: #ff5722; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                        Confirm Test
+                    </button>
+                </div>
+            `;
+            
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+            
+            // Handle button clicks
+            document.getElementById('cancelTest').onclick = () => {
+                document.body.removeChild(modal);
+                results.appendChild(showNotification('Dialog cancelled', 'info'));
+            };
+            
+            document.getElementById('confirmTest').onclick = () => {
+                document.body.removeChild(modal);
+                results.appendChild(showNotification('Dialog confirmed - Passkey would be disabled', 'success'));
+            };
+            
+            // Close on backdrop click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    results.appendChild(showNotification('Dialog closed by backdrop click', 'info'));
+                }
+            };
+            
+            results.appendChild(showNotification('Passkey dialog test initiated', 'success'));
+        }
+        
+        function showDebugInfo() {
+            const results = document.getElementById('debugResults');
+            results.innerHTML = '';
+            
+            const gymId = getGymId();
+            const twoFactorSetting = getGymSpecificSetting(`twoFactorEnabled_${gymId}`);
+            const loginSetting = getGymSpecificSetting(`loginNotifications_${gymId}`);
+            
+            results.appendChild(showNotification(`Gym ID: ${gymId}`, 'info'));
+            results.appendChild(showNotification(`2FA Setting: ${twoFactorSetting}`, 'info'));
+            results.appendChild(showNotification(`Login Notifications Setting: ${loginSetting}`, 'info'));
+            results.appendChild(showNotification(`Window.paymentManager: ${typeof window.paymentManager}`, 'info'));
+            results.appendChild(showNotification(`LocalStorage keys: ${Object.keys(localStorage).length}`, 'info'));
+            
+            // Show relevant localStorage keys
+            const relevantKeys = Object.keys(localStorage).filter(key => 
+                key.includes('twoFactor') || key.includes('login') || key.includes('passkey')
+            );
+            
+            if (relevantKeys.length > 0) {
+                results.appendChild(showNotification(`Relevant storage keys: ${relevantKeys.join(', ')}`, 'info'));
+            }
+            
+            // Show actual toggle states
+            const twoFactorToggle = document.getElementById('twoFactorAuth');
+            const loginToggle = document.getElementById('loginNotifications');
+            
+            if (twoFactorToggle) {
+                results.appendChild(showNotification(`2FA Toggle State: ${twoFactorToggle.checked}`, 'info'));
+            }
+            if (loginToggle) {
+                results.appendChild(showNotification(`Login Notifications Toggle State: ${loginToggle.checked}`, 'info'));
+            }
+        }
+        
+        function clearOldSettings() {
+            const results = document.getElementById('debugResults');
+            const currentGymId = getGymId();
+            
+            // Get all keys and remove ones that don't match current gym
+            const allKeys = Object.keys(localStorage);
+            const removedKeys = [];
+            
+            allKeys.forEach(key => {
+                if ((key.includes('twoFactor') || key.includes('login') || key.includes('passkey')) && 
+                    !key.includes(currentGymId)) {
+                    localStorage.removeItem(key);
+                    removedKeys.push(key);
+                }
+            });
+            
+            if (removedKeys.length > 0) {
+                results.appendChild(showNotification(`Cleaned ${removedKeys.length} old settings: ${removedKeys.join(', ')}`, 'success'));
+            } else {
+                results.appendChild(showNotification('No old settings to clean', 'info'));
+            }
+            
+            // Refresh debug info
+            setTimeout(showDebugInfo, 100);
+        }
+        
+        function loadSavedStates() {
+            const gymId = getGymId();
+            
+            // Load 2FA state
+            const twoFactorToggle = document.getElementById('twoFactorAuth');
+            const savedTwoFactor = getGymSpecificSetting(`twoFactorEnabled_${gymId}`);
+            if (twoFactorToggle && savedTwoFactor !== null) {
+                twoFactorToggle.checked = savedTwoFactor === 'true';
+                console.log(`Loaded 2FA state: ${twoFactorToggle.checked}`);
+            }
+            
+            // Load login notifications state
+            const loginToggle = document.getElementById('loginNotifications');
+            const savedLogin = getGymSpecificSetting(`loginNotifications_${gymId}`);
+            if (loginToggle && savedLogin !== null) {
+                loginToggle.checked = savedLogin === 'true';
+                console.log(`Loaded login notifications state: ${loginToggle.checked}`);
+            } else if (loginToggle) {
+                // Default to checked if no setting exists
+                loginToggle.checked = true;
+                setGymSpecificSetting(`loginNotifications_${gymId}`, 'true');
+                console.log('Set default login notifications state: true');
+            }
+        }
+        
+        function runCompleteFix() {
+            const results = document.getElementById('debugResults');
+            results.innerHTML = '';
+            
+            results.appendChild(showNotification('Running complete fix...', 'info'));
+            
+            // Clean old settings first
+            clearOldSettings();
+            
+            // Load saved states
+            loadSavedStates();
+            results.appendChild(showNotification('States loaded', 'success'));
+            
+            // Setup toggles
+            setupToggles();
+            results.appendChild(showNotification('Toggle handlers setup complete', 'success'));
+            
+            // Test passkey button
+            const disableBtn = document.getElementById('disablePasskeyBtn');
+            if (disableBtn) {
+                disableBtn.onclick = testPasskeyDialog;
+                results.appendChild(showNotification('Passkey button handler attached', 'success'));
+            } else {
+                results.appendChild(showNotification('Passkey button not found', 'error'));
+            }
+            
+            // Show final debug info
+            setTimeout(() => {
+                results.appendChild(showNotification('Complete fix applied successfully!', 'success'));
+                showDebugInfo();
+            }, 200);
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', function() {
+            console.log('Test page loaded');
+            setTimeout(runCompleteFix, 1000);
+        });
+    </script>
+</body>
+</html>
