@@ -3580,3 +3580,345 @@
         height: 18px;
     }
 }
+
+/* ===============================================
+   FEATURED REVIEW BADGES
+   =============================================== */
+
+.featured-reviews-badges {
+    position: fixed !important;
+    top: 120px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 300px;
+    pointer-events: none;
+}
+
+.featured-review-badge {
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border: 2px solid #FFD700;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    font-family: 'Arial', sans-serif;
+    font-size: 13px;
+}
+
+.featured-review-badge:hover {
+    transform: translateX(-5px) scale(1.02);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
+.featured-badge-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.featured-badge-icon {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #333;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.featured-badge-info {
+    flex: 1;
+}
+
+.featured-badge-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.featured-badge-rating {
+    margin-top: 2px;
+}
+
+.featured-badge-review {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 8px;
+}
+
+.featured-badge-user {
+    font-weight: 600;
+    color: #1976d2;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.featured-badge-comment {
+    color: #666;
+    line-height: 1.3;
+    font-style: italic;
+}
+
+/* Animations */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes sparkle {
+    0%, 100% { 
+        transform: scale(1) rotate(0deg); 
+    }
+    50% { 
+        transform: scale(1.1) rotate(180deg); 
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+}
+
+/* Responsive design for badges */
+@media (max-width: 768px) {
+    .featured-reviews-badges {
+        right: 10px;
+        top: 100px;
+        max-width: 280px;
+    }
+    
+    .featured-review-badge {
+        padding: 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .featured-reviews-badges {
+        display: none; /* Hide on very small screens to avoid clutter */
+    }
+}
+
+/* Enhanced Review System Styles */
+.review-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.review-item:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.review-item.featured-review {
+    border: 2px solid #ffd700;
+    background: linear-gradient(135deg, #fff9e6, #ffffff);
+    position: relative;
+    overflow: hidden;
+}
+
+.review-item.featured-review::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -100px 0; }
+    100% { background-position: 100px 0; }
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+}
+
+.reviewer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e0e0e0;
+    transition: transform 0.3s ease;
+}
+
+.reviewer-avatar:hover {
+    transform: scale(1.1);
+}
+
+.reviewer-details {
+    flex: 1;
+}
+
+.reviewer-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.review-date {
+    color: #666;
+    font-size: 13px;
+}
+
+.featured-review-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #8b6914;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.review-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.review-stars {
+    color: #ffd700;
+    font-size: 16px;
+}
+
+.review-comment {
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.admin-reply {
+    border-left: 3px solid #1976d2;
+    background: linear-gradient(135deg, #f8fbff, #ffffff);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    position: relative;
+}
+
+.admin-reply::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -3px;
+    bottom: -2px;
+    width: 3px;
+    background: linear-gradient(180deg, #1976d2, #42a5f5);
+}
+
+.admin-reply-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.gym-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #1976d2;
+}
+
+.admin-reply-info {
+    flex: 1;
+}
+
+.gym-name {
+    color: #1976d2;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.reply-label {
+    color: #666;
+    font-size: 12px;
+}
+
+.admin-reply-text {
+    color: #444;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Enhanced Reviews Mobile Responsiveness */
+@media (max-width: 768px) {
+    .review-item {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .review-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .reviewer-info {
+        gap: 10px;
+    }
+    
+    .reviewer-avatar {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .reviewer-name {
+        font-size: 15px;
+    }
+    
+    .review-comment {
+        font-size: 13px;
+    }
+    
+    .admin-reply {
+        padding: 12px;
+    }
+    
+    .gym-avatar {
+        width: 28px;
+        height: 28px;
+    }
+}

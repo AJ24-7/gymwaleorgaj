@@ -286,7 +286,7 @@ const googleAuth = async (req, res) => {
 const updateProfile = async (req, res) => {
   console.log("BODY:", req.body);
   try {
-    const userId = req.userId;
+    const userId = req.user._id;
     const {
       firstName, lastName, username, birthdate, phone, email,
       heightFeet, heightInches, weight, fitnessLevel, primaryGoal,
@@ -433,7 +433,7 @@ const verifyPasswordResetOTP = async (req, res) => {
 // Get user profile
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.user._id).select('-password');
     if (!user) return res.status(404).json({ message: "User not found" });
     
     // Create combined name for auto-fill
@@ -499,7 +499,7 @@ const getUserProfile = async (req, res) => {
 // Save workout schedule
 const saveWorkoutSchedule = async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = req.user._id;
     const { schedule } = req.body;
     if (!schedule) return res.status(400).json({ message: "No schedule provided" });
     const user = await User.findById(userId);
@@ -514,7 +514,7 @@ const saveWorkoutSchedule = async (req, res) => {
 // Get workout schedule
 const getWorkoutSchedule = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.user._id);
     res.status(200).json({ schedule: user.workoutSchedule || {} });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch schedule" });
@@ -525,7 +525,7 @@ const getWorkoutSchedule = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.userId;
+    const userId = req.user._id;
     
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Current password and new password are required' });

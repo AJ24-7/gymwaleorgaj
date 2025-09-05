@@ -545,41 +545,18 @@ class TrialBookingsManager {
 
     async confirmBooking(bookingId) {
         try {
-            // Show confirmation dialog
-            const confirmed = confirm('Confirm this trial booking? This will update the status to confirmed and send a confirmation email to the customer.');
-            
-            if (!confirmed) return;
-
-            const response = await fetch(`/api/gyms/trial-bookings/${bookingId}/confirm`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Failed to confirm booking: ${response.statusText}`);
+            // Find the booking details
+            const booking = this.trialBookings.find(b => (b._id || b.id) === bookingId);
+            if (!booking) {
+                throw new Error('Booking not found');
             }
 
-            const result = await response.json();
-
-            // Update local data
-            const bookingIndex = this.trialBookings.findIndex(b => (b._id || b.id) === bookingId);
-            if (bookingIndex !== -1) {
-                this.trialBookings[bookingIndex].status = 'confirmed';
-            }
-
-            // Refresh display
-            this.applyFilters();
-            
-            // Show success message
-            this.showSuccessMessage(result.message || 'Booking confirmed and email sent successfully!');
+            // Show enhanced confirmation modal
+            this.showTrialConfirmationModal(booking);
 
         } catch (error) {
-            console.error('Error confirming booking:', error);
-            this.showError(error.message || 'Failed to confirm booking. Please try again.');
+            console.error('Error showing confirmation modal:', error);
+            this.showError(error.message || 'Failed to load booking details. Please try again.');
         }
     }
 
@@ -1054,6 +1031,274 @@ class DashboardTrialBookingsManager {
         setTimeout(() => {
             toast.remove();
         }, 3000);
+    }
+
+    // Enhanced Trial Confirmation Modal
+    showTrialConfirmationModal(booking) {
+        const modalId = 'trialConfirmationModal';
+        
+        // Remove existing modal if present
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.style.zIndex = '100000';
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header-style" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 24px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0;">
+                    <h3 class="modal-title-style" style="margin: 0; display: flex; align-items: center; gap: 12px; color: white;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 10px;">
+                            <i class="fas fa-calendar-check" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">Confirm Trial Booking</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9;">Send professional confirmation to customer</div>
+                        </div>
+                    </h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px; border-radius: 50%; transition: background 0.2s;">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Customer Details Section -->
+                    <div class="confirmation-section" style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid #1976d2;">
+                        <h4 style="margin: 0 0 16px 0; color: #1976d2; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user"></i> Customer Details
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div><strong>Name:</strong> ${booking.name || 'N/A'}</div>
+                            <div><strong>Email:</strong> ${booking.email || 'N/A'}</div>
+                            <div><strong>Phone:</strong> ${booking.phone || 'N/A'}</div>
+                            <div><strong>Preferred Date:</strong> ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'N/A'}</div>
+                            <div><strong>Preferred Time:</strong> ${booking.preferredTime || 'N/A'}</div>
+                            <div><strong>Fitness Goals:</strong> ${booking.fitnessGoals || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Options -->
+                    <div class="confirmation-section" style="margin-bottom: 24px;">
+                        <h4 style="margin: 0 0 16px 0; color: #1976d2; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-bell"></i> Confirmation Method
+                        </h4>
+                        <div class="notification-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <label class="notification-option" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; background: white;">
+                                <input type="checkbox" id="sendEmail" checked style="width: 20px; height: 20px; accent-color: #1976d2;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                        <i class="fas fa-envelope" style="color: #1976d2; font-size: 1.2rem;"></i>
+                                        <strong style="color: #1f2937;">Email Confirmation</strong>
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #6b7280;">Professional branded email with trial details</div>
+                                </div>
+                            </label>
+                            
+                            <label class="notification-option" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; background: white;">
+                                <input type="checkbox" id="sendWhatsApp" ${booking.whatsappConsent ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: #25d366;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                        <i class="fab fa-whatsapp" style="color: #25d366; font-size: 1.2rem;"></i>
+                                        <strong style="color: #1f2937;">WhatsApp Message</strong>
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #6b7280;">Quick confirmation via WhatsApp</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Email Preview Section -->
+                    <div class="confirmation-section" style="margin-bottom: 24px;">
+                        <h4 style="margin: 0 0 16px 0; color: #1976d2; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-eye"></i> Email Preview
+                        </h4>
+                        <div class="email-preview" style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: white;">
+                            <div class="email-header" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 20px; text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">
+                                    <i class="fas fa-dumbbell" style="margin-right: 12px;"></i>Gym-Wale
+                                </div>
+                                <div style="font-size: 1rem; opacity: 0.9;">Your Fitness Journey Starts Here</div>
+                            </div>
+                            <div class="email-body" style="padding: 24px;">
+                                <h3 style="color: #1976d2; margin: 0 0 16px 0; font-size: 1.3rem;">
+                                    🎉 Trial Booking Confirmed!
+                                </h3>
+                                <p style="margin-bottom: 16px; color: #374151; line-height: 1.6;">
+                                    Dear <strong>${booking.name}</strong>,
+                                </p>
+                                <p style="margin-bottom: 20px; color: #374151; line-height: 1.6;">
+                                    Great news! Your trial session has been confirmed. We're excited to welcome you to our gym and help you achieve your fitness goals.
+                                </p>
+                                
+                                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #1976d2; margin-bottom: 20px;">
+                                    <h4 style="margin: 0 0 12px 0; color: #1976d2;">📅 Your Trial Session Details:</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.95rem;">
+                                        <div><strong>Date:</strong> ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'TBD'}</div>
+                                        <div><strong>Time:</strong> ${booking.preferredTime || 'TBD'}</div>
+                                        <div><strong>Duration:</strong> 60 minutes</div>
+                                        <div><strong>Type:</strong> Trial Session</div>
+                                    </div>
+                                </div>
+
+                                <div style="background: #ecfdf5; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #059669;">✅ What to Bring:</h4>
+                                    <ul style="margin: 0; padding-left: 20px; color: #374151;">
+                                        <li>Comfortable workout clothes</li>
+                                        <li>Water bottle</li>
+                                        <li>Towel</li>
+                                        <li>Valid ID proof</li>
+                                    </ul>
+                                </div>
+
+                                <p style="margin-bottom: 16px; color: #374151; line-height: 1.6;">
+                                    If you have any questions or need to reschedule, please don't hesitate to contact us.
+                                </p>
+                                
+                                <div style="text-align: center; margin: 24px 0;">
+                                    <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 16px 32px; border-radius: 8px; display: inline-block; font-weight: 600;">
+                                        Ready to Transform Your Fitness Journey?
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="email-footer" style="background: #f9fafb; padding: 16px; text-align: center; color: #6b7280; font-size: 0.85rem; border-top: 1px solid #e5e7eb;">
+                                <p style="margin: 0 0 8px 0;">Best regards,<br><strong>Gym-Wale Team</strong></p>
+                                <p style="margin: 0; font-size: 0.8rem;">© 2024 Gym-Wale. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Message -->
+                    <div class="confirmation-section" style="margin-bottom: 24px;">
+                        <h4 style="margin: 0 0 12px 0; color: #1976d2; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-comment"></i> Additional Message (Optional)
+                        </h4>
+                        <textarea 
+                            id="additionalMessage" 
+                            placeholder="Add any additional instructions or welcome message..."
+                            style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; resize: vertical; font-family: inherit; font-size: 0.9rem;"
+                        ></textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                        <button 
+                            onclick="this.closest('.modal').remove()" 
+                            style="padding: 12px 24px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="trialBookingsManager.processTrialConfirmation('${booking._id || booking.id}')" 
+                            style="padding: 12px 32px; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;"
+                        >
+                            <i class="fas fa-paper-plane"></i>
+                            Confirm & Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add CSS for better styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification-option:hover {
+                border-color: #1976d2 !important;
+                background: #f8fafc !important;
+            }
+            .notification-option input:checked + div {
+                color: #1976d2;
+            }
+            .email-preview {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+        `;
+        document.head.appendChild(style);
+
+        document.body.appendChild(modal);
+    }
+
+    // Process the trial confirmation
+    async processTrialConfirmation(bookingId) {
+        try {
+            const modal = document.getElementById('trialConfirmationModal');
+            const sendEmail = document.getElementById('sendEmail').checked;
+            const sendWhatsApp = document.getElementById('sendWhatsApp').checked;
+            const additionalMessage = document.getElementById('additionalMessage').value;
+
+            if (!sendEmail && !sendWhatsApp) {
+                this.showError('Please select at least one notification method.');
+                return;
+            }
+
+            // Show loading state
+            const confirmBtn = modal.querySelector('button[onclick*="processTrialConfirmation"]');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            confirmBtn.disabled = true;
+
+            const response = await fetch(`/api/gyms/trial-bookings/${bookingId}/confirm`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
+                },
+                body: JSON.stringify({
+                    sendEmail,
+                    sendWhatsApp,
+                    additionalMessage
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Failed to confirm booking: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            // Update local data
+            const bookingIndex = this.trialBookings.findIndex(b => (b._id || b.id) === bookingId);
+            if (bookingIndex !== -1) {
+                this.trialBookings[bookingIndex].status = 'confirmed';
+            }
+
+            // Close modal
+            modal.remove();
+
+            // Refresh display
+            this.applyFilters();
+            
+            // Show success message with details
+            let successMessage = 'Trial booking confirmed successfully!';
+            if (sendEmail && sendWhatsApp) {
+                successMessage += ' Email and WhatsApp confirmations sent.';
+            } else if (sendEmail) {
+                successMessage += ' Email confirmation sent.';
+            } else if (sendWhatsApp) {
+                successMessage += ' WhatsApp confirmation sent.';
+            }
+
+            this.showSuccessMessage(successMessage);
+
+        } catch (error) {
+            console.error('Error confirming booking:', error);
+            
+            // Reset button state
+            const modal = document.getElementById('trialConfirmationModal');
+            if (modal) {
+                const confirmBtn = modal.querySelector('button[onclick*="processTrialConfirmation"]');
+                if (confirmBtn) {
+                    confirmBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm & Send';
+                    confirmBtn.disabled = false;
+                }
+            }
+            
+            this.showError(error.message || 'Failed to confirm booking. Please try again.');
+        }
     }
 }
 

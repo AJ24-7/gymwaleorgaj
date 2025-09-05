@@ -5,8 +5,20 @@ class AdminLogin {
     constructor() {
         this.baseURL = 'http://localhost:5000/api/admin/auth';
         this.deviceFingerprint = this.generateDeviceFingerprint();
+        this.isSubmitting = false; // Add submission state
         this.initializeEventListeners();
-        this.checkExistingSession();
+        
+        // Only check existing session if there's a token and no explicit logout
+        // This prevents unnecessary redirects when users intentionally navigate to login
+        const hasToken = localStorage.getItem('adminToken');
+        const isLoggedOut = sessionStorage.getItem('adminLoggedOut');
+        
+        if (hasToken && !isLoggedOut) {
+            this.checkExistingSession();
+        } else if (isLoggedOut) {
+            // Clear the logout flag since we're on the login page now
+            sessionStorage.removeItem('adminLoggedOut');
+        }
     }
 
     initializeEventListeners() {
@@ -86,7 +98,7 @@ class AdminLogin {
 
                 if (response.ok) {
                     // Valid session exists, redirect to dashboard
-                    window.location.href = '/frontend/admin/admin.html';
+                    window.location.href = 'admin.html';
                 }
             } catch (error) {
                 // Token invalid, continue with login
@@ -98,6 +110,12 @@ class AdminLogin {
     }
 
     async handleLogin() {
+        // Prevent double submission
+        if (this.isSubmitting) {
+            console.log('Login already in progress, preventing double submission');
+            return;
+        }
+        
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const trustDevice = document.getElementById('trustDevice').checked;
@@ -107,6 +125,8 @@ class AdminLogin {
             return;
         }
 
+        // Set submission state
+        this.isSubmitting = true;
         this.setLoading(true);
 
         try {
@@ -152,6 +172,7 @@ class AdminLogin {
             this.showAlert('loginAlert', 'Network error. Please check your connection and try again.', 'error');
         } finally {
             this.setLoading(false);
+            this.isSubmitting = false; // Reset submission state
         }
     }
 
@@ -170,9 +191,9 @@ class AdminLogin {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.currentLoginData.tempToken}`
                 },
                 body: JSON.stringify({
-                    tempToken: this.currentLoginData.tempToken,
                     code,
                     deviceFingerprint: this.deviceFingerprint
                 })
@@ -202,6 +223,9 @@ class AdminLogin {
         if (result.sessionTimeout) {
             localStorage.setItem('sessionTimeout', result.sessionTimeout);
         }
+
+        // Clear logout flag since we're now successfully logged in
+        sessionStorage.removeItem('adminLoggedOut');
 
         this.showAlert('loginAlert', 'Login successful! Redirecting...', 'success');
         
@@ -350,17 +374,4 @@ function sendResetEmail() {
 let adminLogin;
 document.addEventListener('DOMContentLoaded', () => {
     adminLogin = new AdminLogin();
-});
-
-// Auto-fill default credentials for testing (remove in production)
-document.addEventListener('DOMContentLoaded', () => {
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    
-    if (emailInput && !emailInput.value) {
-        emailInput.value = 'admin@gym-wale.com';
-    }
-    if (passwordInput && !passwordInput.value) {
-        passwordInput.value = 'SecureAdmin@2024';
-    }
 });

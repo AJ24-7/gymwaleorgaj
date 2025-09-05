@@ -44,6 +44,20 @@ const reviewSchema = new mongoose.Schema({
             default: null
         }
     },
+    // Featured review system
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    featuredAt: {
+        type: Date,
+        default: null
+    },
+    featuredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Gym',
+        default: null
+    },
     isActive: {
         type: Boolean,
         default: true

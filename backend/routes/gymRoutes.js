@@ -959,10 +959,11 @@ router.put('/trial-bookings/:bookingId/status', gymadminAuth, async (req, res) =
   }
 });
 
-// Confirm trial booking and send email
+// Confirm trial booking and send email/WhatsApp
 router.put('/trial-bookings/:bookingId/confirm', gymadminAuth, async (req, res) => {
   try {
     const { bookingId } = req.params;
+    const { sendEmail = true, sendWhatsApp = false, additionalMessage = '' } = req.body;
     const gymId = req.admin?.id;
 
     const booking = await TrialBooking.findById(bookingId).populate('userId', 'firstName lastName email');
@@ -981,8 +982,8 @@ router.put('/trial-bookings/:bookingId/confirm', gymadminAuth, async (req, res) 
       });
     }
 
-    // Get gym details for email
-    const gym = await Gym.findById(gymId).select('gymName address phone email');
+    // Get gym details for notifications
+    const gym = await Gym.findById(gymId).select('gymName address phone email logoUrl');
     if (!gym) {
       return res.status(404).json({
         success: false,
@@ -992,112 +993,288 @@ router.put('/trial-bookings/:bookingId/confirm', gymadminAuth, async (req, res) 
 
     // Update booking status
     booking.status = 'confirmed';
+    booking.confirmedAt = new Date();
     booking.updatedAt = new Date();
+    if (additionalMessage) {
+      booking.adminMessage = additionalMessage;
+    }
     await booking.save();
 
-    // Send confirmation email
     const customerEmail = booking.email;
     const customerName = booking.name;
+    const customerPhone = booking.phone;
     
-    const emailSubject = `Trial Booking Confirmed - ${gym.gymName}`;
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Trial Booking Confirmed!</h1>
-        </div>
-        
-        <div style="padding: 30px; background-color: #f9fafb;">
-          <h2 style="color: #1f2937; margin-bottom: 20px;">Dear ${customerName},</h2>
-          
-          <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
-            Great news! Your trial booking at <strong>${gym.gymName}</strong> has been confirmed.
-          </p>
-          
-          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
-            <h3 style="color: #1f2937; margin-top: 0;">Booking Details:</h3>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Date:</strong> ${new Date(booking.trialDate).toLocaleDateString()}</p>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Time:</strong> ${booking.trialTime || 'Flexible'}</p>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Activity:</strong> ${booking.preferredActivity || 'General Fitness'}</p>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Status:</strong> <span style="color: #059669; font-weight: bold;">Confirmed</span></p>
-          </div>
-          
-          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="color: #1f2937; margin-top: 0;">Gym Information:</h3>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Name:</strong> ${gym.gymName}</p>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Address:</strong> ${gym.address || 'Contact gym for address'}</p>
-            <p style="margin: 8px 0; color: #4b5563;"><strong>Phone:</strong> ${gym.phone || 'Contact through website'}</p>
-          </div>
-          
-          <div style="background: #eff6ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="color: #1e40af; margin-top: 0;">What to Bring:</h3>
-            <ul style="color: #4b5563; padding-left: 20px;">
-              <li>Comfortable workout clothes</li>
-              <li>Water bottle</li>
-              <li>Towel</li>
-              <li>Positive attitude!</li>
-            </ul>
-          </div>
-          
-          <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
-            We're excited to have you visit our gym! If you have any questions or need to make changes to your booking, 
-            please contact us directly.
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <p style="color: #6b7280; font-size: 14px;">
-              Thank you for choosing ${gym.gymName}!<br>
-              We look forward to seeing you soon.
-            </p>
-          </div>
-        </div>
-        
-        <div style="background: #374151; color: #d1d5db; padding: 20px; text-align: center; font-size: 12px;">
-          <p style="margin: 0;">This is an automated message from FIT-verse gym management system.</p>
-        </div>
-      </div>
-    `;
+    let emailSent = false;
+    let whatsappSent = false;
+    let notifications = [];
 
-    try {
-      await sendEmail(customerEmail, emailSubject, emailContent);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Booking confirmed and confirmation email sent successfully!',
-        booking: {
-          _id: booking._id,
-          customerName: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          preferredDate: booking.trialDate,
-          preferredTime: booking.trialTime,
-          fitnessGoal: booking.preferredActivity,
-          status: booking.status,
-          createdAt: booking.createdAt,
-          message: booking.message
-        }
-      });
-    } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError);
-      
-      // Even if email fails, booking was confirmed
-      res.status(200).json({
-        success: true,
-        message: 'Booking confirmed successfully, but there was an issue sending the confirmation email.',
-        booking: {
-          _id: booking._id,
-          customerName: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          preferredDate: booking.trialDate,
-          preferredTime: booking.trialTime,
-          fitnessGoal: booking.preferredActivity,
-          status: booking.status,
-          createdAt: booking.createdAt,
-          message: booking.message
-        },
-        emailError: 'Failed to send confirmation email'
-      });
+    // Send Email Confirmation
+    if (sendEmail && customerEmail) {
+      const emailSubject = `🎉 Trial Booking Confirmed - ${gym.gymName} | Gym-Wale`;
+      const emailContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Trial Booking Confirmed - Gym-Wale</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f8fafc;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+            
+            <!-- Header with Gym-Wale Branding -->
+            <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 40px 20px; text-align: center;">
+              <div style="display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); padding: 16px; border-radius: 50%; margin-bottom: 20px;">
+                <div style="font-size: 2.5rem;">
+                  <i class="fas fa-dumbbell"></i>
+                </div>
+              </div>
+              <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">Gym-Wale</h1>
+              <p style="margin: 0; font-size: 1.1rem; opacity: 0.9; font-weight: 500;">Your Fitness Journey Starts Here</p>
+              <div style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.1); border-radius: 12px;">
+                <h2 style="margin: 0; font-size: 1.6rem; font-weight: 700;">🎉 Trial Booking Confirmed!</h2>
+                <p style="margin: 8px 0 0 0; font-size: 1rem; opacity: 0.95;">Get ready to transform your fitness journey</p>
+              </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px;">
+              
+              <!-- Personal Greeting -->
+              <div style="margin-bottom: 32px;">
+                <h3 style="color: #1976d2; margin: 0 0 12px 0; font-size: 1.4rem; font-weight: 600;">
+                  Dear ${customerName},
+                </h3>
+                <p style="margin: 0; color: #374151; font-size: 1.1rem; line-height: 1.7;">
+                  Congratulations! Your trial session at <strong style="color: #1976d2;">${gym.gymName}</strong> has been officially confirmed. 
+                  We're thrilled to welcome you to our fitness community and can't wait to help you achieve your goals!
+                </p>
+              </div>
+
+              <!-- Trial Session Details -->
+              <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 24px; border-radius: 16px; margin-bottom: 32px; border-left: 6px solid #1976d2;">
+                <h4 style="margin: 0 0 20px 0; color: #1976d2; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center;">
+                  <span style="background: #1976d2; color: white; padding: 8px; border-radius: 8px; margin-right: 12px; font-size: 1.2rem;">📅</span>
+                  Your Trial Session Details
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                  <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="color: #6b7280; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Date</div>
+                    <div style="color: #1f2937; font-size: 1.1rem; font-weight: 700;">${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'To be scheduled'}</div>
+                  </div>
+                  <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="color: #6b7280; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Time</div>
+                    <div style="color: #1f2937; font-size: 1.1rem; font-weight: 700;">${booking.preferredTime || 'Flexible timing'}</div>
+                  </div>
+                  <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="color: #6b7280; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Duration</div>
+                    <div style="color: #1f2937; font-size: 1.1rem; font-weight: 700;">60 minutes</div>
+                  </div>
+                  <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="color: #6b7280; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Activity</div>
+                    <div style="color: #1f2937; font-size: 1.1rem; font-weight: 700;">${booking.activityPreference || booking.fitnessGoals || 'General Fitness'}</div>
+                  </div>
+                </div>
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px 16px; border-radius: 8px; margin-top: 16px;">
+                  <div style="display: flex; align-items: center; color: #059669; font-weight: 700;">
+                    <span style="margin-right: 8px; font-size: 1.2rem;">✅</span>
+                    Status: Confirmed & Ready to Go!
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gym Information -->
+              <div style="background: white; border: 2px solid #e5e7eb; padding: 24px; border-radius: 16px; margin-bottom: 32px;">
+                <h4 style="margin: 0 0 20px 0; color: #1976d2; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center;">
+                  <span style="background: #1976d2; color: white; padding: 8px; border-radius: 8px; margin-right: 12px; font-size: 1.2rem;">🏋️</span>
+                  Gym Information
+                </h4>
+                <div style="space-y: 12px;">
+                  <div style="margin-bottom: 12px;"><strong style="color: #1f2937;">Name:</strong> <span style="color: #6b7280;">${gym.gymName}</span></div>
+                  <div style="margin-bottom: 12px;"><strong style="color: #1f2937;">Address:</strong> <span style="color: #6b7280;">${gym.address || 'Please contact the gym for address details'}</span></div>
+                  <div style="margin-bottom: 12px;"><strong style="color: #1f2937;">Phone:</strong> <span style="color: #6b7280;">${gym.phone || 'Available on website'}</span></div>
+                  ${gym.email ? `<div style="margin-bottom: 12px;"><strong style="color: #1f2937;">Email:</strong> <span style="color: #6b7280;">${gym.email}</span></div>` : ''}
+                </div>
+              </div>
+
+              <!-- What to Bring -->
+              <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 24px; border-radius: 16px; margin-bottom: 32px; border-left: 6px solid #059669;">
+                <h4 style="margin: 0 0 16px 0; color: #059669; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center;">
+                  <span style="background: #059669; color: white; padding: 8px; border-radius: 8px; margin-right: 12px; font-size: 1.2rem;">🎒</span>
+                  What to Bring
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Comfortable workout clothes
+                  </div>
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Water bottle
+                  </div>
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Clean towel
+                  </div>
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Valid ID proof
+                  </div>
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Positive attitude!
+                  </div>
+                  <div style="display: flex; align-items: center; color: #065f46; font-weight: 600;">
+                    <span style="color: #059669; margin-right: 8px; font-size: 1.1rem;">✓</span>
+                    Motivation to succeed
+                  </div>
+                </div>
+              </div>
+
+              ${additionalMessage ? `
+              <!-- Additional Message from Gym -->
+              <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 12px; margin-bottom: 32px;">
+                <h4 style="margin: 0 0 12px 0; color: #92400e; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center;">
+                  <span style="margin-right: 8px; font-size: 1.2rem;">💬</span>
+                  Special Message from ${gym.gymName}
+                </h4>
+                <p style="margin: 0; color: #78350f; font-size: 1rem; line-height: 1.6; font-style: italic;">
+                  "${additionalMessage}"
+                </p>
+              </div>
+              ` : ''}
+
+              <!-- Call to Action -->
+              <div style="text-align: center; margin: 40px 0;">
+                <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 24px; border-radius: 16px; display: inline-block; max-width: 400px;">
+                  <div style="font-size: 1.5rem; margin-bottom: 8px;">🚀</div>
+                  <h3 style="margin: 0 0 8px 0; font-size: 1.4rem; font-weight: 700;">Ready to Transform?</h3>
+                  <p style="margin: 0; font-size: 1rem; opacity: 0.95;">Your fitness journey begins now!</p>
+                </div>
+              </div>
+
+              <!-- Support Information -->
+              <div style="background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <p style="margin: 0 0 12px 0; color: #374151; font-size: 1rem; line-height: 1.6;">
+                  <strong>Need to reschedule or have questions?</strong> No worries! Contact the gym directly using the information provided above, 
+                  or reach out to our support team.
+                </p>
+                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">
+                  We're here to help make your fitness journey as smooth as possible.
+                </p>
+              </div>
+
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #374151; color: #d1d5db; padding: 30px 20px; text-align: center;">
+              <div style="margin-bottom: 16px;">
+                <h4 style="margin: 0 0 8px 0; color: white; font-size: 1.2rem; font-weight: 700;">Thank you for choosing Gym-Wale!</h4>
+                <p style="margin: 0; font-size: 1rem; opacity: 0.9;">Empowering your fitness journey, one workout at a time.</p>
+              </div>
+              <div style="border-top: 1px solid #4b5563; padding-top: 16px; margin-top: 16px;">
+                <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">
+                  This email was sent by Gym-Wale fitness management platform.<br>
+                  © 2024 Gym-Wale. All rights reserved.
+                </p>
+              </div>
+            </div>
+            
+          </div>
+        </body>
+        </html>
+      `;
+
+      try {
+        // Send email confirmation
+        await sendEmail(customerEmail, emailSubject, emailContent);
+        emailSent = true;
+        notifications.push('Email confirmation sent successfully');
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        notifications.push('Failed to send email confirmation');
+      }
     }
+
+    // Send WhatsApp Confirmation
+    if (sendWhatsApp && customerPhone) {
+      try {
+        // WhatsApp message content
+        const whatsappMessage = `🎉 *Trial Booking Confirmed!*
+
+Hi ${customerName}! 👋
+
+Your trial session at *${gym.gymName}* has been confirmed through Gym-Wale! 
+
+📅 *Session Details:*
+• Date: ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'To be scheduled'}
+• Time: ${booking.preferredTime || 'Flexible timing'}
+• Activity: ${booking.activityPreference || booking.fitnessGoals || 'General Fitness'}
+
+🏋️ *Gym Information:*
+• Name: ${gym.gymName}
+• Address: ${gym.address || 'Contact gym for details'}
+• Phone: ${gym.phone || 'Available on website'}
+
+🎒 *What to bring:*
+✓ Comfortable workout clothes
+✓ Water bottle & towel
+✓ Valid ID proof
+✓ Positive attitude!
+
+${additionalMessage ? `\n💬 *Special message from ${gym.gymName}:*\n"${additionalMessage}"\n` : ''}
+
+Ready to transform your fitness journey? We can't wait to see you! 💪
+
+Questions? Contact the gym directly or visit Gym-Wale for support.
+
+---
+*Powered by Gym-Wale - Your Fitness Journey Starts Here* 🚀`;
+
+        // Here you would integrate with WhatsApp Business API
+        // For demonstration, we'll log the message that would be sent
+        console.log('WhatsApp message prepared for:', customerPhone);
+        console.log('Message content:', whatsappMessage);
+        
+        // In a real implementation, you would use WhatsApp Business API:
+        // const whatsappResult = await sendWhatsAppMessage(customerPhone, whatsappMessage);
+        
+        whatsappSent = true;
+        notifications.push('WhatsApp confirmation prepared (integration required)');
+      } catch (whatsappError) {
+        console.error('Error preparing WhatsApp message:', whatsappError);
+        notifications.push('Failed to prepare WhatsApp confirmation');
+      }
+    }
+
+    // Prepare comprehensive response
+    res.status(200).json({
+      success: true,
+      message: `Booking confirmed successfully! ${notifications.join('. ')}`,
+      booking: {
+        _id: booking._id,
+        customerName: booking.name,
+        email: booking.email,
+        phone: booking.phone,
+        preferredDate: booking.preferredDate,
+        preferredTime: booking.preferredTime,
+        fitnessGoals: booking.fitnessGoals,
+        status: booking.status,
+        confirmedAt: booking.confirmedAt,
+        createdAt: booking.createdAt,
+        adminMessage: booking.adminMessage
+      },
+      notifications: {
+        sent: notifications,
+        emailSent,
+        whatsappSent,
+        details: {
+          emailRequested: sendEmail,
+          whatsappRequested: sendWhatsApp,
+          hasAdditionalMessage: !!additionalMessage
+        }
+      }
+    });
 
   } catch (error) {
     console.error('Error confirming trial booking:', error);

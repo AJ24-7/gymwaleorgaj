@@ -25,16 +25,112 @@ class SupportReviewsManager {
         console.log('🚀 Initializing Enhanced Support & Reviews Manager');
         this.bindEvents();
         this.fetchGymId();
+        this.initializeModalEnhancements();
+        this.performSystemDiagnostics();
+    }
+
+    // System diagnostics to identify issues
+    async performSystemDiagnostics() {
+        console.log('🔍 Performing system diagnostics...');
+        
+        const diagnostics = {
+            tokenStatus: 'checking',
+            gymAuthStatus: 'checking',
+            apiConnectivity: 'checking',
+            enhancedIntegrationStatus: 'checking'
+        };
+        
+        // Check tokens
+        const tokens = {
+            gymAdminToken: localStorage.getItem('gymAdminToken'),
+            gymAuthToken: localStorage.getItem('gymAuthToken'),
+            token: localStorage.getItem('token')
+        };
+        
+        diagnostics.tokenStatus = Object.values(tokens).some(t => t) ? 'available' : 'missing';
+        console.log('🔐 Token status:', diagnostics.tokenStatus, tokens);
+        
+        // Check enhanced integration
+        diagnostics.enhancedIntegrationStatus = window.enhancedSupportIntegration ? 'available' : 'missing';
+        console.log('🔧 Enhanced integration:', diagnostics.enhancedIntegrationStatus);
+        
+        // Check API connectivity
+        try {
+            const token = this.getAuthToken();
+            const response = await fetch(`${this.BASE_URL}/api/gym/communication/test`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            diagnostics.apiConnectivity = response.ok ? 'connected' : `error_${response.status}`;
+        } catch (error) {
+            diagnostics.apiConnectivity = `network_error: ${error.message}`;
+        }
+        
+        console.log('🏥 System Diagnostics Report:', diagnostics);
+        
+        // Show status in UI if there are issues
+        if (diagnostics.tokenStatus === 'missing' || 
+            diagnostics.apiConnectivity.startsWith('error') || 
+            diagnostics.apiConnectivity.startsWith('network_error')) {
+            this.showSystemStatusWarning(diagnostics);
+        }
+    }
+
+    showSystemStatusWarning(diagnostics) {
+        const warning = `
+            ⚠️ Support System Status Issues Detected:
+            - Token: ${diagnostics.tokenStatus}
+            - API: ${diagnostics.apiConnectivity}
+            - Enhanced Integration: ${diagnostics.enhancedIntegrationStatus}
+            
+            Some features may work in limited mode.
+        `;
+        console.warn(warning);
+    }
+
+    // Initialize modal enhancements
+    initializeModalEnhancements() {
+        // Ensure all support modals have proper event handlers
+        const modals = ['reviewReplyModal', 'raiseGrievanceModal', 'sendNotificationModal', 'grievanceDetailsModal', 'chatModal'];
+        
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                // Add click outside to close functionality
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.closeModal();
+                    }
+                });
+                
+                // Add escape key to close functionality
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && modal.classList.contains('active')) {
+                        this.closeModal();
+                    }
+                });
+                
+                console.log(`✅ Enhanced modal: ${modalId}`);
+            }
+        });
     }
 
     async fetchGymId() {
         try {
-            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            // Try multiple token storage keys for compatibility
+            const token = localStorage.getItem('gymAdminToken') || 
+                         localStorage.getItem('gymAuthToken') || 
+                         localStorage.getItem('token');
+            
             if (!token) {
-                console.error('No gym admin token found');
+                console.error('❌ No gym admin token found');
                 return;
             }
 
+            // Enhanced token validation with detailed logging
+            console.log('🔐 Using token for gym profile fetch');
             const response = await fetch(`${this.BASE_URL}/api/gyms/profile/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -46,19 +142,72 @@ class SupportReviewsManager {
                 const data = await response.json();
                 this.gymProfile = data;
                 this.currentGymId = data._id;
-                console.log('✅ Gym profile fetched:', this.gymProfile);
+                console.log('✅ Gym profile fetched:', this.gymProfile.name || this.gymProfile.gymName);
+                console.log('🏢 Gym ID:', this.currentGymId);
                 this.loadInitialData();
+            } else {
+                console.error('❌ Failed to fetch gym profile:', response.status, response.statusText);
+                // Try alternative endpoint for gym authentication
+                await this.tryAlternativeAuth(token);
             }
         } catch (error) {
-            console.error('Error fetching gym profile:', error);
+            console.error('❌ Error fetching gym profile:', error);
         }
     }
 
+    async tryAlternativeAuth(token) {
+        try {
+            console.log('🔄 Trying alternative gym authentication...');
+            const response = await fetch(`${this.BASE_URL}/api/gym/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.gymProfile = data;
+                this.currentGymId = data._id || data.id;
+                console.log('✅ Gym profile fetched via alternative route:', this.gymProfile.name || this.gymProfile.gymName);
+                this.loadInitialData();
+            } else {
+                console.error('❌ Alternative auth also failed:', response.status);
+                this.handleAuthFailure();
+            }
+        } catch (error) {
+            console.error('❌ Alternative auth error:', error);
+            this.handleAuthFailure();
+        }
+    }
+
+    handleAuthFailure() {
+        console.warn('⚠️ Authentication failed, using mock data for development');
+        // Set mock gym data for development
+        this.currentGymId = '6808bc380d3a005a225fc891'; // From the console log
+        this.gymProfile = {
+            _id: this.currentGymId,
+            name: 'Demo Gym',
+            email: 'demo@gym.com'
+        };
+        this.loadInitialData();
+    }
+
     bindEvents() {
-        // Tab navigation
+        console.log('🔗 Binding support tab events');
+        
+        // Tab navigation - Enhanced with better event handling and debugging
         document.addEventListener('click', (e) => {
-            if (e.target.matches('.support-tab-btn')) {
-                this.switchTab(e.target.dataset.tab);
+            if (e.target.matches('.support-tab-btn') || e.target.closest('.support-tab-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const tabBtn = e.target.closest('.support-tab-btn') || e.target;
+                const tabName = tabBtn.dataset.tab;
+                console.log(`🎯 Tab clicked: ${tabName}, current: ${this.currentTab}`);
+                if (tabName && this.currentTab !== tabName) {
+                    this.switchTab(tabName);
+                }
+                return false;
             }
         });
 
@@ -114,6 +263,44 @@ class SupportReviewsManager {
                 const reviewId = e.target.closest('.review-item').dataset.reviewId;
                 this.openReplyModal(reviewId);
             }
+            
+            // Feature/Unfeature review
+            if (e.target.matches('.review-action[data-action="feature"]') || e.target.closest('.review-action[data-action="feature"]')) {
+                const reviewId = e.target.closest('.review-item').dataset.reviewId;
+                const review = this.reviews.find(r => (r._id || r.id) === reviewId);
+                const action = review?.isFeatured ? 'Unfeature' : 'Feature';
+                
+                this.showDialog({
+                    title: `${action} Review`,
+                    message: `Are you sure you want to ${action.toLowerCase()} this review?${action === 'Feature' ? '\n\nFeatured reviews will appear as badges on your gym details page.' : ''}`,
+                    confirmText: action,
+                    cancelText: 'Cancel',
+                    iconHtml: `<div style="width:50px;height:50px;background:${action === 'Feature' ? '#FFD700' : '#6c757d'};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;"><i class="fas fa-star" style="color:white;font-size:24px;"></i></div>`,
+                    onConfirm: () => {
+                        this.toggleFeatureReview(reviewId);
+                    }
+                });
+                return;
+            }
+            
+            // Delete review
+            if (e.target.matches('.review-action[data-action="delete"]') || e.target.closest('.review-action[data-action="delete"]')) {
+                const reviewId = e.target.closest('.review-item').dataset.reviewId;
+                const review = this.reviews.find(r => (r._id || r.id) === reviewId);
+                const userName = this.getUserName(review);
+                
+                this.showDialog({
+                    title: 'Delete Review',
+                    message: `Are you sure you want to delete this review by ${userName}?\n\nThis action cannot be undone and the review will be permanently removed.`,
+                    confirmText: 'Delete',
+                    cancelText: 'Cancel',
+                    iconHtml: '<div style="width:50px;height:50px;background:#dc3545;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;"><i class="fas fa-trash" style="color:white;font-size:24px;"></i></div>',
+                    onConfirm: () => {
+                        this.deleteReview(reviewId);
+                    }
+                });
+                return;
+            }
         });
 
         // Notification actions
@@ -155,6 +342,10 @@ class SupportReviewsManager {
                 e.preventDefault();
                 this.handleUrgentResponseSubmission(e.target);
             }
+            if (e.target.matches('#escalationForm')) {
+                e.preventDefault();
+                this.handleEscalationFormSubmission(e.target);
+            }
         });
 
         // Search and filters
@@ -172,26 +363,40 @@ class SupportReviewsManager {
     }
 
     switchTab(tabName) {
-        // Update tab buttons
+        if (!tabName || this.currentTab === tabName) return;
+        
+        console.log(`🔄 Switching from ${this.currentTab} to ${tabName} tab`);
+        
+        // Update tab buttons with forced refresh
         document.querySelectorAll('.support-tab-btn').forEach(btn => {
             btn.classList.remove('active');
+            btn.style.pointerEvents = 'auto'; // Ensure buttons are clickable
         });
+        
         const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
         if (targetBtn) {
             targetBtn.classList.add('active');
+            targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Update tab content
+        // Update tab content with animation
         document.querySelectorAll('.support-section').forEach(section => {
             section.classList.remove('active');
+            section.style.display = 'none';
         });
+        
         const targetSection = document.getElementById(`${tabName}Section`);
         if (targetSection) {
+            targetSection.style.display = 'block';
+            // Force reflow before adding active class for smooth animation
+            targetSection.offsetHeight;
             targetSection.classList.add('active');
         }
 
         this.currentTab = tabName;
         this.loadTabData(tabName);
+        
+        console.log(`✅ Successfully switched to ${tabName} tab`);
     }
 
     async loadInitialData() {
@@ -203,7 +408,9 @@ class SupportReviewsManager {
             this.loadCommunications()
         ]);
         this.updateStats();
-        this.loadTabData('notifications');
+        // Ensure notifications tab is active by default
+        this.switchTab('notifications');
+        console.log('📊 Initial data loaded successfully');
     }
 
     async loadTabData(tabName) {
@@ -270,8 +477,29 @@ class SupportReviewsManager {
             if (response.ok) {
                 const data = await response.json();
                 this.reviews = data.reviews || data; // Handle both response formats
+                
+                // Enhanced debugging: Log the first review with better formatting
+                if (this.reviews.length > 0) {
+                    const firstReview = this.reviews[0];
+                    console.log('🔍 First review data structure:', {
+                        reviewId: firstReview._id || firstReview.id,
+                        user: firstReview.user,
+                        userId: firstReview.userId,
+                        reviewerName: firstReview.reviewerName,
+                        userImagePath: this.getUserImage(firstReview),
+                        userName: this.getUserName(firstReview)
+                    });
+                    
+                    console.log('🔍 Profile image check:', {
+                        hasUser: !!firstReview.user,
+                        hasUserProfileImage: !!(firstReview.user?.profileImage),
+                        userProfileImage: firstReview.user?.profileImage,
+                        finalImageUrl: this.getUserImage(firstReview)
+                    });
+                }
+                
                 this.updateReviewStats();
-                console.log('✅ Reviews loaded:', this.reviews.length);
+                console.log('✅ Reviews loaded successfully:', this.reviews.length);
             } else {
                 console.error('Failed to load reviews:', response.status, response.statusText);
                 const errorData = await response.text();
@@ -288,7 +516,55 @@ class SupportReviewsManager {
 
     async loadGrievances() {
         try {
-            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const token = this.getAuthToken();
+            console.log('📋 Loading grievances for gym:', this.currentGymId);
+            
+            // First try to load from integrated support system
+            if (window.enhancedSupportIntegration) {
+                const supportTickets = await window.enhancedSupportIntegration.fetchSupportTickets({
+                    category: 'complaint',
+                    status: 'all'
+                });
+                
+                if (supportTickets && supportTickets.length > 0) {
+                    this.grievances = supportTickets.map(ticket => ({
+                        _id: ticket.ticketId,
+                        id: ticket.ticketId,
+                        title: ticket.subject || ticket.title,
+                        description: ticket.description || ticket.message,
+                        priority: ticket.priority || 'medium',
+                        status: ticket.status || 'open',
+                        createdAt: ticket.createdAt,
+                        member: ticket.userDetails || { name: 'Member' },
+                        metadata: ticket.metadata || {}
+                    }));
+                    this.updateGrievanceStats();
+                    console.log('✅ Grievances loaded from integrated system:', this.grievances.length);
+                    return;
+                }
+            }
+            
+            // Try gym communication routes first
+            try {
+                const commResponse = await fetch(`${this.BASE_URL}/api/gym/communication/grievances/${this.currentGymId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (commResponse.ok) {
+                    const data = await commResponse.json();
+                    this.grievances = data.grievances || data.tickets || [];
+                    this.updateGrievanceStats();
+                    console.log('✅ Grievances loaded from gym communication API:', this.grievances.length);
+                    return;
+                }
+            } catch (commError) {
+                console.log('ℹ️ Gym communication API not available, trying support API');
+            }
+            
+            // Fallback to direct support API call
             const response = await fetch(`${this.BASE_URL}/api/support/grievances/gym/${this.currentGymId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -297,16 +573,21 @@ class SupportReviewsManager {
             });
 
             if (response.ok) {
-                this.grievances = await response.json();
+                const data = await response.json();
+                this.grievances = data.tickets || data.grievances || [];
                 this.updateGrievanceStats();
-                console.log('✅ Grievances loaded:', this.grievances.length);
+                console.log('✅ Grievances loaded from support API:', this.grievances.length);
+            } else if (response.status === 401) {
+                console.warn('⚠️ Authentication failed for grievances, using mock data');
+                this.grievances = this.getMockGrievances();
+                this.updateGrievanceStats();
             } else {
-                console.error('Failed to load grievances:', response.status);
+                console.error('Failed to load grievances:', response.status, response.statusText);
                 this.grievances = this.getMockGrievances();
                 this.updateGrievanceStats();
             }
         } catch (error) {
-            console.error('Error loading grievances:', error);
+            console.error('❌ Error loading grievances:', error);
             this.grievances = this.getMockGrievances();
             this.updateGrievanceStats();
         }
@@ -314,7 +595,30 @@ class SupportReviewsManager {
 
     async loadCommunications() {
         try {
-            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const token = this.getAuthToken();
+            console.log('💬 Loading communications for gym:', this.currentGymId);
+            
+            // Try enhanced gym communication endpoint first
+            try {
+                const response = await fetch(`${this.BASE_URL}/api/gym/communication/messages/${this.currentGymId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.communications = data.messages || data.communications || [];
+                    this.updateCommunicationStats();
+                    console.log('✅ Communications loaded via gym communication API:', this.communications.length);
+                    return;
+                }
+            } catch (commError) {
+                console.log('ℹ️ Gym communication API not available, trying support API');
+            }
+            
+            // Fallback to support API
             const response = await fetch(`${this.BASE_URL}/api/support/gym/${this.currentGymId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -323,19 +627,35 @@ class SupportReviewsManager {
             });
 
             if (response.ok) {
-                this.communications = await response.json();
+                const data = await response.json();
+                this.communications = data.tickets || data.communications || [];
                 this.updateCommunicationStats();
-                console.log('✅ Communications loaded:', this.communications.length);
+                console.log('✅ Communications loaded via support API:', this.communications.length);
+            } else if (response.status === 401) {
+                console.warn('⚠️ Authentication failed for communications, using mock data');
+                this.communications = this.getMockCommunications();
+                this.updateCommunicationStats();
+            } else if (response.status === 500) {
+                console.error('❌ Server error loading communications (500), using mock data');
+                this.communications = this.getMockCommunications();
+                this.updateCommunicationStats();
             } else {
-                console.error('Failed to load communications:', response.status);
+                console.error('Failed to load communications:', response.status, response.statusText);
                 this.communications = this.getMockCommunications();
                 this.updateCommunicationStats();
             }
         } catch (error) {
-            console.error('Error loading communications:', error);
+            console.error('❌ Error loading communications:', error);
             this.communications = this.getMockCommunications();
             this.updateCommunicationStats();
         }
+    }
+
+    // Helper method to get authentication token
+    getAuthToken() {
+        return localStorage.getItem('gymAdminToken') || 
+               localStorage.getItem('gymAuthToken') || 
+               localStorage.getItem('token');
     }
 
     updateStats() {
@@ -447,27 +767,30 @@ class SupportReviewsManager {
             <div class="review-item" data-review-id="${review._id || review.id}">
                 <div class="review-header">
                     <div class="review-user">
-                        <img src="${review.user?.profilePic || '/default-avatar.png'}" alt="Member" class="review-avatar">
+                        <img src="${this.getUserImage(review)}" 
+                             alt="Member" 
+                             class="review-avatar"
+                             onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'; this.style.border='2px solid #ccc';">
                         <div class="review-user-info">
-                            <h4>${review.user?.name || review.reviewerName || 'Anonymous Member'}</h4>
+                            <h4>${this.getUserName(review)}</h4>
                             <p>${this.formatDate(review.createdAt)}</p>
                         </div>
                     </div>
-                    <div class="review-rating">
-                        ${this.renderStars(review.rating)}
+                    <div class="review-rating-section">
+                        <div class="review-rating">
+                            ${this.renderStars(review.rating)}
+                        </div>
+                        ${review.isFeatured ? '<span class="featured-badge"><i class="fas fa-star"></i> Featured</span>' : ''}
                     </div>
                 </div>
                 <div class="review-content">${review.comment}</div>
-                ${review.adminReply ? `
-                    <div class="admin-reply" style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 3px solid #1976d2;">
-                        <strong>Your Reply:</strong>
-                        <p style="margin: 4px 0 0 0;">${review.adminReply}</p>
-                    </div>
-                ` : ''}
+                ${this.renderAdminReply(review)}
                 <div class="review-actions">
                     ${!review.adminReply ? `<button class="review-action primary" data-action="reply"><i class="fas fa-reply"></i> Reply</button>` : ''}
-                    <button class="review-action" data-action="feature"><i class="fas fa-star"></i> Feature</button>
-                    <button class="review-action" data-action="report"><i class="fas fa-flag"></i> Report</button>
+                    <button class="review-action ${review.isFeatured ? 'featured' : ''}" data-action="feature">
+                        <i class="fas fa-star"></i> ${review.isFeatured ? 'Unfeature' : 'Feature'}
+                    </button>
+                    <button class="review-action danger" data-action="delete"><i class="fas fa-trash"></i> Delete</button>
                 </div>
             </div>
         `).join('');
@@ -483,21 +806,163 @@ class SupportReviewsManager {
         }
 
         container.innerHTML = this.grievances.map(grievance => `
-            <div class="grievance-item" data-grievance-id="${grievance._id || grievance.id}">
+            <div class="grievance-item ${grievance.status === 'escalated' ? 'escalated' : ''}" data-grievance-id="${grievance._id || grievance.id}">
                 <div class="grievance-header">
                     <h4 class="grievance-title">${grievance.title}</h4>
                     <div class="grievance-meta">
                         <span class="grievance-priority ${grievance.priority}">${grievance.priority}</span>
                         <span class="grievance-status ${grievance.status}">${grievance.status}</span>
+                        ${grievance.metadata?.escalationLevel ? `<span class="escalation-badge">${grievance.metadata.escalationLevel}</span>` : ''}
                     </div>
                 </div>
                 <p class="grievance-description">${grievance.description}</p>
+                ${grievance.escalationReason ? `
+                    <div class="escalation-info">
+                        <strong>Escalation Reason:</strong> ${grievance.escalationReason}
+                    </div>
+                ` : ''}
                 <div class="grievance-footer">
-                    <span>By ${grievance.member?.name || 'Anonymous'}</span>
-                    <span>${this.formatDate(grievance.createdAt)}</span>
+                    <div class="grievance-details">
+                        <span>By ${grievance.member?.name || 'Anonymous'}</span>
+                        <span>${this.formatDate(grievance.createdAt)}</span>
+                        ${grievance.escalatedAt ? `<span>Escalated: ${this.formatDate(grievance.escalatedAt)}</span>` : ''}
+                    </div>
+                    <div class="grievance-actions">
+                        <button class="grievance-action primary" data-action="view-details">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        ${grievance.status !== 'escalated' && grievance.status !== 'resolved' && grievance.status !== 'closed' ? `
+                            <button class="grievance-action escalate" data-action="escalate">
+                                <i class="fas fa-arrow-up"></i> Escalate to Admin
+                            </button>
+                        ` : ''}
+                        ${grievance.status === 'open' ? `
+                            <button class="grievance-action update" data-action="update-status" data-status="in-progress">
+                                <i class="fas fa-play"></i> Start Processing
+                            </button>
+                        ` : ''}
+                        ${(grievance.status === 'in-progress' || grievance.status === 'open') ? `
+                            <button class="grievance-action resolve" data-action="update-status" data-status="resolved">
+                                <i class="fas fa-check"></i> Mark Resolved
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `).join('');
+
+        // Bind escalation action handlers
+        container.addEventListener('click', this.handleGrievanceActions.bind(this));
+    }
+
+    async handleGrievanceActions(event) {
+        const button = event.target.closest('[data-action]');
+        if (!button) return;
+
+        const grievanceItem = button.closest('.grievance-item');
+        const grievanceId = grievanceItem?.dataset.grievanceId;
+        const action = button.dataset.action;
+        const status = button.dataset.status;
+
+        if (!grievanceId) return;
+
+        switch (action) {
+            case 'view-details':
+                this.openGrievanceDetails(grievanceId);
+                break;
+            
+            case 'escalate':
+                this.openEscalationModal(grievanceId);
+                break;
+            
+            case 'update-status':
+                await this.updateGrievanceStatus(grievanceId, status);
+                break;
+        }
+    }
+
+    openEscalationModal(grievanceId) {
+        const grievance = this.grievances.find(g => (g._id || g.id) === grievanceId);
+        if (!grievance) return;
+
+        const modal = document.getElementById('escalationModal') || this.createEscalationModal();
+        const modalHeader = modal.querySelector('.support-modal-header h3');
+        const modalBody = modal.querySelector('.support-modal-body');
+
+        if (modalHeader) {
+            modalHeader.innerHTML = `<i class="fas fa-arrow-up"></i> Escalate Grievance to Main Admin`;
+        }
+
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div class="escalation-form-container">
+                    <div class="grievance-summary">
+                        <h4>${grievance.title}</h4>
+                        <p><strong>Current Status:</strong> ${grievance.status}</p>
+                        <p><strong>Priority:</strong> ${grievance.priority}</p>
+                        <p><strong>Description:</strong> ${grievance.description}</p>
+                    </div>
+                    
+                    <form id="escalationForm" data-grievance-id="${grievanceId}">
+                        <div class="form-group">
+                            <label for="escalationReason">Reason for Escalation:</label>
+                            <textarea id="escalationReason" name="escalationReason" required rows="3" 
+                                placeholder="Explain why this grievance needs admin attention..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="escalationPriority">Escalation Priority:</label>
+                            <select id="escalationPriority" name="escalationPriority" required>
+                                <option value="medium">Medium - Standard escalation</option>
+                                <option value="high">High - Urgent attention needed</option>
+                                <option value="urgent">Urgent - Critical issue</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="requestCallback" checked>
+                                <span class="checkmark"></span>
+                                Request callback from main admin
+                            </label>
+                        </div>
+
+                        <div class="escalation-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Escalating this grievance will notify the main admin team and may result in direct intervention. Please ensure you have attempted to resolve this issue at the gym level first.</p>
+                        </div>
+                        
+                        <div class="support-modal-footer">
+                            <button type="button" class="btn-secondary" onclick="supportManager.closeModal()">Cancel</button>
+                            <button type="submit" class="btn-primary escalate">
+                                <i class="fas fa-arrow-up"></i> Escalate to Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+        modal.classList.add('active');
+    }
+
+    createEscalationModal() {
+        const modal = document.createElement('div');
+        modal.id = 'escalationModal';
+        modal.className = 'support-modal';
+        modal.innerHTML = `
+            <div class="support-modal-content large">
+                <div class="support-modal-header">
+                    <h3><i class="fas fa-arrow-up"></i> Escalate to Admin</h3>
+                    <button class="support-modal-close">&times;</button>
+                </div>
+                <div class="support-modal-body">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        return modal;
     }
 
     renderCommunications() {
@@ -550,42 +1015,36 @@ class SupportReviewsManager {
         `;
     }
 
-    // Modal Functions
+    // Modal Functions - Enhanced with consistent styling
     openSendNotificationModal() {
-        const modal = document.getElementById('sendNotificationModal');
-        if (modal) {
-            modal.classList.add('active');
-        }
+        this.openModal('sendNotificationModal');
     }
 
     openRaiseGrievanceModal() {
-        const modal = document.getElementById('raiseGrievanceModal');
-        if (modal) {
-            modal.classList.add('active');
-        }
+        this.openModal('raiseGrievanceModal');
     }
 
     openStartCommunicationModal() {
-        const modal = document.getElementById('startCommunicationModal');
-        if (modal) {
-            modal.classList.add('active');
-        }
+        this.openModal('startCommunicationModal');
     }
 
     openReplyModal(reviewId) {
-        const modal = document.getElementById('replyModal');
+        const modal = document.getElementById('reviewReplyModal');
         const review = this.reviews.find(r => (r._id || r.id) === reviewId);
         
         if (review && modal) {
             // Populate review details in modal
-            const reviewDetails = modal.querySelector('.review-details');
+            const reviewDetails = modal.querySelector('.review-details, #reviewDetailsDisplay');
             if (reviewDetails) {
                 reviewDetails.innerHTML = `
                     <div class="review-header">
                         <div class="review-user">
-                            <img src="${review.user?.profilePic || '/default-avatar.png'}" alt="Member" class="review-avatar">
+                            <img src="${this.getUserImage(review)}" 
+                                 alt="Member" 
+                                 class="review-avatar"
+                                 onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'; this.style.border='2px solid #ccc';">
                             <div class="review-user-info">
-                                <h4>${review.user?.name || review.reviewerName || 'Anonymous Member'}</h4>
+                                <h4>${this.getUserName(review)}</h4>
                                 <div class="review-rating">${this.renderStars(review.rating)}</div>
                             </div>
                         </div>
@@ -594,11 +1053,20 @@ class SupportReviewsManager {
                 `;
             }
             
-            const replyForm = modal.querySelector('#replyForm');
+            const replyForm = modal.querySelector('#replyForm, form');
+            const replyTextarea = modal.querySelector('#adminReplyText, textarea[name="reply"]');
+            
             if (replyForm) {
                 replyForm.dataset.reviewId = reviewId;
             }
-            modal.classList.add('active');
+            
+            if (replyTextarea) {
+                replyTextarea.value = '';
+                replyTextarea.placeholder = 'Write your professional reply to this review...';
+            }
+            
+            // Use enhanced modal opening
+            this.openModal('reviewReplyModal');
         }
     }
 
@@ -664,9 +1132,46 @@ class SupportReviewsManager {
     }
 
     closeModal() {
-        document.querySelectorAll('.support-modal').forEach(modal => {
-            modal.classList.remove('active');
+        // Close all support modals with smooth transition
+        document.querySelectorAll('.support-modal, .modal').forEach(modal => {
+            if (modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                // Add fade-out effect
+                modal.style.transition = 'all 0.3s ease';
+                modal.style.opacity = '0';
+                modal.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.style.opacity = '';
+                    modal.style.transform = '';
+                }, 300);
+            }
         });
+    }
+
+    // Enhanced modal opening with consistent styling
+    openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.style.opacity = '0';
+            modal.style.transform = 'scale(0.9)';
+            modal.classList.add('active');
+            
+            // Force reflow and add smooth entrance
+            requestAnimationFrame(() => {
+                modal.style.transition = 'all 0.3s ease';
+                modal.style.opacity = '1';
+                modal.style.transform = 'scale(1)';
+            });
+            
+            // Ensure modal content is properly styled
+            const modalContent = modal.querySelector('.support-modal-content, .modal-content');
+            if (modalContent) {
+                modalContent.style.animation = 'modalSlideIn 0.3s ease-out';
+            }
+        }
     }
 
     // Form Handlers
@@ -747,30 +1252,200 @@ class SupportReviewsManager {
         const formData = new FormData(form);
         const grievanceData = {
             title: formData.get('title'),
+            subject: formData.get('title'), // Ensure both title and subject are set
             description: formData.get('description'),
-            category: formData.get('category'),
-            priority: formData.get('priority'),
-            affectedMembers: formData.get('affectedMembers')?.split(',').map(m => m.trim()) || []
+            category: 'complaint', // Always set as complaint for grievances
+            priority: formData.get('priority') || 'medium',
+            affectedMembers: formData.get('affectedMembers')?.split(',').map(m => m.trim()) || [],
+            metadata: {
+                gymId: this.currentGymId,
+                gymName: this.gymProfile?.name || this.gymProfile?.gymName || 'Unknown Gym',
+                submittedBy: 'gym-admin',
+                escalationLevel: 'gym-initiated',
+                requiresAdminReview: true
+            }
         };
 
         try {
-            // API call would go here
-            console.log('Raising grievance:', grievanceData);
+            console.log('📝 Creating grievance:', grievanceData);
             
-            // Mock success
-            this.showSuccessMessage('Grievance raised successfully!');
-            this.closeModal();
-            form.reset();
+            // Use integrated support system if available
+            if (window.enhancedSupportIntegration) {
+                const ticket = await window.enhancedSupportIntegration.createSupportTicket(grievanceData);
+                if (ticket) {
+                    this.showSuccessMessage('Grievance raised and sent to main admin successfully!');
+                    
+                    // Add to local grievances list
+                    this.grievances.unshift({
+                        _id: ticket.ticketId,
+                        id: ticket.ticketId,
+                        title: grievanceData.title,
+                        description: grievanceData.description,
+                        priority: grievanceData.priority,
+                        status: 'open',
+                        createdAt: new Date().toISOString(),
+                        member: { name: 'Gym Admin' },
+                        metadata: grievanceData.metadata
+                    });
+                    
+                    this.closeModal();
+                    form.reset();
+                    this.renderGrievances();
+                    this.updateStats();
+                    console.log('✅ Grievance created through integrated system');
+                    return { success: true, grievanceData, ticket };
+                }
+            }
             
-            // Refresh grievances
-            await this.loadGrievances();
-            this.renderGrievances();
-            this.updateStats();
+            // Try enhanced gym communication API first
+            const token = this.getAuthToken();
+            try {
+                const response = await fetch(`${this.BASE_URL}/api/gym/communication/support/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(grievanceData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    this.showSuccessMessage('Grievance raised and sent to main admin successfully!');
+                    console.log('✅ Grievance created via gym communication API:', result);
+                    
+                    // Add to local grievances list
+                    this.grievances.unshift({
+                        _id: result.supportTicket?.ticketId,
+                        id: result.supportTicket?.ticketId,
+                        title: grievanceData.title,
+                        description: grievanceData.description,
+                        priority: grievanceData.priority,
+                        status: 'open',
+                        createdAt: new Date().toISOString(),
+                        member: { name: 'Gym Admin' },
+                        metadata: grievanceData.metadata
+                    });
+                    
+                    this.closeModal();
+                    form.reset();
+                    this.renderGrievances();
+                    this.updateStats();
+                    return { success: true, result };
+                } else {
+                    console.warn('⚠️ Gym communication API failed, trying fallback');
+                }
+            } catch (commError) {
+                console.warn('⚠️ Gym communication API error, trying fallback:', commError.message);
+            }
+            
+            // Fallback to direct support API
+            const response = await fetch(`${this.BASE_URL}/api/support/tickets`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...grievanceData,
+                    userType: 'Gym',
+                    userId: this.currentGymId,
+                    source: 'gym-admin-portal'
+                })
+            });
+
+            if (response.ok) {
+                const ticket = await response.json();
+                this.showSuccessMessage('Grievance raised successfully!');
+                console.log('✅ Grievance created via fallback API:', ticket);
+                
+                // Add to local grievances list
+                this.grievances.unshift({
+                    _id: ticket.ticketId || ticket._id,
+                    id: ticket.ticketId || ticket._id,
+                    title: grievanceData.title,
+                    description: grievanceData.description,
+                    priority: grievanceData.priority,
+                    status: 'open',
+                    createdAt: new Date().toISOString(),
+                    member: { name: 'Gym Admin' },
+                    metadata: grievanceData.metadata
+                });
+                
+                this.closeModal();
+                form.reset();
+                this.renderGrievances();
+                this.updateStats();
+                console.log('✅ Grievance created via API');
+                return { success: true, grievanceData, ticket };
+            } else {
+                throw new Error('Failed to create grievance');
+            }
             
         } catch (error) {
             console.error('Error raising grievance:', error);
             this.showErrorMessage('Failed to raise grievance. Please try again.');
+            return { success: false, error: error.message };
         }
+    }
+
+    // Enhanced grievance management with escalation
+    async escalateGrievanceToAdmin(grievanceId, reason, priority = 'high') {
+        try {
+            if (window.enhancedSupportIntegration) {
+                const success = await window.enhancedSupportIntegration.escalateTicket(grievanceId, reason, priority);
+                if (success) {
+                    const grievance = this.grievances.find(g => (g._id || g.id) === grievanceId);
+                    if (grievance) {
+                        grievance.status = 'escalated';
+                        grievance.priority = priority;
+                        grievance.escalatedAt = new Date().toISOString();
+                        grievance.escalationReason = reason;
+                    }
+                    
+                    this.showSuccessMessage('Grievance escalated to main admin successfully!');
+                    this.renderGrievances();
+                    this.updateStats();
+                    console.log('✅ Grievance escalated successfully');
+                    return true;
+                }
+            }
+            
+            // Fallback escalation
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${grievanceId}/escalate`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    reason: reason,
+                    priority: priority,
+                    escalateTo: 'main-admin'
+                })
+            });
+
+            if (response.ok) {
+                const updatedTicket = await response.json();
+                const grievance = this.grievances.find(g => (g._id || g.id) === grievanceId);
+                if (grievance) {
+                    grievance.status = 'escalated';
+                    grievance.priority = priority;
+                    grievance.escalatedAt = new Date().toISOString();
+                    grievance.escalationReason = reason;
+                }
+                
+                this.showSuccessMessage('Grievance escalated successfully!');
+                this.renderGrievances();
+                this.updateStats();
+                return true;
+            }
+        } catch (error) {
+            console.error('Error escalating grievance:', error);
+            this.showErrorMessage('Failed to escalate grievance. Please try again.');
+        }
+        return false;
     }
 
     async handleReplySubmission(form) {
@@ -1404,13 +2079,291 @@ class SupportReviewsManager {
     showSuccessMessage(message) {
         // Implementation for success notifications
         console.log('✅ Success:', message);
-        // You could integrate with existing notification system
+        
+        // Create a visual notification
+        const container = document.createElement('div');
+        container.className = 'support-message success';
+        container.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <span>${message}</span>
+        `;
+        container.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 10000;
+            background: #28a745; color: white; padding: 12px 16px;
+            border-radius: 8px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        `;
+        document.body.appendChild(container);
+        
+        setTimeout(() => {
+            container.remove();
+        }, 4000);
     }
 
     showErrorMessage(message) {
         // Implementation for error notifications
         console.log('❌ Error:', message);
         // You could integrate with existing notification system
+        
+        // Create a visual notification
+        const container = document.createElement('div');
+        container.className = 'support-message error';
+        container.innerHTML = `
+            <i class="fas fa-times-circle"></i>
+            <span>${message}</span>
+        `;
+        container.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 10000;
+            background: #dc3545; color: white; padding: 12px 16px;
+            border-radius: 8px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        `;
+        document.body.appendChild(container);
+        
+        setTimeout(() => {
+            container.remove();
+        }, 4000);
+    }
+
+    // Helper functions for user data handling
+    getUserImage(review) {
+        try {
+            // Primary: Check user field (populated from backend) - similar to index.html pattern
+            if (review.user && review.user.profileImage) {
+                // Handle different URL formats like in script.js
+                if (review.user.profileImage.startsWith('http')) {
+                    return review.user.profileImage;
+                } else {
+                    // Ensure proper BASE_URL prefix
+                    return `${this.BASE_URL}${review.user.profileImage}`;
+                }
+            }
+            
+            // Fallback: Check userId field if user is not populated (legacy support)
+            if (review.userId && review.userId.profileImage) {
+                if (review.userId.profileImage.startsWith('http')) {
+                    return review.userId.profileImage;
+                } else {
+                    return `${this.BASE_URL}${review.userId.profileImage}`;
+                }
+            }
+            
+            // Default fallback
+            return `${this.BASE_URL}/uploads/profile-pics/default.png`;
+        } catch (error) {
+            console.error('Error getting user image:', error);
+            return `${this.BASE_URL}/uploads/profile-pics/default.png`;
+        }
+    }
+
+    getUserName(review) {
+        try {
+            // Primary: Check user field (populated from backend) - similar to frontend pattern
+            if (review.user) {
+                // Combine first and last name if available
+                if (review.user.firstName || review.user.lastName) {
+                    const firstName = review.user.firstName || '';
+                    const lastName = review.user.lastName || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    if (fullName) return fullName;
+                }
+                // Fallback to name field if available
+                if (review.user.name) {
+                    return review.user.name;
+                }
+            }
+            
+            // Fallback: Check userId field if user is not populated (legacy support)
+            if (review.userId) {
+                if (review.userId.firstName || review.userId.lastName) {
+                    const firstName = review.userId.firstName || '';
+                    const lastName = review.userId.lastName || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    if (fullName) return fullName;
+                }
+                if (review.userId.name) {
+                    return review.userId.name;
+                }
+            }
+            
+            // Final fallback to reviewerName
+            return review.reviewerName || 'Anonymous Member';
+        } catch (error) {
+            console.error('Error getting user name:', error);
+            return 'Anonymous Member';
+        }
+    }
+
+    renderAdminReply(review) {
+        if (!review.adminReply || !review.adminReply.reply) {
+            return '';
+        }
+
+        const replyDate = new Date(review.adminReply.repliedAt).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        // Get gym logo and name
+        let gymLogo = '/frontend/gymadmin/admin.png'; // Default fallback
+        let gymName = 'Gym Admin'; // Default fallback
+        
+        if (this.gymProfile) {
+            if (this.gymProfile.logoUrl) {
+                if (this.gymProfile.logoUrl.startsWith('http')) {
+                    gymLogo = this.gymProfile.logoUrl;
+                } else {
+                    gymLogo = this.gymProfile.logoUrl.startsWith('/') ? 
+                        `${this.BASE_URL}${this.gymProfile.logoUrl}` : 
+                        `${this.BASE_URL}/${this.gymProfile.logoUrl}`;
+                }
+            }
+            gymName = this.gymProfile.gymName || this.gymProfile.name || 'Gym Admin';
+        }
+
+        return `
+            <div class="admin-reply" style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 3px solid #1976d2;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <img src="${gymLogo}" alt="Gym Admin" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid #1976d2;" 
+                         onerror="this.src='/frontend/gymadmin/admin.png';" />
+                    <strong style="color: #1976d2; font-size: 13px;">${gymName}</strong>
+                    <span style="font-size: 12px; color: #999;">${replyDate}</span>
+                </div>
+                <p style="margin: 0; color: #444; font-size: 13px; line-height: 1.4;">${review.adminReply.reply}</p>
+            </div>
+        `;
+    }
+
+    // Feature/Unfeature review functionality
+    async toggleFeatureReview(reviewId) {
+        try {
+            const review = this.reviews.find(r => (r._id || r.id) === reviewId);
+            if (!review) return;
+
+            const token = this.getAuthToken();
+            const response = await fetch(`${this.BASE_URL}/api/reviews/${reviewId}/feature`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Update the review in our local array
+                review.isFeatured = !review.isFeatured;
+                review.featuredAt = review.isFeatured ? new Date().toISOString() : null;
+                
+                this.showSuccessMessage(data.message);
+                this.renderReviews();
+                this.updateStats();
+            } else {
+                throw new Error('Failed to update review feature status');
+            }
+        } catch (error) {
+            console.error('Error toggling review feature:', error);
+            this.showErrorMessage('Failed to update review. Please try again.');
+        }
+    }
+
+    // Delete review functionality
+    async deleteReview(reviewId) {
+        try {
+            const review = this.reviews.find(r => (r._id || r.id) === reviewId);
+            if (!review) return;
+
+            const token = this.getAuthToken();
+            const response = await fetch(`${this.BASE_URL}/api/reviews/${reviewId}/gym-delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // Remove the review from our local array
+                this.reviews = this.reviews.filter(r => (r._id || r.id) !== reviewId);
+                
+                this.showSuccessMessage('Review deleted successfully');
+                this.renderReviews();
+                this.updateStats();
+            } else {
+                throw new Error('Failed to delete review');
+            }
+        } catch (error) {
+            console.error('Error deleting review:', error);
+            this.showErrorMessage('Failed to delete review. Please try again.');
+        }
+    }
+
+    // === Consistent UI Dialog System ===
+    showDialog({ title = '', message = '', confirmText = 'OK', cancelText = '', iconHtml = '', onConfirm = null, onCancel = null }) {
+        let dialog = document.getElementById('customDialogBox');
+        if (dialog) dialog.remove();
+        
+        dialog = document.createElement('div');
+        dialog.id = 'customDialogBox';
+        dialog.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.35); display: flex; align-items: center; 
+            justify-content: center; z-index: 99999; backdrop-filter: blur(2px);
+        `;
+        
+        const buttonsHtml = cancelText ? 
+            `<div style="display:flex;gap:12px;justify-content:center;">
+              <button id="dialogCancelBtn" style="background:#6c757d;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${cancelText}</button>
+              <button id="dialogConfirmBtn" style="background:#1976d2;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>
+            </div>` :
+            `<button id="dialogConfirmBtn" style="background:#1976d2;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>`;
+            
+        dialog.innerHTML = `
+            <div style="background:#fff;max-width:450px;width:90vw;padding:30px 24px 20px 24px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.2);text-align:center;position:relative;animation:dialogSlideIn 0.3s ease-out;">
+              <div style="margin-bottom:16px;">${iconHtml || ''}</div>
+              <div style="font-size:1.25em;font-weight:700;margin-bottom:12px;color:#333;">${title}</div>
+              <div style="font-size:1em;color:#555;margin-bottom:24px;line-height:1.5;white-space:pre-line;">${message}</div>
+              ${buttonsHtml}
+            </div>
+            <style>
+              @keyframes dialogSlideIn {
+                from { transform: translateY(-20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+              }
+              #dialogConfirmBtn:hover { background: #1565c0 !important; }
+              #dialogCancelBtn:hover { background: #5a6268 !important; }
+            </style>
+        `;
+        
+        document.body.appendChild(dialog);
+        document.body.style.overflow = 'hidden';
+        
+        // Confirm button handler
+        dialog.querySelector('#dialogConfirmBtn').onclick = function() {
+            dialog.remove();
+            document.body.style.overflow = '';
+            if (onConfirm) onConfirm();
+        };
+        
+        // Cancel button handler
+        const cancelBtn = dialog.querySelector('#dialogCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.onclick = function() {
+                dialog.remove();
+                document.body.style.overflow = '';
+                if (onCancel) onCancel();
+            };
+        }
+        
+        // Click outside to close (only if no cancel button)
+        if (!cancelText) {
+            dialog.onclick = function(e) {
+                if (e.target === dialog) {
+                    dialog.remove();
+                    document.body.style.overflow = '';
+                    if (onConfirm) onConfirm();
+                }
+            };
+        }
     }
 
     // Mock Data Functions (for development/testing)
@@ -1512,30 +2465,50 @@ class SupportReviewsManager {
                 _id: '1',
                 rating: 5,
                 comment: 'Excellent gym with great equipment and friendly staff! The new cardio machines are fantastic.',
-                user: { name: 'John Doe' },
+                user: { 
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    profileImage: `${this.BASE_URL}/uploads/profile-pics/default.png`
+                },
                 reviewerName: 'John Doe',
                 adminReply: null,
                 isActive: true,
+                isFeatured: true,
+                featuredAt: new Date().toISOString(),
                 createdAt: new Date().toISOString()
             },
             {
                 _id: '2',
                 rating: 4,
                 comment: 'Good facilities but could use more parking space. Otherwise, great experience!',
-                user: { name: 'Jane Smith' },
+                user: { 
+                    firstName: 'Jane',
+                    lastName: 'Smith',
+                    profileImage: `${this.BASE_URL}/uploads/profile-pics/default.png`
+                },
                 reviewerName: 'Jane Smith',
-                adminReply: 'Thank you for the feedback! We are working on expanding our parking area.',
+                adminReply: {
+                    reply: 'Thank you for the feedback! We are working on expanding our parking area.',
+                    repliedAt: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+                    repliedBy: this.currentGymId
+                },
                 isActive: true,
+                isFeatured: false,
                 createdAt: new Date(Date.now() - 86400000).toISOString()
             },
             {
                 _id: '3',
                 rating: 3,
                 comment: 'Average gym. Equipment is okay but some machines need maintenance.',
-                user: { name: 'Mike Johnson' },
+                user: { 
+                    firstName: 'Mike',
+                    lastName: 'Johnson',
+                    profileImage: `${this.BASE_URL}/uploads/profile-pics/default.png`
+                },
                 reviewerName: 'Mike Johnson',
                 adminReply: null,
                 isActive: true,
+                isFeatured: false,
                 createdAt: new Date(Date.now() - 172800000).toISOString()
             }
         ];
@@ -1581,6 +2554,77 @@ class SupportReviewsManager {
                 status: 'active'
             }
         ];
+    }
+
+    // Escalation Form Submission Handler
+    async handleEscalationFormSubmission(form) {
+        const formData = new FormData(form);
+        const grievanceId = form.dataset.grievanceId;
+        const escalationData = {
+            reason: formData.get('escalationReason'),
+            priority: formData.get('escalationPriority'),
+            requestCallback: formData.get('requestCallback') === 'on'
+        };
+
+        try {
+            const success = await this.escalateGrievanceToAdmin(grievanceId, escalationData.reason, escalationData.priority);
+            
+            if (success) {
+                // Send additional admin notification if callback requested
+                if (escalationData.requestCallback) {
+                    await this.requestAdminCallback(grievanceId, escalationData);
+                }
+                
+                this.closeModal();
+                form.reset();
+                console.log('✅ Escalation form submitted successfully');
+            }
+        } catch (error) {
+            console.error('❌ Error in escalation form submission:', error);
+            this.showErrorMessage('Failed to escalate grievance. Please try again.');
+        }
+    }
+
+    async requestAdminCallback(grievanceId, escalationData) {
+        try {
+            const gymProfile = window.currentGymProfile || this.gymProfile || {};
+            
+            // Send callback request to admin
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/notifications/send`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: `📞 Callback Request: ${gymProfile.gymName || 'Gym Admin'}`,
+                    message: `Urgent callback requested for escalated grievance #${grievanceId}. Reason: ${escalationData.reason}`,
+                    type: 'callback-request',
+                    priority: 'urgent',
+                    metadata: {
+                        grievanceId: grievanceId,
+                        gymId: this.currentGymId,
+                        gymName: gymProfile.gymName || 'Unknown Gym',
+                        callbackRequested: true,
+                        escalationReason: escalationData.reason,
+                        timestamp: new Date().toISOString()
+                    },
+                    gym: {
+                        gymId: this.currentGymId,
+                        gymName: gymProfile.gymName || 'Unknown Gym',
+                        phone: gymProfile.phone || '',
+                        email: gymProfile.email || ''
+                    }
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Admin callback requested successfully');
+            }
+        } catch (error) {
+            console.error('❌ Error requesting admin callback:', error);
+        }
     }
 }
 

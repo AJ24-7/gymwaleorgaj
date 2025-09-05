@@ -146,6 +146,10 @@ function populateGymDetails(gym) {
     console.log('About to load gym rating for hero section with gym ID:', gym._id);
     loadGymRatingForHero(gym._id);
     
+    // Load and display featured reviews as floating badges
+    console.log('About to load featured reviews for gym ID:', gym._id);
+    loadFeaturedReviews(gym._id);
+    
     // Update page title
     document.title = `${gym.gymName} - Gym Details - Gym-Wale`;
     console.log('Gym details population complete');
@@ -1100,6 +1104,7 @@ async function autoFillUserInfo() {
     }
     
     try {
+        console.log('Attempting to fetch user profile for auto-fill...');
         const response = await fetch(`${BASE_URL}/api/users/profile`, {
             method: 'GET',
             headers: {
@@ -1109,34 +1114,67 @@ async function autoFillUserInfo() {
         });
         
         if (!response.ok) {
-            console.log('Could not fetch user profile for auto-fill, status:', response.status);
+            console.error('Failed to fetch user profile for auto-fill:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
             return;
         }
         
         const user = await response.json();
-        console.log('User data for auto-fill:', user); // Debug log
+        console.log('User data fetched successfully for auto-fill:', user);
+        
+        // Create name field if it doesn't exist
+        if (!user.name && (user.firstName || user.lastName)) {
+            const firstName = (user.firstName || '').trim();
+            const lastName = (user.lastName || '').trim();
+            user.name = [firstName, lastName].filter(Boolean).join(' ') || user.username || '';
+            console.log('Created name field from firstName/lastName:', user.name);
+        }
         
         // Fill basic information
         if (user.name) {
             const nameInput = document.getElementById('trial-name');
             if (nameInput) {
                 nameInput.value = user.name;
-                console.log('Name auto-filled:', user.name);
+                nameInput.setAttribute('readonly', 'true');
+                nameInput.style.backgroundColor = '#f8f9fa';
+                nameInput.style.cursor = 'not-allowed';
+                console.log('Name auto-filled and locked:', user.name);
+            } else {
+                console.warn('Name input field not found');
             }
+        } else {
+            console.log('No name field in user data and could not create from firstName/lastName');
         }
+        
         if (user.email) {
             const emailInput = document.getElementById('trial-email');
             if (emailInput) {
                 emailInput.value = user.email;
-                console.log('Email auto-filled:', user.email);
+                emailInput.setAttribute('readonly', 'true');
+                emailInput.style.backgroundColor = '#f8f9fa';
+                emailInput.style.cursor = 'not-allowed';
+                console.log('Email auto-filled and locked:', user.email);
+            } else {
+                console.warn('Email input field not found');
             }
+        } else {
+            console.log('No email field in user data');
         }
+        
         if (user.phone) {
             const phoneInput = document.getElementById('trial-phone');
             if (phoneInput) {
                 phoneInput.value = user.phone;
-                console.log('Phone auto-filled:', user.phone);
+                phoneInput.setAttribute('readonly', 'true');
+                phoneInput.style.backgroundColor = '#f8f9fa';
+                phoneInput.style.cursor = 'not-allowed';
+                console.log('Phone auto-filled and locked:', user.phone);
+            } else {
+                console.warn('Phone input field not found');
             }
+        } else {
+            console.log('No phone field in user data');
         }
         
         // Fill date of birth - try both field names
@@ -1149,7 +1187,10 @@ async function autoFillUserInfo() {
                     if (!isNaN(dob.getTime())) {
                         const formattedDob = dob.toISOString().split('T')[0];
                         dobInput.value = formattedDob;
-                        console.log('DOB auto-filled:', formattedDob);
+                        dobInput.setAttribute('readonly', 'true');
+                        dobInput.style.backgroundColor = '#f8f9fa';
+                        dobInput.style.cursor = 'not-allowed';
+                        console.log('DOB auto-filled and locked:', formattedDob);
                     }
                 } catch (error) {
                     console.warn('Could not parse DOB:', dobField, error);
@@ -1549,6 +1590,7 @@ function prefillUserData(userData) {
     const nameInput = document.getElementById('trial-name');
     const emailInput = document.getElementById('trial-email');
     const phoneInput = document.getElementById('trial-phone');
+    const dobInput = document.getElementById('trial-dob');
     
     // Combine firstName and lastName to create full name
     // Handle cases where fields might be null, undefined, or empty strings
@@ -1566,20 +1608,40 @@ function prefillUserData(userData) {
     
     if (nameInput && fullName) {
         nameInput.value = fullName;
-        nameInput.setAttribute('readonly', true);
-        nameInput.classList.add('readonly-field');
+        nameInput.setAttribute('readonly', 'true');
+        nameInput.style.backgroundColor = '#f8f9fa';
+        nameInput.style.cursor = 'not-allowed';
     }
     
     if (emailInput && userData.email) {
         emailInput.value = userData.email;
-        emailInput.setAttribute('readonly', true);
-        emailInput.classList.add('readonly-field');
+        emailInput.setAttribute('readonly', 'true');
+        emailInput.style.backgroundColor = '#f8f9fa';
+        emailInput.style.cursor = 'not-allowed';
     }
     
     if (phoneInput && userData.phone) {
         phoneInput.value = userData.phone;
-        phoneInput.setAttribute('readonly', true);
-        phoneInput.classList.add('readonly-field');
+        phoneInput.setAttribute('readonly', 'true');
+        phoneInput.style.backgroundColor = '#f8f9fa';
+        phoneInput.style.cursor = 'not-allowed';
+    }
+    
+    // Fill date of birth if available
+    const dobField = userData.dateOfBirth || userData.birthdate;
+    if (dobInput && dobField) {
+        try {
+            const dob = new Date(dobField);
+            if (!isNaN(dob.getTime())) {
+                const formattedDob = dob.toISOString().split('T')[0];
+                dobInput.value = formattedDob;
+                dobInput.setAttribute('readonly', 'true');
+                dobInput.style.backgroundColor = '#f8f9fa';
+                dobInput.style.cursor = 'not-allowed';
+            }
+        } catch (error) {
+            console.warn('Could not parse DOB for prefill:', dobField, error);
+        }
     }
     
     // Add user info notice
@@ -1688,23 +1750,34 @@ function clearTrialFormData() {
     const nameInput = document.getElementById('trial-name');
     const emailInput = document.getElementById('trial-email');
     const phoneInput = document.getElementById('trial-phone');
+    const dobInput = document.getElementById('trial-dob');
     
     if (nameInput) {
         nameInput.value = '';
         nameInput.removeAttribute('readonly');
-        nameInput.classList.remove('readonly-field');
+        nameInput.style.backgroundColor = '';
+        nameInput.style.cursor = '';
     }
     
     if (emailInput) {
         emailInput.value = '';
         emailInput.removeAttribute('readonly');
-        emailInput.classList.remove('readonly-field');
+        emailInput.style.backgroundColor = '';
+        emailInput.style.cursor = '';
     }
     
     if (phoneInput) {
         phoneInput.value = '';
         phoneInput.removeAttribute('readonly');
-        phoneInput.classList.remove('readonly-field');
+        phoneInput.style.backgroundColor = '';
+        phoneInput.style.cursor = '';
+    }
+    
+    if (dobInput) {
+        dobInput.value = '';
+        dobInput.removeAttribute('readonly');
+        dobInput.style.backgroundColor = '';
+        dobInput.style.cursor = '';
     }
     
     // Remove user info notice
@@ -2321,11 +2394,16 @@ function displayReviews(reviews) {
             `;
         }
         return `
-            <div class="review-item">
+            <div class="review-item ${review.isFeatured ? 'featured-review' : ''}">
                 <div class="review-header">
                     <div class="reviewer-info">
-                        <div class="reviewer-name">${review.reviewerName || 'Anonymous'}</div>
-                        <div class="review-date">${reviewDate}</div>
+                        <img src="${getUserImageUrl(review)}" alt="User" class="reviewer-avatar" 
+                             onerror="this.src='${BASE_URL}/uploads/profile-pics/default.png';" />
+                        <div class="reviewer-details">
+                            <div class="reviewer-name">${getUserNameFromReview(review)}</div>
+                            <div class="review-date">${reviewDate}</div>
+                            ${review.isFeatured ? '<span class="featured-review-label"><i class="fas fa-star"></i> Featured Review</span>' : ''}
+                        </div>
                     </div>
                     <div class="review-rating">
                         <div class="review-stars">${stars}</div>
@@ -2687,6 +2765,223 @@ async function loadGymRatingForHero(gymId) {
         console.error('Error loading gym rating:', error);
         updateHeroRating(0, 0);
     }
+}
+
+// Load and display featured reviews as floating badges
+// Helper function to get user image URL
+function getUserImageUrl(review) {
+    try {
+        if (review.userId && review.userId.profileImage) {
+            if (review.userId.profileImage.startsWith('http') || review.userId.profileImage.startsWith('/uploads')) {
+                return review.userId.profileImage.startsWith('http') ? 
+                    review.userId.profileImage : BASE_URL + review.userId.profileImage;
+            } else {
+                return `${BASE_URL}/uploads/profile-pics/${review.userId.profileImage}`;
+            }
+        }
+        return `${BASE_URL}/uploads/profile-pics/default.png`;
+    } catch (error) {
+        console.error('Error getting user image URL:', error);
+        return `${BASE_URL}/uploads/profile-pics/default.png`;
+    }
+}
+
+// Helper function to get user name from review
+function getUserNameFromReview(review) {
+    try {
+        if (review.userId && (review.userId.firstName || review.userId.lastName)) {
+            const firstName = review.userId.firstName || '';
+            const lastName = review.userId.lastName || '';
+            return `${firstName} ${lastName}`.trim();
+        }
+        return review.reviewerName || 'Anonymous User';
+    } catch (error) {
+        console.error('Error getting user name:', error);
+        return 'Anonymous User';
+    }
+}
+
+// Helper function to get gym image URL from review
+function getGymImageUrl(review) {
+    try {
+        // First try to get gym info from the review's gym reference
+        if (review.gymId && review.gymId.logoUrl) {
+            if (review.gymId.logoUrl.startsWith('http')) {
+                return review.gymId.logoUrl;
+            } else if (review.gymId.logoUrl.startsWith('/uploads')) {
+                return BASE_URL + review.gymId.logoUrl;
+            } else {
+                return `${BASE_URL}/uploads/gym-logos/${review.gymId.logoUrl}`;
+            }
+        }
+        
+        // Fallback to current gym data
+        if (currentGym && currentGym.logoUrl) {
+            if (currentGym.logoUrl.startsWith('http')) {
+                return currentGym.logoUrl;
+            } else if (currentGym.logoUrl.startsWith('/')) {
+                return `${BASE_URL}${currentGym.logoUrl}`;
+            } else {
+                return `${BASE_URL}/${currentGym.logoUrl}`;
+            }
+        }
+        
+        return `${BASE_URL}/uploads/gym-logos/default.png`;
+    } catch (error) {
+        console.error('Error getting gym image URL:', error);
+        return `${BASE_URL}/uploads/gym-logos/default.png`;
+    }
+}
+
+// Helper function to get gym name from review
+function getGymNameFromReview(review) {
+    try {
+        if (review.gymId && (review.gymId.gymName || review.gymId.name)) {
+            return review.gymId.gymName || review.gymId.name;
+        }
+        
+        // Fallback to current gym data
+        if (currentGym) {
+            return currentGym.gymName || currentGym.name || 'Gym Admin';
+        }
+        
+        return 'Gym Admin';
+    } catch (error) {
+        console.error('Error getting gym name:', error);
+        return 'Gym Admin';
+    }
+}
+
+async function loadFeaturedReviews(gymId) {
+    console.log('Loading featured reviews for gym:', gymId);
+    try {
+        const response = await fetch(`${BASE_URL}/api/reviews/gym/${gymId}/featured`);
+        console.log('Featured reviews API response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Featured reviews API response data:', data);
+        
+        if (data.success && data.reviews.length > 0) {
+            displayFeaturedReviewsBadges(data.reviews);
+        } else {
+            console.log('No featured reviews found');
+        }
+    } catch (error) {
+        console.error('Error loading featured reviews:', error);
+    }
+}
+
+// Display featured reviews as floating badges
+function displayFeaturedReviewsBadges(featuredReviews) {
+    // Remove existing badges if any
+    const existingBadges = document.querySelectorAll('.featured-review-badge');
+    existingBadges.forEach(badge => badge.remove());
+    
+    // Create container for badges if it doesn't exist
+    let badgesContainer = document.getElementById('featured-reviews-badges');
+    if (!badgesContainer) {
+        badgesContainer = document.createElement('div');
+        badgesContainer.id = 'featured-reviews-badges';
+        badgesContainer.className = 'featured-reviews-badges';
+        document.body.appendChild(badgesContainer);
+    }
+    
+    // Add CSS styles for badges container
+    badgesContainer.style.cssText = `
+        position: fixed;
+        top: 120px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 300px;
+        pointer-events: none;
+    `;
+    
+    // Create badges for each featured review
+    featuredReviews.slice(0, 3).forEach((review, index) => {
+        const badge = createFeaturedReviewBadge(review, index);
+        badgesContainer.appendChild(badge);
+    });
+}
+
+// Create individual featured review badge
+function createFeaturedReviewBadge(review, index) {
+    const badge = document.createElement('div');
+    badge.className = 'featured-review-badge';
+    
+    // Get user name (handle both data structures)
+    const userName = review.user ? 
+        (review.user.firstName && review.user.lastName ? 
+            `${review.user.firstName} ${review.user.lastName}` : 
+            review.user.name) || 'Anonymous' :
+        review.reviewerName || 'Anonymous';
+    
+    // Generate stars
+    const stars = Array.from({length: 5}, (_, i) => 
+        `<i class="fas fa-star" style="color: ${i < review.rating ? '#FFD700' : '#ddd'}; font-size: 12px;"></i>`
+    ).join('');
+    
+    // Truncate comment if too long
+    const comment = review.comment.length > 80 ? 
+        review.comment.substring(0, 77) + '...' : 
+        review.comment;
+    
+    badge.innerHTML = `
+        <div class="featured-badge-content">
+            <div class="featured-badge-header">
+                <div class="featured-badge-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="featured-badge-info">
+                    <div class="featured-badge-title">Featured Review</div>
+                    <div class="featured-badge-rating">${stars}</div>
+                </div>
+            </div>
+            <div class="featured-badge-review">
+                <div class="featured-badge-user">${userName}</div>
+                <div class="featured-badge-comment">"${comment}"</div>
+            </div>
+        </div>
+    `;
+    
+    // Add CSS styles for individual badge
+    badge.style.cssText = `
+        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+        border: 2px solid #FFD700;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        animation: slideInFromRight 0.6s ease-out ${index * 0.2}s both;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        font-family: 'Arial', sans-serif;
+        font-size: 13px;
+    `;
+    
+    // Add hover effect
+    badge.addEventListener('mouseenter', () => {
+        badge.style.transform = 'translateX(-5px) scale(1.02)';
+        badge.style.boxShadow = '0 6px 16px rgba(255, 215, 0, 0.4)';
+    });
+    
+    badge.addEventListener('mouseleave', () => {
+        badge.style.transform = 'translateX(0) scale(1)';
+        badge.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.3)';
+    });
+    
+    // Click to scroll to reviews section
+    badge.addEventListener('click', () => {
+        switchTab('reviews');
+        const reviewsTab = document.getElementById('reviews-tab');
+        if (reviewsTab) {
+            reviewsTab.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    
+    return badge;
 }
 
 // Utility to get full profile image URL (same logic as script.js)

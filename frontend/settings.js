@@ -485,8 +485,12 @@ function displayTrialBookings(bookings) {
     }
     
     const bookingsHTML = bookings.slice(0, 3).map(booking => {
-        const status = getTrialStatus(booking.preferredDate, booking.status);
-        const gymName = booking.gymId?.name || 'Unknown Gym';
+        // Use trialDate instead of preferredDate (matches the model)
+        const trialDate = booking.trialDate || booking.preferredDate;
+        const status = getTrialStatus(trialDate, booking.status);
+        
+        // Use gymName field directly since gymId is a string, not a populated object
+        const gymName = booking.gymName || booking.gymId?.name || 'Unknown Gym';
         const gymLocation = booking.gymId?.location || '';
         
         return `
@@ -497,8 +501,8 @@ function displayTrialBookings(bookings) {
                         ${gymLocation ? `<p class="gym-location"><i class="fas fa-map-marker-alt"></i> ${gymLocation}</p>` : ''}
                     </div>
                     <div class="booking-details">
-                        <p><i class="fas fa-calendar"></i> ${formatDate(booking.preferredDate)}</p>
-                        <p><i class="fas fa-clock"></i> ${booking.preferredTime || 'Time TBD'}</p>
+                        <p><i class="fas fa-calendar"></i> ${formatDate(trialDate)}</p>
+                        <p><i class="fas fa-clock"></i> ${booking.trialTime || booking.preferredTime || 'Time TBD'}</p>
                         <p><i class="fas fa-user"></i> ${booking.name}</p>
                     </div>
                 </div>
@@ -1177,7 +1181,17 @@ function confirmAccountDeletion() {
 
 // Utility functions
 function formatDate(dateString) {
+    if (!dateString) {
+        return 'Date not available';
+    }
+    
     const date = new Date(dateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        return 'Invalid date';
+    }
+    
     return date.toLocaleDateString('en-IN', {
         year: 'numeric',
         month: 'short',

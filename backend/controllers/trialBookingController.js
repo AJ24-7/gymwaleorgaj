@@ -544,9 +544,9 @@ const getUserTrialHistory = async (req, res) => {
       filter.status = status;
     }
     
-    // Get trial bookings with pagination
+    // Get trial bookings without populate since gymId is stored as string, not ObjectId reference
+    // We'll use the gymName field that's already stored in the booking
     const bookings = await TrialBooking.find(filter)
-      .populate('gymId', 'name location images')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);

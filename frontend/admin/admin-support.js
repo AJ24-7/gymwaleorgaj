@@ -16,6 +16,28 @@ class SupportSystem {
         this.init();
     }
 
+    // Helper method to get admin token and check authentication
+    getAdminToken() {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            console.error('❌ No admin token found');
+            this.showError('Authentication required. Please login again.');
+            return null;
+        }
+        return token;
+    }
+
+    // Helper method to get authenticated headers
+    getAuthHeaders() {
+        const token = this.getAdminToken();
+        if (!token) return null;
+        
+        return {
+            'Authorization': `Bearer ${this.getAdminToken()}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
     init() {
         console.log('🎫 Support System Initialized');
         this.bindEventListeners();
@@ -120,17 +142,18 @@ class SupportSystem {
     // Load support statistics
     async loadSupportStats() {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/stats`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            const headers = this.getAuthHeaders();
+            if (!headers) return; // Authentication failed
+            
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/stats`, {
+                headers: headers
             });
 
             if (response.ok) {
                 const data = await response.json();
                 this.updateSupportStats(data.stats);
+            } else {
+                console.error('❌ Failed to load support stats:', response.status, response.statusText);
             }
         } catch (error) {
             console.error('Error loading support stats:', error);
@@ -143,10 +166,11 @@ class SupportSystem {
         document.getElementById('resolvedTodayCount').textContent = stats.resolvedToday || 0;
         document.getElementById('avgResponseTime').textContent = stats.averageResponseTime ? `${stats.averageResponseTime}m` : '--';
 
-        // Update tab counts
-        document.getElementById('userTicketsCount').textContent = `(${stats.byUserType.user || 0})`;
-        document.getElementById('gymAdminTicketsCount').textContent = `(${stats.byUserType.gym || 0})`;
-        document.getElementById('trainerTicketsCount').textContent = `(${stats.byUserType.trainer || 0})`;
+        // Update tab counts - safely handle undefined byUserType
+        const byUserType = stats.byUserType || {};
+        document.getElementById('userTicketsCount').textContent = `(${byUserType.user || 0})`;
+        document.getElementById('gymAdminTicketsCount').textContent = `(${byUserType.gym || 0})`;
+        document.getElementById('trainerTicketsCount').textContent = `(${byUserType.trainer || 0})`;
     }
 
     // Load support tickets
@@ -156,7 +180,9 @@ class SupportSystem {
             console.log('🎫 Current filters:', this.currentFilters);
             
             this.showLoading();
-            const token = localStorage.getItem('token');
+            const headers = this.getAuthHeaders();
+            if (!headers) return; // Authentication failed
+            
             const params = new URLSearchParams({
                 userType: userType === 'gym-admins' ? 'gym' : userType === 'trainers' ? 'trainer' : 'user',
                 ...this.currentFilters
@@ -164,11 +190,9 @@ class SupportSystem {
 
             console.log('🌐 API request params:', params.toString());
 
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            // Use the new communication routes endpoint
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets?${params}`, {
+                headers: headers
             });
 
             if (response.ok) {
@@ -343,12 +367,11 @@ class SupportSystem {
     // Open support ticket modal
     async openSupportTicketModal(ticketId) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${ticketId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            const headers = this.getAuthHeaders(); 
+            if (!headers) return;
+            
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${ticketId}`, {
+                headers: headers
             });
 
             if (response.ok) {
@@ -505,13 +528,10 @@ class SupportSystem {
         if (document.getElementById('replyViaWhatsApp').checked) channels.push('whatsapp');
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${this.selectedTicket.ticketId}/reply`, {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${this.selectedTicket.ticketId}/reply`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({
                     message,
                     status,
@@ -552,13 +572,10 @@ class SupportSystem {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${this.selectedTicket.ticketId}/reply`, {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${this.selectedTicket.ticketId}/reply`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({
                     message,
                     channels
@@ -626,12 +643,9 @@ class SupportSystem {
     // Load quick reply templates
     async loadQuickReplyTemplates() {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/templates`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/templates`, {
+                headers: headers
             });
 
             if (response.ok) {
@@ -646,13 +660,10 @@ class SupportSystem {
     // Update ticket status
     async updateTicketStatus(ticketId, status) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${ticketId}`, {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${ticketId}`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({ status })
             });
 
@@ -669,13 +680,10 @@ class SupportSystem {
     // Update ticket priority
     async updateTicketPriority(ticketId, priority) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${this.BASE_URL}/api/support/tickets/${ticketId}`, {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${ticketId}`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({ priority })
             });
 
@@ -823,3 +831,397 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export for external use
 window.SupportSystem = SupportSystem;
+
+// Integration function for main admin support tab
+function loadSupportData() {
+    console.log('🎫 loadSupportData called - integrating with support system');
+    
+    if (window.supportSystem) {
+        // Load data using existing support system
+        window.supportSystem.loadSupportStats();
+        window.supportSystem.loadSupportTickets();
+        console.log('✅ Support data loaded using existing SupportSystem');
+    } else {
+        console.log('⏳ SupportSystem not ready, retrying...');
+        setTimeout(loadSupportData, 100);
+    }
+}
+
+// Enhanced Communication Integration for Main Admin
+class MainAdminCommunicationBridge {
+    constructor() {
+        this.gymAdminChannels = new Map();
+        this.activeCommunications = new Map();
+        this.BASE_URL = "http://localhost:5000";
+        this.isIntegrated = false;
+        this.integrationRetries = 0;
+        this.maxRetries = 10; // Maximum retry attempts
+        this.init();
+    }
+
+    // Helper method to get admin token
+    getAdminToken() {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            console.error('❌ No admin token found');
+            return null;
+        }
+        return token;
+    }
+
+    // Helper method to get authenticated headers
+    getAuthHeaders() {
+        const token = this.getAdminToken();
+        if (!token) return null;
+        
+        return {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    init() {
+        console.log('🌉 Initializing Main Admin Communication Bridge');
+        this.setupGymAdminChannels();
+        
+        // Use event-driven approach for better integration
+        if (window.enhancedComm && window.enhancedComm.isInitialized) {
+            console.log('🎯 Enhanced communication system already ready, integrating immediately');
+            this.integrateWithEnhancedComm();
+        } else {
+            console.log('⏰ Enhanced communication system not ready yet, setting up event listener');
+            // Wait for enhanced communication system to be ready
+            window.addEventListener('enhancedCommReady', () => {
+                console.log('🎉 Received enhancedCommReady event, integrating now');
+                this.integrateWithEnhancedComm();
+            });
+            
+            // Fallback timeout in case event doesn't fire
+            setTimeout(() => {
+                if (!this.isIntegrated) {
+                    console.log('⏱️ Fallback timeout reached, attempting integration');
+                    this.integrateWithEnhancedComm();
+                }
+            }, 1000);
+        }
+    }
+
+    // Setup communication channels with gym admins
+    setupGymAdminChannels() {
+        console.log('📡 Setting up gym admin communication channels');
+        
+        // Listen for gym admin messages
+        this.pollGymAdminMessages();
+        
+        // Setup real-time notification forwarding
+        this.setupNotificationForwarding();
+    }
+
+    // Poll for messages from gym admins
+    async pollGymAdminMessages() {
+        try {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/gym-admin-communications`, {
+                headers: headers
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.processGymAdminMessages(data.messages || []);
+            }
+        } catch (error) {
+            console.error('Error polling gym admin messages:', error);
+        }
+
+        // Poll every 30 seconds
+        setTimeout(() => this.pollGymAdminMessages(), 30000);
+    }
+
+    // Process messages from gym admins
+    processGymAdminMessages(messages) {
+        messages.forEach(message => {
+            if (!this.activeCommunications.has(message.communicationId)) {
+                this.handleNewGymAdminCommunication(message);
+            }
+        });
+    }
+
+    // Handle new communication from gym admin
+    handleNewGymAdminCommunication(message) {
+        console.log('📨 New gym admin communication:', message);
+        
+        this.activeCommunications.set(message.communicationId, message);
+
+        // Create notification in main admin
+        if (window.adminNotificationSystem) {
+            window.adminNotificationSystem.createNotification(
+                `Communication from ${message.gymName}`,
+                message.message,
+                'gym-admin-communication',
+                'fa-building',
+                '#f59e0b',
+                {
+                    communicationId: message.communicationId,
+                    gymId: message.gymId,
+                    gymName: message.gymName,
+                    type: message.type,
+                    priority: message.priority
+                }
+            );
+        }
+
+        // Also add to enhanced communication system
+        if (window.enhancedComm) {
+            window.enhancedComm.handleGymAdminMessage(message);
+        }
+    }
+
+    // Setup notification forwarding to gym admins
+    setupNotificationForwarding() {
+        console.log('🔄 Setting up notification forwarding to gym admins');
+        
+        // When enhanced communication system sends notifications to gym admins
+        if (window.enhancedComm) {
+            const originalSendNotification = window.enhancedComm.sendNotificationToGymAdmin;
+            
+            window.enhancedComm.sendNotificationToGymAdmin = async (gymId, notification) => {
+                console.log('📤 Forwarding notification to gym admin:', gymId, notification);
+                
+                try {
+                    const headers = this.getAuthHeaders(); if (!headers) return;
+                    const response = await fetch(`${this.BASE_URL}/api/communication/notify-gym-admin`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            gymId,
+                            notification: {
+                                title: notification.title,
+                                message: notification.message,
+                                type: notification.type,
+                                priority: notification.priority || 'medium',
+                                metadata: notification.metadata
+                            }
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Notification sent to gym admin successfully');
+                        return true;
+                    } else {
+                        console.error('❌ Failed to send notification to gym admin');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error sending notification to gym admin:', error);
+                    return false;
+                }
+
+                // Call original function if it exists
+                if (originalSendNotification) {
+                    return originalSendNotification.call(window.enhancedComm, gymId, notification);
+                }
+            };
+        }
+    }
+
+    // Integrate with enhanced communication system
+    integrateWithEnhancedComm() {
+        console.log('🔗 Integrating with Enhanced Communication System');
+        
+        if (window.enhancedComm && window.enhancedComm.isInitialized === true) {
+            // Add gym admin message handler
+            window.enhancedComm.handleGymAdminMessage = (message) => {
+                console.log('🏋️ Handling gym admin message in enhanced system:', message);
+                
+                // Add to support tickets if it's a support request
+                if (message.type === 'support-ticket' || message.type === 'grievance') {
+                    if (window.supportSystem) {
+                        // Refresh support tickets to include new gym admin communication
+                        window.supportSystem.loadSupportTickets();
+                    }
+                }
+            };
+
+            // Add gym admin communication modal
+            window.enhancedComm.openGymAdminCommunication = (gymId, gymName) => {
+                console.log('💬 Opening gym admin communication:', gymId, gymName);
+                this.openGymAdminCommunicationModal(gymId, gymName);
+            };
+
+            this.isIntegrated = true;
+            console.log('✅ Enhanced communication integration completed');
+        } else {
+            this.integrationRetries++;
+            if (this.integrationRetries < this.maxRetries) {
+                console.log(`⏳ Enhanced communication system not ready, retrying in 200ms... (${this.integrationRetries}/${this.maxRetries})`);
+                setTimeout(() => this.integrateWithEnhancedComm(), 200);
+            } else {
+                console.warn('❌ Maximum integration retries reached. Enhanced communication system integration failed.');
+                console.log('📊 Available window.enhancedComm:', window.enhancedComm);
+                if (window.enhancedComm) {
+                    console.log('📊 enhancedComm.isInitialized:', window.enhancedComm.isInitialized);
+                }
+            }
+        }
+    }
+
+    // Open communication modal with specific gym admin
+    openGymAdminCommunicationModal(gymId, gymName) {
+        // Create or show communication modal
+        const modal = this.createGymAdminCommunicationModal(gymId, gymName);
+        modal.style.display = 'block';
+        
+        // Load communication history
+        this.loadGymAdminCommunicationHistory(gymId);
+    }
+
+    // Create gym admin communication modal
+    createGymAdminCommunicationModal(gymId, gymName) {
+        let modal = document.getElementById('gymAdminCommunicationModal');
+        
+        if (!modal) {
+            const modalHTML = `
+                <div id="gymAdminCommunicationModal" class="enhanced-modal" style="display: none;">
+                    <div class="enhanced-modal-content">
+                        <div class="enhanced-modal-header">
+                            <h3 id="gymCommTitle">Communication with ${gymName}</h3>
+                            <button class="enhanced-close-btn" onclick="document.getElementById('gymAdminCommunicationModal').style.display='none'">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="enhanced-modal-body">
+                            <div class="communication-history" id="gymCommHistory">
+                                <!-- Communication history will be loaded here -->
+                            </div>
+                            <div class="communication-compose">
+                                <textarea id="gymCommMessage" placeholder="Type your message to ${gymName}..." rows="3"></textarea>
+                                <div class="communication-actions">
+                                    <select id="gymCommPriority">
+                                        <option value="low">Low Priority</option>
+                                        <option value="medium" selected>Medium Priority</option>
+                                        <option value="high">High Priority</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                    <button class="enhanced-btn enhanced-btn-primary" onclick="window.mainAdminBridge.sendMessageToGym('${gymId}')">
+                                        <i class="fas fa-paper-plane"></i> Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('gymAdminCommunicationModal');
+        }
+        
+        // Update modal title
+        document.getElementById('gymCommTitle').textContent = `Communication with ${gymName}`;
+        
+        return modal;
+    }
+
+    // Send message to gym admin
+    async sendMessageToGym(gymId) {
+        const messageText = document.getElementById('gymCommMessage').value.trim();
+        const priority = document.getElementById('gymCommPriority').value;
+        
+        if (!messageText) {
+            alert('Please enter a message');
+            return;
+        }
+
+        try {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/communication/send-to-gym`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    gymId,
+                    message: messageText,
+                    priority,
+                    type: 'admin-message'
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Message sent to gym admin');
+                document.getElementById('gymCommMessage').value = '';
+                this.loadGymAdminCommunicationHistory(gymId);
+                
+                // Show success notification
+                if (window.adminNotificationSystem) {
+                    window.adminNotificationSystem.createNotification(
+                        'Message Sent',
+                        'Your message has been sent to the gym admin',
+                        'success',
+                        'fa-check',
+                        '#10b981'
+                    );
+                }
+            } else {
+                console.error('❌ Failed to send message');
+                alert('Failed to send message. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            alert('Error sending message. Please try again.');
+        }
+    }
+
+    // Load communication history with gym admin
+    async loadGymAdminCommunicationHistory(gymId) {
+        try {
+            const headers = this.getAuthHeaders(); if (!headers) return;
+            const response = await fetch(`${this.BASE_URL}/api/communication/history/${gymId}`, {
+                headers: headers
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.renderCommunicationHistory(data.communications || []);
+            }
+        } catch (error) {
+            console.error('Error loading communication history:', error);
+        }
+    }
+
+    // Render communication history
+    renderCommunicationHistory(communications) {
+        const historyContainer = document.getElementById('gymCommHistory');
+        if (!historyContainer) return;
+
+        if (communications.length === 0) {
+            historyContainer.innerHTML = `
+                <div class="no-communications">
+                    <i class="fas fa-comments"></i>
+                    <p>No previous communications</p>
+                </div>
+            `;
+            return;
+        }
+
+        const historyHTML = communications.map(comm => `
+            <div class="communication-item ${comm.from === 'admin' ? 'from-admin' : 'from-gym'}">
+                <div class="comm-header">
+                    <strong>${comm.from === 'admin' ? 'Main Admin' : 'Gym Admin'}</strong>
+                    <span class="comm-time">${new Date(comm.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="comm-message">${comm.message}</div>
+                ${comm.priority !== 'medium' ? `<div class="comm-priority priority-${comm.priority}">${comm.priority.toUpperCase()}</div>` : ''}
+            </div>
+        `).join('');
+
+        historyContainer.innerHTML = historyHTML;
+        historyContainer.scrollTop = historyContainer.scrollHeight;
+    }
+}
+
+// Initialize main admin communication bridge
+document.addEventListener('DOMContentLoaded', () => {
+    window.mainAdminBridge = new MainAdminCommunicationBridge();
+});
+
+// Export for external use
+window.MainAdminCommunicationBridge = MainAdminCommunicationBridge;

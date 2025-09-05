@@ -27,6 +27,8 @@ const notificationRoutes = require('./backend/routes/notificationRoutes');
 const adminNotificationRoutes = require('./backend/routes/adminNotificationRoutes');
 const gymNotificationRoutes = require('./backend/routes/gymNotificationRoutes');
 const supportRoutes = require('./backend/routes/supportRoutes');
+const communicationRoutes = require('./backend/routes/communicationRoutes');
+const gymCommunicationRoutes = require('./backend/routes/gymCommunicationRoutes');
 const attendanceRoutes = require('./backend/routes/attendanceRoutes');
 const paymentRoutes = require('./backend/routes/paymentRoutes');
 const equipmentRoutes = require('./backend/routes/equipmentRoutes');
@@ -34,15 +36,12 @@ const qrCodeRoutes = require('./backend/routes/qrCodeRoutes');
 const biometricRoutes = require('./backend/routes/biometricRoutes');
 const securityRoutes = require('./backend/routes/securityRoutes');
 const testRoutes = require('./backend/routes/testRoutes');
-console.log('[DEBUG] server.js: testRoutes type is:', typeof testRoutes);
 if (typeof testRoutes !== 'function') {
   console.error('ERROR: testRoutes is not a function!', testRoutes);
 }
 const NotificationScheduler = require('./backend/services/notificationScheduler');
 const SubscriptionService = require('./backend/services/subscriptionService');  
 
-console.log("[DEBUG] server.js: trainerRoutes type is:", typeof trainerRoutes);
-console.log("[DEBUG] server.js: notificationRoutes type is:", typeof notificationRoutes);
 
 const app = express();
 
@@ -414,7 +413,9 @@ app.use('/api/members', (req, res, next) => {
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/gym/notifications', gymNotificationRoutes);
-app.use('/api/support', supportRoutes);
+app.use('/api/gym/communication', gymCommunicationRoutes); // Enhanced Gym-Admin Communication System
+app.use('/api/support', supportRoutes); // Legacy Admin Support System (still needed for admin panel)
+app.use('/api/admin/communication', communicationRoutes);
 app.use('/api/attendance', (req, res, next) => {
   next();
 }, attendanceRoutes);

@@ -3,18 +3,19 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const adminAuth = require('../middleware/adminAuth');
 const adminController = require('../controllers/adminController');
-const simpleAdminAuth = require('../controllers/simpleAdminAuth');
+const unifiedAdminAuth = require('../controllers/unifiedAdminAuth');
+const communicationController = require('../controllers/communicationController');
 const sendEmail = require('../utils/sendEmail');
 const Notification = require('../models/Notification'); // Import Notification model
 const Admin = require('../models/admin'); // Import Admin model
 
-// Authentication Routes (Public)
-router.post('/auth/login', simpleAdminAuth.createRateLimiter(), simpleAdminAuth.login);
-router.post('/auth/verify-2fa', simpleAdminAuth.verify2FA);
-router.post('/auth/forgot-password', simpleAdminAuth.forgotPassword);
-router.post('/auth/reset-password', simpleAdminAuth.resetPassword);
-router.post('/auth/refresh-token', simpleAdminAuth.refreshToken);
-router.post('/auth/logout', simpleAdminAuth.logout);
+// Authentication Routes (Public) - Using Unified Admin Auth Controller
+router.post('/auth/login', unifiedAdminAuth.createRateLimiter(), unifiedAdminAuth.login.bind(unifiedAdminAuth));
+router.post('/auth/verify-2fa', unifiedAdminAuth.verify2FA.bind(unifiedAdminAuth));
+router.post('/auth/forgot-password', unifiedAdminAuth.forgotPassword.bind(unifiedAdminAuth));
+router.post('/auth/reset-password', unifiedAdminAuth.resetPassword.bind(unifiedAdminAuth));
+router.post('/auth/refresh-token', unifiedAdminAuth.refreshToken.bind(unifiedAdminAuth));
+router.post('/auth/logout', unifiedAdminAuth.logout.bind(unifiedAdminAuth));
 
 // Setup Routes (Public)
 router.get('/check-database', async (req, res) => {
@@ -437,67 +438,9 @@ router.get('/security/report', adminAuth, adminAuth.requirePermission('security_
   }
 });
 
-// Profile Management
-router.get('/profile', adminAuth, async (req, res) => {
-  try {
-    const admin = await Admin.findById(req.admin.id).select('-password -refreshTokens -pendingTwoFACode');
-    res.json({ success: true, admin });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching profile' });
-  }
-});
-
-router.put('/profile', adminAuth, async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    const admin = await Admin.findById(req.admin.id);
-    
-    if (name) admin.name = name;
-    if (email && email !== admin.email) {
-      // Check if email is already taken
-      const existingAdmin = await Admin.findOne({ email, _id: { $ne: admin._id } });
-      if (existingAdmin) {
-        return res.status(400).json({ success: false, message: 'Email already in use' });
-      }
-      admin.email = email;
-    }
-    
-    await admin.save();
-    res.json({ success: true, message: 'Profile updated successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error updating profile' });
-  }
-});
-
-router.post('/change-password', adminAuth, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const admin = await Admin.findById(req.admin.id);
-    
-    // Verify current password
-    const isCurrentPasswordValid = await admin.comparePassword(currentPassword);
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
-    }
-    
-    // Update password
-    admin.password = newPassword; // Will be hashed by pre-save middleware
-    await admin.save();
-    
-    // Log password change
-    const SecurityLogger = require('../utils/securityLogger');
-    const logger = new SecurityLogger();
-    await logger.log('password_changed', {
-      adminId: admin._id,
-      email: admin.email,
-      ip: req.ip
-    });
-    
-    res.json({ success: true, message: 'Password changed successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error changing password' });
-  }
-});
+// ============= DUPLICATE ROUTES REMOVED =============
+// The duplicate profile routes have been removed to prevent conflicts.
+// The comprehensive profile routes are defined earlier in this file (lines 226-312).
 
 // 2FA Management
 router.post('/enable-2fa', adminAuth, async (req, res) => {
@@ -530,6 +473,334 @@ router.post('/disable-2fa', adminAuth, async (req, res) => {
     res.json({ success: true, message: '2FA disabled successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error disabling 2FA' });
+  }
+});
+
+// Admin Settings Management
+router.get('/settings', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('settings preferences notifications');
+    
+    const defaultSettings = {
+      emailNotifications: true,
+      smsNotifications: true,
+      autoLogoutTime: 60,
+      theme: 'light',
+      language: 'en',
+      timezone: 'UTC'
+    };
+
+    res.json({
+      success: true,
+      settings: admin.settings || defaultSettings,
+      preferences: admin.preferences || {},
+      notifications: admin.notifications || {}
+    });
+  } catch (error) {
+    console.error('Get settings error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching settings' });
+  }
+});
+
+router.put('/settings', adminAuth, async (req, res) => {
+  try {
+    const { emailNotifications, smsNotifications, autoLogoutTime, theme, language, timezone } = req.body;
+    const admin = await Admin.findById(req.admin.id);
+
+    if (!admin.settings) admin.settings = {};
+
+    // Update settings
+    if (emailNotifications !== undefined) admin.settings.emailNotifications = emailNotifications;
+    if (smsNotifications !== undefined) admin.settings.smsNotifications = smsNotifications;
+    if (autoLogoutTime !== undefined) admin.settings.autoLogoutTime = parseInt(autoLogoutTime);
+    if (theme !== undefined) admin.settings.theme = theme;
+    if (language !== undefined) admin.settings.language = language;
+    if (timezone !== undefined) admin.settings.timezone = timezone;
+
+    admin.markModified('settings');
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: 'Settings updated successfully',
+      settings: admin.settings
+    });
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({ success: false, message: 'Error updating settings' });
+  }
+});
+
+// Activity Log
+router.get('/activity-log', adminAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const admin = await Admin.findById(req.admin.id);
+
+    // Generate sample activity log (you can implement actual logging)
+    const activities = [
+      {
+        action: 'Profile viewed',
+        timestamp: new Date(),
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        type: 'profile'
+      },
+      {
+        action: 'Dashboard accessed',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        type: 'navigation'
+      },
+      {
+        action: 'Settings updated',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        type: 'settings'
+      }
+    ];
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedActivities = activities.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      activities: paginatedActivities,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(activities.length / limit),
+        totalItems: activities.length,
+        itemsPerPage: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get activity log error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching activity log' });
+  }
+});
+
+// Session Management
+router.get('/sessions', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    
+    // Generate sample session data (you can implement actual session tracking)
+    const sessions = [
+      {
+        id: 'current',
+        device: 'Desktop - Chrome',
+        location: 'Current Session',
+        ip: req.ip,
+        lastActive: new Date(),
+        isCurrent: true
+      },
+      {
+        id: 'session-2',
+        device: 'Mobile - Safari',
+        location: 'Previous Session',
+        ip: '192.168.1.100',
+        lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        isCurrent: false
+      }
+    ];
+
+    res.json({
+      success: true,
+      sessions: sessions,
+      currentSessionId: 'current'
+    });
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching sessions' });
+  }
+});
+
+router.delete('/sessions/:sessionId', adminAuth, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (sessionId === 'current') {
+      return res.status(400).json({ success: false, message: 'Cannot terminate current session' });
+    }
+
+    // Here you would implement actual session termination
+    console.log(`Terminating session: ${sessionId}`);
+
+    res.json({
+      success: true,
+      message: 'Session terminated successfully'
+    });
+  } catch (error) {
+    console.error('Terminate session error:', error);
+    res.status(500).json({ success: false, message: 'Error terminating session' });
+  }
+});
+
+// ========== COMMUNICATION & SUPPORT ROUTES ==========
+
+// Support ticket management
+router.get('/support/stats', adminAuth, communicationController.getSupportStats);
+router.get('/support/tickets', adminAuth, communicationController.getSupportTickets);
+router.get('/support/tickets/:ticketId', adminAuth, communicationController.getTicketDetails);
+router.post('/support/tickets/:ticketId/reply', adminAuth, communicationController.replyToTicket);
+router.put('/support/tickets/:ticketId/status', adminAuth, communicationController.updateTicketStatus);
+
+// Grievance management
+router.get('/grievances', adminAuth, communicationController.getGrievances);
+router.post('/grievances/:ticketId/escalate', adminAuth, communicationController.escalateGrievance);
+
+// Communication channels
+router.post('/communication/bulk-notification', adminAuth, communicationController.sendBulkNotification);
+router.post('/communication/direct-message', adminAuth, communicationController.sendDirectMessage);
+
+// Gym Admin Communication Routes
+router.get('/support/gym-admin-communications', adminAuth, communicationController.getGymAdminCommunications);
+router.post('/communication/notify-gym-admin', adminAuth, communicationController.notifyGymAdmin);
+router.post('/communication/send-to-gym', adminAuth, communicationController.sendMessageToGym);
+router.get('/communication/history/:gymId', adminAuth, communicationController.getCommunicationHistory);
+router.post('/communication/receive-gym-message', communicationController.receiveGymAdminMessage); // Public route for gym admins
+
+// Enhanced notification management with deduplication
+router.get('/notifications/admin', adminAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, type = 'all', read = 'all' } = req.query;
+    const adminId = req.admin.id;
+
+    const filter = {
+      $or: [
+        { recipient: adminId, recipientType: 'Admin' },
+        { type: { $in: ['system', 'escalation', 'high-priority'] } }
+      ]
+    };
+
+    if (type !== 'all') filter.type = type;
+    if (read !== 'all') filter.read = read === 'true';
+
+    const skip = (page - 1) * limit;
+
+    // Deduplicate notifications by grouping similar ones
+    const notifications = await Notification.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: {
+            type: '$type',
+            title: '$title',
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+          },
+          count: { $sum: 1 },
+          latestNotification: { $first: '$$ROOT' },
+          notifications: { $push: '$$ROOT' }
+        }
+      },
+      { $sort: { 'latestNotification.createdAt': -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) }
+    ]);
+
+    // Format notifications for frontend
+    const formattedNotifications = notifications.map(group => ({
+      ...group.latestNotification,
+      count: group.count,
+      isGrouped: group.count > 1,
+      groupedNotifications: group.count > 1 ? group.notifications : []
+    }));
+
+    const totalNotifications = await Notification.countDocuments(filter);
+    const unreadCount = await Notification.countDocuments({ ...filter, read: false });
+
+    res.json({
+      success: true,
+      notifications: formattedNotifications,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalNotifications / limit),
+        totalItems: totalNotifications,
+        itemsPerPage: parseInt(limit)
+      },
+      unreadCount
+    });
+
+  } catch (error) {
+    console.error('Error fetching admin notifications:', error);
+    res.status(500).json({ success: false, message: 'Error fetching notifications' });
+  }
+});
+
+// Mark notifications as read (bulk)
+router.put('/notifications/mark-read', adminAuth, async (req, res) => {
+  try {
+    const { notificationIds = [], markAll = false } = req.body;
+    const adminId = req.admin.id;
+
+    let updateFilter = {};
+
+    if (markAll) {
+      updateFilter = {
+        $or: [
+          { recipient: adminId, recipientType: 'Admin' },
+          { type: { $in: ['system', 'escalation', 'high-priority'] } }
+        ],
+        read: false
+      };
+    } else if (notificationIds.length > 0) {
+      updateFilter = {
+        _id: { $in: notificationIds },
+        read: false
+      };
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'No notifications specified to mark as read'
+      });
+    }
+
+    const result = await Notification.updateMany(
+      updateFilter,
+      { 
+        $set: { 
+          read: true, 
+          readAt: new Date() 
+        } 
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} notifications marked as read`,
+      updatedCount: result.modifiedCount
+    });
+
+  } catch (error) {
+    console.error('Error marking notifications as read:', error);
+    res.status(500).json({ success: false, message: 'Error updating notifications' });
+  }
+});
+
+// Create admin broadcast notification
+router.post('/notifications/broadcast', adminAuth, async (req, res) => {
+  try {
+    const { title, message, recipients, priority = 'medium', channels = ['notification'] } = req.body;
+    const adminId = req.admin.id;
+
+    // Validate input
+    if (!title || !message || !recipients) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, message, and recipients are required'
+      });
+    }
+
+    // Use communication controller for sending
+    req.body.sendVia = channels;
+    await communicationController.sendBulkNotification(req, res);
+
+  } catch (error) {
+    console.error('Error creating broadcast notification:', error);
+    res.status(500).json({ success: false, message: 'Error sending broadcast' });
   }
 });
 

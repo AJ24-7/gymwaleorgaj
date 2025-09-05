@@ -3,14 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fit-Verse Admin Dashboard</title>
+    <title>Gym-Wale Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="admin-support.css">
+    <link rel="stylesheet" href="enhanced-communication-styles.css">
+    <link rel="stylesheet" href="admin-notification-styles.css">
+    
+    <!-- Immediate layout positioning script -->
+    <script>
+        // Apply critical positioning immediately to prevent layout shift
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[CRITICAL] Applying immediate positioning...');
+            
+            const sidebar = document.querySelector('.sidebar');
+            const navbar = document.querySelector('.top-navbar');
+            const mainContent = document.querySelector('.main-content');
+            
+            if (sidebar) {
+                sidebar.style.setProperty('position', 'fixed', 'important');
+                sidebar.style.setProperty('left', '0', 'important');
+                sidebar.style.setProperty('top', '0', 'important');
+                sidebar.style.setProperty('width', '280px', 'important');
+                sidebar.style.setProperty('height', '100vh', 'important');
+                sidebar.style.setProperty('z-index', '1100', 'important');
+            }
+            
+            if (navbar) {
+                navbar.style.setProperty('position', 'fixed', 'important');
+                navbar.style.setProperty('left', '280px', 'important');
+                navbar.style.setProperty('top', '0', 'important');
+                navbar.style.setProperty('right', '0', 'important');
+                navbar.style.setProperty('height', '75px', 'important');
+                navbar.style.setProperty('z-index', '1050', 'important');
+                navbar.style.setProperty('background', 'linear-gradient(90deg, #1e293b 0%, #334155 100%)', 'important');
+                navbar.style.setProperty('color', 'white', 'important');
+                navbar.style.setProperty('display', 'flex', 'important');
+                navbar.style.setProperty('align-items', 'center', 'important');
+                navbar.style.setProperty('justify-content', 'space-between', 'important');
+                navbar.style.setProperty('padding', '0 32px', 'important');
+                navbar.style.setProperty('border-bottom', '1px solid rgba(255, 255, 255, 0.1)', 'important');
+                navbar.style.setProperty('border-left', '1px solid rgba(255, 255, 255, 0.1)', 'important');
+                navbar.style.setProperty('box-shadow', '0 4px 20px rgba(0, 0, 0, 0.15)', 'important');
+            }
+            
+            if (mainContent) {
+                mainContent.style.setProperty('margin-left', '280px', 'important');
+                mainContent.style.setProperty('padding-top', '75px', 'important');
+                mainContent.style.setProperty('min-height', '100vh', 'important');
+                mainContent.style.setProperty('background', '#f8fafc', 'important');
+            }
+            
+            // Force a reflow
+            if (navbar) navbar.offsetHeight;
+            if (mainContent) mainContent.offsetHeight;
+            
+            console.log('[CRITICAL] Immediate positioning applied successfully');
+        });
+    </script>
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script defer src="admin-auth-guard.js"></script>
     <script defer src="admin.js"></script>
+    <script defer src="admin-profile.js"></script>
     <script defer src="admin-notification-system.js"></script>
+    <script defer src="enhanced-communication-system.js"></script>
     <script defer src="admin-support.js"></script>
     <script defer src="subscription-management.js"></script>
    
@@ -18,69 +76,112 @@
 <body>
     <!-- Hamburger for mobile -->
     <div class="hamburger" id="hamburgerMenu" aria-label="Open sidebar" tabindex="0">
-      <span></span>
-      <span></span>
-      <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
+    
     <div class="sidebar" id="sidebarMenu">
         <div class="sidebar-header">
-            <img src="https://via.placeholder.com/40" alt="Fit-Verse Logo">
+            <img src="public/Gym-Wale.png" alt="Gym-Wale Logo">
             <h3>Gym-Wale</h3>
         </div>
         <div class="sidebar-menu">
             <ul>
-                <li><a href="#" class="active" id="dashboard-tab"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
-                <li><a href="#" id="gym-tab"><i class="fas fa-dumbbell"></i> <span>Gym Management</span></a></li>
-                <li><a href="#" id="subscription-tab"><i class="fas fa-credit-card"></i> <span>Subscription Management</span></a></li>
-                <li><a href="#" id="trial-booking-tab"><i class="fas fa-calendar-check"></i> <span>Trial Bookings</span></a></li>
-                <li><a href="#" id="trainer-management-tab"><i class="fas fa-users-cog"></i> <span>Trainer Management</span></a></li>
-                <li><a href="#" id="payment-tab"><i class="fas fa-credit-card"></i> <span>Payments</span></a></li>
-                <li><a href="#" id="attendance-tab"><i class="fas fa-calendar-check"></i> <span>Attendance</span></a></li>
-                <li><a href="#" id="users-tab"><i class="fas fa-users"></i> <span>Users</span></a></li>
-                <li><a href="#" id="support-tab"><i class="fas fa-headset"></i> <span>Support</span></a></li>
-                <li><a href="#" id="profile-tab"><i class="fas fa-user-circle"></i> <span>My Profile</span></a></li>
-                <li><a href="#" id="settings-tab"><i class="fas fa-cog"></i> <span>Settings</span></a></li>
+                <li><a href="#" class="active" id="dashboard-tab">
+                    <i class="fas fa-tachometer-alt"></i> 
+                    <span>Dashboard</span>
+                </a></li>
+                <li><a href="#" id="gym-tab">
+                    <i class="fas fa-dumbbell"></i> 
+                    <span>Gym Management</span>
+                </a></li>
+                <li><a href="#" id="subscription-tab">
+                    <i class="fas fa-credit-card"></i> 
+                    <span>Subscription Management</span>
+                </a></li>
+                <li><a href="#" id="trainer-management-tab">
+                    <i class="fas fa-users-cog"></i> 
+                    <span>Trainer Management</span>
+                </a></li>
+                <li><a href="#" id="payment-tab">
+                    <i class="fas fa-money-bill-wave"></i> 
+                    <span>Payments</span>
+                </a></li>
+                <li><a href="#" id="users-tab">
+                    <i class="fas fa-users"></i> 
+                    <span>Users</span>
+                </a></li>
+                <li><a href="#" id="support-tab">
+                    <i class="fas fa-headset"></i> 
+                    <span>Support</span>
+                </a></li>
+                <li><a href="#" id="profile-tab">
+                    <i class="fas fa-user-circle"></i> 
+                    <span>My Profile</span>
+                </a></li>
+                <li><a href="#" id="settings-tab">
+                    <i class="fas fa-cog"></i> 
+                    <span>Settings</span>
+                </a></li>
             </ul>
-        </div>
-        <div class="sidebar-footer">
-            <p>v1.0.0</p>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
         <!-- Top Navbar -->
-<div class="top-navbar">
-    <div class="user-info">
-      <div class="notification-bell" id="notificationBell">
-        <i class="fas fa-bell"></i>
-        <span class="notification-count" id="notificationCount" style="display: none;">0</span>
-  
-        <!-- Notification Dropdown -->
-        <div class="notification-dropdown" id="notificationDropdown" style="display: none;">
-          <div class="notification-header">
-            <h4>Notifications</h4>
-            <a href="#" onclick="return false;">Mark All Read</a>
-          </div>
-          <div class="notification-list" id="notificationList">
-            <div class="no-notifications">No new notifications</div>
-          </div>
-          <div class="notification-footer">
-            <a href="#" onclick="return false;">View All Notifications</a>
-          </div>
+        <!-- Enhanced Top Navbar -->
+        <div class="top-navbar">
+            <div class="navbar-left">
+                <div class="breadcrumb">
+                    <span id="currentPageTitle">Dashboard</span>
+                </div>
+            </div>
+            
+            <div class="user-info">
+                <div class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="notificationCount" style="display: none;">0</span>
+            
+                    <!-- Enhanced Notification Dropdown -->
+                    <div class="notification-dropdown" id="notificationDropdown" style="display: none;">
+                        <div class="notification-header">
+                            <h4>Notifications</h4>
+                            <a href="#" onclick="markAllAsRead(); return false;">Mark All Read</a>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="no-notifications">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No new notifications</p>
+                            </div>
+                        </div>
+                        <div class="notification-footer">
+                            <a href="#" onclick="viewAllNotifications(); return false;">View All Notifications</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="admin-dropdown" onclick="toggleAdminMenu()">
+                    <img src="/assets/admin-avatar.png" alt="Admin" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzNzQxNTEiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaTTEyIDEyVjEyWiIgZmlsbD0iI0Y5RkFGQiIvPgo8cGF0aCBkPSJNMTIgMTRDOC4xMzQwMSAxNCA1IDE3LjEzNCA1IDIxSDE5QzE5IDE3LjEzNCAxNS44NjYgMTQgMTIgMTRaIiBmaWxsPSIjRjlGQUZCIi8+Cjwvc3ZnPgo8L3N2Zz4K'">
+                    <span>Admin User</span>
+                    <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 4px;"></i>
+                    
+                    <div class="admin-menu" id="adminMenu" style="display: none;">
+                        <a href="#" onclick="showTab('profile-content'); return false;">
+                            <i class="fas fa-user"></i> Profile
+                        </a>
+                        <a href="#" onclick="showTab('settings-content'); return false;">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <a href="#" onclick="adminLogout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="admin-dropdown" onclick="toggleAdminMenu()">
-        <img src="/assets/admin-avatar.png" alt="Admin" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzNzQxNTEiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaTTEyIDEyVjEyWiIgZmlsbD0iI0Y5RkFGQiIvPgo8cGF0aCBkPSJNMTIgMTRDOC4xMzQwMSAxNCA1IDE3LjEzNCA1IDIxSDE5QzE5IDE3LjEzNCAxNS44NjYgMTQgMTIgMTRaIiBmaWxsPSIjRjlGQUZCIi8+Cjwvc3ZnPgo8L3N2Zz4K'">
-        <span>Admin User</span>
-        <div class="admin-menu" id="adminMenu" style="display: none;">
-          <a href="/admin/profile">Profile</a>
-          <a href="/admin/settings">Settings</a>
-          <a href="#" onclick="adminLogout(); return false;">Logout</a>
-        </div>
-      </div>
-    </div>
-  </div>
   
         <!-- Content Area -->
         <div class="content-area">
@@ -88,154 +189,188 @@
             <div id="dashboard-content" class="tab-content active">
                 <div class="page-header">
                     <h2>Dashboard Overview</h2>
-                    <div>
-                        <button class="btn btn-primary"><i class="fas fa-download"></i> Generate Report</button>
+                    <div class="dashboard-controls">
+                        <select class="dashboard-filter" id="dashboard-time-filter">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                        </select>
+                        <button class="btn btn-secondary" id="refresh-dashboard">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" id="export-report">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
                     </div>
                 </div>
                 
-                <!-- Dashboard Cards -->
+                <!-- Key Metrics Cards -->
                 <div class="dashboard-cards">
-                    <div class="card">
+                    <div class="card metric-card">
                         <div class="card-header">
-                            <h3>Total Users</h3>
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="card-body">
-                            <h2 id="total-users">--</h2>
-                            <p id="users-change"><span class="text-success">--</span> from last month</p>
-                        </div>
-                    </div>
-                    <div class="card success">
-                        <div class="card-header">
-                            <h3>Active Members</h3>
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        <div class="card-body">
-                            <h2 id="active-members">--</h2>
-                            <p id="members-change"><span class="text-success">--</span> from last month</p>
-                        </div>
-                    </div>
-                    <div class="card warning">
-                        <div class="card-header">
-                            <h3>Pending Approvals</h3>
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="card-body">
-                            <h2 id="pending-approvals">--</h2>
-                            <p id="approvals-detail">Gyms: --, Trainers: --</p>
-                        </div>
-                    </div>
-                    <div class="card danger">
-                        <div class="card-header">
-                            <h3>Revenue</h3>
+                            <h3>Total Revenue</h3>
                             <i class="fas fa-rupee-sign"></i>
                         </div>
                         <div class="card-body">
-                            <h2 id="total-revenue">--</h2>
-                            <p id="revenue-change"><span class="text-success">--</span> from last month</p>
+                            <h2 data-detail="revenue">₹0</h2>
+                            <div class="metric-details">
+                                <span class="metric-change" data-change="revenue">
+                                    <i class="fas fa-arrow-up"></i> 0% from last period
+                                </span>
+                                <div class="metric-breakdown">
+                                    <span data-detail="subscription">Subscription: <strong>₹0</strong></span>
+                                    <span>One-time: <strong>₹0</strong></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card info">
+                    
+                    <div class="card metric-card success">
                         <div class="card-header">
-                            <h3>Trial Bookings</h3>
-                            <i class="fas fa-calendar-check"></i>
+                            <h3>Active Users</h3>
+                            <i class="fas fa-users"></i>
                         </div>
                         <div class="card-body">
-                            <h2 id="total-trial-bookings">--</h2>
-                            <p id="pending-trial-approvals-text"><span class="text-warning">--</span> Pending Approvals</p>
+                            <h2 data-metric="active-users">0</h2>
+                            <div class="metric-details">
+                                <span class="metric-change" data-change="users">
+                                    <i class="fas fa-arrow-up"></i> 0% from last period
+                                </span>
+                                <div class="metric-breakdown">
+                                    <span>New: <strong data-detail="new-users">0</strong></span>
+                                    <span>Returning: <strong data-detail="returning-users">0</strong></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card primary">
+                    
+                    <div class="card metric-card info">
                         <div class="card-header">
-                            <h3>Total Gyms Registered</h3>
+                            <h3>Active Gyms</h3>
                             <i class="fas fa-dumbbell"></i>
                         </div>
                         <div class="card-body">
-                            <h2 id="total-gyms-registered">--</h2>
-                            <p id="gyms-using-dashboard"><span class="text-success">--</span> using dashboard</p>
+                            <h2 data-metric="active-gyms">0</h2>
+                            <div class="metric-details">
+                                <span class="metric-change" data-change="gyms">
+                                    <i class="fas fa-arrow-up"></i> 0% from last period
+                                </span>
+                                <div class="metric-breakdown">
+                                    <span>Pending: <strong data-detail="pending-gyms">0</strong></span>
+                                    <span>Premium: <strong data-detail="premium-gyms">0</strong></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card subscription">
+                    
+                    <div class="card metric-card warning">
                         <div class="card-header">
-                            <h3>Active Subscriptions</h3>
+                            <h3>System Health</h3>
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="card-body">
+                            <h2 data-metric="system-health">98%</h2>
+                            <div class="metric-details">
+                                <span class="metric-change">
+                                    <i class="fas fa-check-circle"></i> All systems operational
+                                </span>
+                                <div class="metric-breakdown">
+                                    <span>Uptime: <strong data-detail="uptime">99.9%</strong></span>
+                                    <span>Response: <strong data-detail="response"><200ms</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions-section">
+                    <h3>Quick Actions</h3>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" onclick="showTab('gym-content')">
+                            <i class="fas fa-plus"></i>
+                            <span>Add New Gym</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="showTab('trainer-management-content')">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Approve Trainers</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="showTab('subscription-content')">
                             <i class="fas fa-credit-card"></i>
+                            <span>Manage Subscriptions</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="showTab('support-content')">
+                            <i class="fas fa-headset"></i>
+                            <span>Support Tickets</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Analytics Charts -->
+                <div class="dashboard-charts">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>Revenue Trends</h3>
+                            <div class="chart-controls">
+                                <button class="chart-period-btn active" data-period="7">7D</button>
+                                <button class="chart-period-btn" data-period="30">30D</button>
+                                <button class="chart-period-btn" data-period="90">90D</button>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <h2 id="active-subscriptions">--</h2>
-                            <p><span id="trial-subscriptions">--</span> on trial, <span id="expired-subscriptions">--</span> expired</p>
+                        <div class="chart-content">
+                            <canvas id="revenueChart" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>User Distribution</h3>
+                            <div class="chart-controls">
+                                <button class="chart-period-btn active" data-period="7">7D</button>
+                                <button class="chart-period-btn" data-period="30">30D</button>
+                                <button class="chart-period-btn" data-period="90">90D</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="usersChart" class="chart-canvas"></canvas>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Charts Row -->
-                <div class="dashboard-cards">
-                    <div class="card" style="grid-column: span 2;">
-                        <div class="card-header">
-                            <h3>Revenue Overview</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="revenueChart"></canvas>
+                <!-- Enhanced Real-time Activity Feed -->
+                <div class="dashboard-grid">
+                    <div class="activity-feed-container">
+                        <div class="activity-feed-header">
+                            <h3>Recent Activities</h3>
+                            <div class="activity-filters">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="gym">Gyms</button>
+                                <button class="filter-btn" data-filter="trainer">Trainers</button>
+                                <button class="filter-btn" data-filter="payment">Payments</button>
+                                <button class="filter-btn" data-filter="trial">Trials</button>
+                                <button class="filter-btn" data-filter="system">System</button>
                             </div>
                         </div>
-                    </div>
-                    <div class="card" style="grid-column: span 2;">
-                        <div class="card-header">
-                            <h3>User Growth</h3>
+                        <div id="activity-feed">
+                            <!-- Dynamic activity items will be loaded here -->
                         </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="usersChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>Dashboard Analytics</h3>
+                            <div class="chart-controls">
+                                <button class="chart-period-btn active" data-period="7">7D</button>
+                                <button class="chart-period-btn" data-period="30">30D</button>
+                                <button class="chart-period-btn" data-period="90">90D</button>
                             </div>
                         </div>
+                        <div class="chart-content">
+                            <canvas id="dashboardChart" class="chart-canvas"></canvas>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Recent Activities -->
-                <div class="table-container">
-                    <h3>Recent Activities</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>User</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Gym Membership Renewal</td>
-                                <td>John Smith</td>
-                                <td>5 minutes ago</td>
-                                <td><span class="status status-approved">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>New Trainer Registration</td>
-                                <td>Mike Johnson</td>
-                                <td>15 minutes ago</td>
-                                <td><span class="status status-pending">Pending</span></td>
-                            </tr>
-                            <tr>
-                                <td>Payment Received</td>
-                                <td>Sarah Williams</td>
-                                <td>30 minutes ago</td>
-                                <td><span class="status status-approved">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Gym Registration</td>
-                                <td>Elite Fitness</td>
-                                <td>1 hour ago</td>
-                                <td><span class="status status-pending">Pending</span></td>
-                            </tr>
-                            <tr>
-                                <td>Support Ticket</td>
-                                <td>Robert Brown</td>
-                                <td>2 hours ago</td>
-                                <td><span class="status status-pending">Pending</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
             
@@ -512,26 +647,6 @@
                 </div>
             </div>
 
-            <!-- Trial Booking Content -->
-            <div id="trial-booking-content" class="tab-content">
-              <div class="trial-booking-container">
-                <h2>Trial Session Requests</h2>
-                <div class="filter-options">
-                  <select id="status-filter" class="filter-select">
-                    <option value="all">All Requests</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                  <input type="text" id="search-input" class="search-input" placeholder="Search clients...">
-                </div>
-                <div class="trial-requests-list">
-
-                  <!-- Dynamic content will be loaded here by JS -->
-                </div>
-              </div>
-            </div>
-
             <!-- Trainer Management Content -->
             <div id="trainer-management-content" class="tab-content">
                 <div class="trainer-mgmt-tabs-row">
@@ -654,23 +769,30 @@
                 </div>
             </div>
 
-            <!-- Profile Content -->
+            <!-- Enhanced Profile Content -->
             <div id="profile-content" class="tab-content">
                 <div class="page-header">
-                    <h2>My Profile</h2>
-                    <div>
-                        <button class="btn btn-primary" id="editProfileBtn"><i class="fas fa-edit"></i> Edit Profile</button>
+                    <h2><i class="fas fa-user-circle"></i> My Profile</h2>
+                    <div class="profile-header-actions">
+                        <button class="btn btn-primary" id="editProfileBtn">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </button>
+                        <button class="btn btn-secondary" id="refreshProfileBtn">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                     </div>
                 </div>
 
                 <div class="profile-container">
-                    <!-- Profile Overview -->
-                    <div class="profile-overview">
+                    <!-- Left Column -->
+                    <div class="profile-left-column">
+                        <!-- Enhanced Profile Overview -->
                         <div class="profile-card">
                             <div class="profile-header">
                                 <div class="profile-avatar">
-                                    <img id="profileAvatar" src="/assets/admin-avatar.png" alt="Admin Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiMzNzQxNTEiLz4KPHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFpNMjQgMjRWMjRaIiBmaWxsPSIjRjlGQUZCIi8+CjxwYXRoIGQ9Ik0yNCAyOEMxNi4yNjggMjggMTAgMzQuMjY4IDEwIDQySDM4QzM4IDM0LjI2OCAzMS43MzIgMjggMjQgMjhaIiBmaWxsPSIjRjlGQUZCIi8+Cjwvc3ZnPgo8L3N2Zz4K'">
-                                    <button class="avatar-upload-btn" onclick="document.getElementById('avatarInput').click()">
+                                    <img id="profileAvatar" src="/assets/admin-avatar.png" alt="Admin Avatar" 
+                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDgiIGN5PSI0OCIgcj0iNDgiIGZpbGw9IiMzNzQxNTEiLz4KPHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI4IDI4QzMzLjUyMjggMjggNDAgMjQuNDE4MyA0MCAyMFY4QzQwIDMuNTgxNzMgMzMuNTIyOCAwIDI4IDBDMjAuNDc3MiAwIDE2IDMuNTgxNzMgMTYgOFYyMEMxNiAyNC40MTgzIDIyLjQ3NzIgMjggMjggMjhaIiBmaWxsPSIjRjlGQUZCIi8+CjxwYXRoIGQ9Ik0yOCAzMkMxNi41MzYgMzIgOCA0MC41MzYgOCA1MkM4IDUyIDIyLjUzNiA1NiAyOCA1NkMzMy40NjQgNTYgNDggNTIgNDggNTJDNDggNDAuNTM2IDM5LjQ2NCAzMiAyOCAzMloiIGZpbGw9IiNGOUZBRkIiLz4KPC9zdmc+Cjwvc3ZnPgo='">
+                                    <button class="avatar-upload-btn" onclick="document.getElementById('avatarInput').click()" title="Change Avatar">
                                         <i class="fas fa-camera"></i>
                                     </button>
                                     <input type="file" id="avatarInput" accept="image/*" style="display: none;">
@@ -680,17 +802,18 @@
                                     <p id="profileEmail">Loading...</p>
                                     <div class="profile-badges">
                                         <span class="badge badge-primary" id="profileRole">Super Admin</span>
-                                        <span class="badge badge-success">Active</span>
+                                        <span class="badge badge-success" id="profileStatus">Active</span>
                                     </div>
                                 </div>
                             </div>
+                            
                             <div class="profile-stats">
                                 <div class="stat-item">
                                     <span class="stat-value" id="loginCount">0</span>
                                     <span class="stat-label">Total Logins</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-value" id="lastLoginDate">Never</span>
+                                    <span class="stat-value" id="lastLoginTime">Never</span>
                                     <span class="stat-label">Last Login</span>
                                 </div>
                                 <div class="stat-item">
@@ -699,12 +822,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Profile Details -->
-                    <div class="profile-details">
+                        <!-- Personal Information Section -->
                         <div class="profile-section">
-                            <h4>Personal Information</h4>
+                            <h4><i class="fas fa-user"></i> Personal Information</h4>
                             <div class="profile-field">
                                 <label>Full Name</label>
                                 <span id="profileFullName">Loading...</span>
@@ -718,63 +839,307 @@
                                 <span id="profilePhone">Not provided</span>
                             </div>
                             <div class="profile-field">
-                                <label>Role</label>
+                                <label>Admin Role</label>
                                 <span id="profileUserRole">Super Admin</span>
                             </div>
                             <div class="profile-field">
                                 <label>Account Created</label>
                                 <span id="profileCreatedDate">Loading...</span>
                             </div>
-                        </div>
-
-                        <div class="profile-section">
-                            <h4>Security Settings</h4>
-                            <div class="security-setting">
-                                <div class="setting-info">
-                                    <label>Two-Factor Authentication</label>
-                                    <p>Add an extra layer of security to your account</p>
-                                </div>
-                                <div class="setting-action">
-                                    <button class="btn btn-secondary" id="toggle2FABtn">Enable 2FA</button>
-                                </div>
-                            </div>
-                            <div class="security-setting">
-                                <div class="setting-info">
-                                    <label>Password</label>
-                                    <p>Last changed: <span id="passwordLastChanged">Never</span></p>
-                                </div>
-                                <div class="setting-action">
-                                    <button class="btn btn-secondary" id="changePasswordBtn">Change Password</button>
-                                </div>
-                            </div>
-                            <div class="security-setting">
-                                <div class="setting-info">
-                                    <label>Login Sessions</label>
-                                    <p>Manage your active login sessions</p>
-                                </div>
-                                <div class="setting-action">
-                                    <button class="btn btn-secondary" id="viewSessionsBtn">View Sessions</button>
-                                </div>
+                            <div class="profile-field">
+                                <label>Account Status</label>
+                                <span id="profileAccountStatus">Active</span>
                             </div>
                         </div>
 
+                        <!-- Account Statistics Section -->
                         <div class="profile-section">
-                            <h4>Activity Log</h4>
-                            <div class="activity-log" id="activityLog">
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        <i class="fas fa-sign-in-alt"></i>
+                            <h4><i class="fas fa-chart-bar"></i> Account Statistics</h4>
+                            <div class="profile-field">
+                                <label>Profile Completeness</label>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="profileCompletenessBar" style="width: 0%"></div>
                                     </div>
-                                    <div class="activity-details">
-                                        <span class="activity-action">Logged in</span>
-                                        <span class="activity-time">2 hours ago</span>
-                                        <span class="activity-location">IP: 192.168.1.100</span>
-                                    </div>
+                                    <span id="profileCompletenessText">0%</span>
                                 </div>
-                                <!-- More activity items will be loaded dynamically -->
+                            </div>
+                            <div class="profile-field">
+                                <label>Security Score</label>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill security-score" id="securityScoreBar" style="width: 0%"></div>
+                                    </div>
+                                    <span id="securityScoreText">0%</span>
+                                </div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Last Profile Update</label>
+                                <span id="lastProfileUpdate">Never</span>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Right Column -->
+                    <div class="profile-right-column">
+                        <!-- Quick Actions Card -->
+                        <div class="profile-section">
+                            <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
+                            <div class="quick-actions-grid">
+                                <button class="quick-action-btn btn btn-outline-primary" id="changePasswordBtn">
+                                    <i class="fas fa-lock"></i>
+                                    <span>Change Password</span>
+                                </button>
+                                <button class="quick-action-btn btn btn-outline-secondary" id="toggle2FABtn">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Enable 2FA</span>
+                                </button>
+                                <button class="quick-action-btn btn btn-outline-info" id="viewSessionsBtn">
+                                    <i class="fas fa-desktop"></i>
+                                    <span>View Sessions</span>
+                                </button>
+                                <button class="quick-action-btn btn btn-outline-warning" id="downloadDataBtn">
+                                    <i class="fas fa-download"></i>
+                                    <span>Export Data</span>
+                                </button>
+                                <button class="quick-action-btn btn btn-outline-success" id="viewNotificationsBtn">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Notifications</span>
+                                </button>
+                                <button class="quick-action-btn btn btn-outline-danger" id="viewAuditLogBtn">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <span>Audit Log</span>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Security & Authentication Section -->
+                        <div class="profile-section">
+                            <h4><i class="fas fa-shield-alt"></i> Security & Authentication</h4>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Two-Factor Authentication</label>
+                                    <p>Add an extra layer of security to your admin account</p>
+                                </div>
+                                <div class="setting-action">
+                                    <button class="btn btn-outline-primary" id="manage2FABtn">
+                                        <span id="twoFactorStatus">Enable 2FA</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Password Security</label>
+                                    <p>Last changed: <span id="passwordLastChanged">Never</span></p>
+                                </div>
+                                <div class="setting-action">
+                                    <button class="btn btn-outline-warning" id="changePasswordActionBtn">Change Password</button>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Active Login Sessions</label>
+                                    <p>Manage your active login sessions across devices</p>
+                                </div>
+                                <div class="setting-action">
+                                    <button class="btn btn-outline-info" id="manageSessionsBtn">View Sessions</button>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Account Permissions</label>
+                                    <p>Your current admin privileges and access levels</p>
+                                </div>
+                                <div class="setting-action">
+                                    <button class="btn btn-outline-secondary" id="viewPermissionsBtn">View Permissions</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Information Section -->
+                        <div class="profile-section">
+                            <h4><i class="fas fa-info-circle"></i> System Information</h4>
+                            <div class="profile-field">
+                                <label>Last Login IP</label>
+                                <span id="lastLoginIP">Unknown</span>
+                            </div>
+                            <div class="profile-field">
+                                <label>Last Login Device</label>
+                                <span id="lastLoginDevice">Unknown</span>
+                            </div>
+                            <div class="profile-field">
+                                <label>Current Session</label>
+                                <span id="currentSessionInfo">Active</span>
+                            </div>
+                            <div class="profile-field">
+                                <label>Browser Info</label>
+                                <span id="browserInfo">Loading...</span>
+                            </div>
+                            <div class="profile-field">
+                                <label>Session Start Time</label>
+                                <span id="sessionStartTime">Loading...</span>
+                            </div>
+                            <div class="profile-field">
+                                <label>Platform</label>
+                                <span id="platformInfo">Loading...</span>
+                            </div>
+                        </div>
+
+                        <!-- Preferences & Settings Section -->
+                        <div class="profile-section">
+                            <h4><i class="fas fa-cog"></i> Preferences & Settings</h4>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Email Notifications</label>
+                                    <p>Receive important updates via email</p>
+                                </div>
+                                <div class="setting-action">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="emailNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>SMS Notifications</label>
+                                    <p>Receive security alerts via SMS</p>
+                                </div>
+                                <div class="setting-action">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="smsNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Auto Logout</label>
+                                    <p>Automatically logout after inactivity</p>
+                                </div>
+                                <div class="setting-action">
+                                    <select id="autoLogoutTime" class="form-select">
+                                        <option value="30">30 minutes</option>
+                                        <option value="60" selected>1 hour</option>
+                                        <option value="120">2 hours</option>
+                                        <option value="240">4 hours</option>
+                                        <option value="0">Never</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="security-setting">
+                                <div class="setting-info">
+                                    <label>Theme Preference</label>
+                                    <p>Choose your preferred theme</p>
+                                </div>
+                                <div class="setting-action">
+                                    <select id="themePreference" class="form-select">
+                                        <option value="light" selected>Light</option>
+                                        <option value="dark">Dark</option>
+                                        <option value="auto">Auto</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Activity Log Section -->
+                        <div class="profile-section">
+                            <h4><i class="fas fa-history"></i> Recent Activity</h4>
+                            <div class="activity-log" id="activityLog">
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                    </div>
+                                    <div class="activity-details">
+                                        <span class="activity-action">Loading activity...</span>
+                                        <span class="activity-time">Please wait</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm mt-3" id="viewFullActivityBtn">
+                                <i class="fas fa-external-link-alt"></i> View Full Activity Log
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Profile Edit Modal -->
+            <div id="profileEditModal" class="profile-edit-modal">
+                <div class="profile-edit-modal-content">
+                    <div class="profile-edit-modal-header">
+                        <h3><i class="fas fa-user-edit"></i> Edit Profile</h3>
+                        <button class="profile-edit-modal-close" id="closeProfileEditModal">&times;</button>
+                    </div>
+                    <form id="profileEditForm">
+                        <div class="edit-form-group">
+                            <label for="editFullName">Full Name</label>
+                            <input type="text" id="editFullName" name="name" required>
+                        </div>
+                        <div class="edit-form-group">
+                            <label for="editPhone">Phone Number</label>
+                            <input type="tel" id="editPhone" name="phone" placeholder="Optional">
+                        </div>
+                        <div class="edit-form-group">
+                            <label for="editEmail">Email Address</label>
+                            <input type="email" id="editEmail" name="email" readonly>
+                            <small style="color: #64748b; margin-top: 4px; display: block;">Email cannot be changed for security reasons</small>
+                        </div>
+                        <div class="edit-form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelProfileEdit">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Enhanced Password Change Modal -->
+            <div id="passwordChangeModal" class="password-change-modal">
+                <div class="password-change-modal-content">
+                    <div class="profile-edit-modal-header">
+                        <h3><i class="fas fa-lock"></i> Change Password</h3>
+                        <button class="profile-edit-modal-close" id="closePasswordChangeModal">&times;</button>
+                    </div>
+                    <form id="passwordChangeForm">
+                        <div class="edit-form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="currentPassword" name="currentPassword" required>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleCurrentPassword" 
+                                        style="position: absolute; right: 8px; top: 8px; padding: 4px 8px;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="edit-form-group">
+                            <label for="newPassword">New Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleNewPassword"
+                                        style="position: absolute; right: 8px; top: 8px; padding: 4px 8px;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small style="color: #64748b; margin-top: 4px; display: block;">Minimum 6 characters required</small>
+                        </div>
+                        <div class="edit-form-group">
+                            <label for="confirmPassword">Confirm New Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleConfirmPassword"
+                                        style="position: absolute; right: 8px; top: 8px; padding: 4px 8px;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="edit-form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelPasswordChange">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-shield-alt"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

@@ -103,6 +103,28 @@ const adminSchema = new mongoose.Schema({
     ]
   }],
   
+  // Settings and Preferences
+  settings: {
+    emailNotifications: { type: Boolean, default: true },
+    smsNotifications: { type: Boolean, default: true },
+    autoLogoutTime: { type: Number, default: 60 }, // minutes
+    theme: { type: String, default: 'light', enum: ['light', 'dark'] },
+    language: { type: String, default: 'en' },
+    timezone: { type: String, default: 'UTC' }
+  },
+  
+  preferences: {
+    dashboardLayout: { type: String, default: 'default' },
+    notificationSound: { type: Boolean, default: true },
+    showTutorials: { type: Boolean, default: true }
+  },
+  
+  notifications: {
+    email: { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false }
+  },
+  
   // Audit Trail
   createdAt: { 
     type: Date, 

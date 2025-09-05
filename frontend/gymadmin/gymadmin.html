@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="member-payments.css">
     <link rel="stylesheet" href="equipment.css">
     <link rel="stylesheet" href="settings.css">
-    <link rel="stylesheet" href="support.css">
+    <link rel="stylesheet" href="enhanced-support-styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script defer src="gymadmin.js"></script>
@@ -23,6 +23,7 @@
     <script defer src="notification-modal.js"></script>
     <script defer src="notification-system.js"></script>
     <script defer src="support-reviews.js"></script>
+    <script defer src="enhanced-support-integration.js"></script>
     <script defer src="attendance.js"></script>
     <script defer src="trial-bookings.js"></script>
     <script defer src="attendance-stats.js"></script>
@@ -2179,15 +2180,13 @@
 
 <!-- Support & Reviews Tab -->
 <div id="supportReviewsTab" style="display:none;">
-  <!-- Header Section -->
-  <div class="support-header-plain">
-    <div class="support-title-section">
-      <h1 class="support-title-plain">
-        <i class="fas fa-headset"></i>
-        Support & Communications Center
-      </h1>
-    </div>
-    <div class="support-header-actions">
+  <!-- Header Section - Consistent with other tabs -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-headset"></i>
+      Support & Communications Center
+    </h1>
+    <div class="page-actions">
       <button id="supportRaiseGrievanceBtn" class="support-action-btn primary">
         <i class="fas fa-exclamation-triangle"></i>
         Raise Grievance

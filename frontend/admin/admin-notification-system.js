@@ -1,93 +1,188 @@
 // === ADMIN NOTIFICATION SYSTEM ===
-// Comprehensive notification system for admin dashboard
+// Comprehensive notification system for admin dashboard - Updated for enhanced communication
 
 class AdminNotificationSystem {
-  // Show Gym Details Modal
-  showGymDetailsModal(metadata = {}) {
-    let modal = document.getElementById('gymAdminNotificationModal');
-    if (!modal) {
-      const modalHTML = `
-        <div class="gym-admin-modal" id="gymAdminNotificationModal" style="display:none;">
-          <div class="gym-admin-modal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:10001;"></div>
-          <div class="gym-admin-modal-content" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:32px;max-width:480px;width:95vw;z-index:10002;">
-            <button class="gym-admin-modal-close" id="closeGymAdminModal" style="position:absolute;top:18px;right:22px;background:none;border:none;font-size:2em;color:#888;cursor:pointer;z-index:3;">&times;</button>
-            <h2 style="color:#2563eb;margin-bottom:18px;">Gym Details</h2>
-            <div id="gymAdminModalContent"></div>
-          </div>
-        </div>
-      `;
-      document.body.insertAdjacentHTML('beforeend', modalHTML);
-      modal = document.getElementById('gymAdminNotificationModal');
-      document.getElementById('closeGymAdminModal').onclick = () => {
-        modal.style.display = 'none';
-      };
-      modal.querySelector('.gym-admin-modal-overlay').onclick = () => {
-        modal.style.display = 'none';
-      };
-    }
-    // Render notification and gym details
-    const content = document.getElementById('gymAdminModalContent');
-    if (content) {
-      if (!metadata || Object.keys(metadata).length === 0) {
-        content.innerHTML = '<div style="color:#888;">No gym details available.</div>';
-      } else {
-        // Show notification title/message if present
-        let html = '';
-        if (metadata.title || metadata.message) {
-          html += `<div style="margin-bottom:10px;"><strong>Notification Title:</strong> ${metadata.title || ''}</div>`;
-          html += `<div style="margin-bottom:10px;"><strong>Notification Message:</strong> ${metadata.message || ''}</div>`;
-        }
-        // Show gym details from metadata.gym if present
-        const gym = metadata.gym || {};
-        html += `<div style=\"margin-bottom:10px;\"><strong>Gym Name:</strong> ${gym.gymName || metadata.gymName || 'N/A'}</div>`;
-        html += `<div style=\"margin-bottom:10px;\"><strong>Gym ID:</strong> ${gym.gymId || metadata.gymId || 'N/A'}</div>`;
-        html += `<div style=\"margin-bottom:10px;\"><strong>Address:</strong> ${gym.address || metadata.address || 'N/A'}</div>`;
-        html += `<div style=\"margin-bottom:10px;\"><strong>Email:</strong> ${gym.email || metadata.email || 'N/A'}</div>`;
-        html += `<div style=\"margin-bottom:10px;\"><strong>Phone:</strong> ${gym.phone || metadata.phone || 'N/A'}</div>`;
-        content.innerHTML = html;
-      }
-    }
-    modal.style.display = 'flex';
-  }
   constructor() {
-    this.notifications = [];
+    this.notifications = new Map(); // For deduplication
     this.unreadCount = 0;
     this.pollingInterval = null;
     this.BASE_URL = "http://localhost:5000";
+    this.lastFetchTime = null;
+    
+    // Prevent duplicate initialization
+    if (window.adminNotificationSystem) {
+      return window.adminNotificationSystem;
+    }
+    
     this.initializeSystem();
+    window.adminNotificationSystem = this;
   }
 
   // Initialize the notification system
   initializeSystem() {
+    console.log('🔔 Admin Notification System Initializing...');
     this.enhanceExistingNotificationUI();
+    this.createNotificationDetailsModal();
     this.bindEventListeners();
     this.startPolling();
     this.loadExistingNotifications();
-    console.log('🔔 Admin Notification System Initialized');
+    
+    // Integrate with enhanced communication system
+    this.integrateWithEnhancedSystem();
+    console.log('✅ Admin Notification System Ready');
   }
 
-  // Enhance existing notification UI in admin.html
-  enhanceExistingNotificationUI() {
-    // The notification bell already exists in admin.html, we just need to enhance it
-    const notificationBell = document.getElementById('notificationBell');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    const notificationList = document.getElementById('notificationList');
-    
-    if (notificationBell && notificationDropdown && notificationList) {
-      // Add additional functionality to existing elements
-      
-      // Create notification toast container if it doesn't exist
-      let toastContainer = document.getElementById('adminNotificationToasts');
-      if (!toastContainer) {
-        const toastHTML = `
-          <div class="admin-notification-toasts" id="adminNotificationToasts"></div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', toastHTML);
+  // Integrate with enhanced communication system
+  integrateWithEnhancedSystem() {
+    // Wait for enhanced system to be ready
+    const waitForEnhanced = () => {
+      if (window.enhancedComm) {
+        console.log('🔗 Integrating with Enhanced Communication System');
+        this.enhancedComm = window.enhancedComm;
+      } else {
+        setTimeout(waitForEnhanced, 100);
       }
+    };
+    waitForEnhanced();
+  }
 
-      // Create notification modal for detailed view
-      this.createNotificationModal();
+  // Enhanced notification creation with deduplication
+  createNotification(title, message, type = 'general', icon = 'fa-bell', color = '#3b82f6', metadata = {}) {
+    // Create unique ID based on content for deduplication
+    const notificationId = this.generateNotificationId(title, message, type);
+    
+    // Check if similar notification already exists
+    if (this.notifications.has(notificationId)) {
+      const existing = this.notifications.get(notificationId);
+      existing.count = (existing.count || 1) + 1;
+      existing.lastSeen = new Date();
+      this.updateExistingNotificationDisplay(existing);
+      return;
     }
+
+    const notification = {
+      id: notificationId,
+      title,
+      message,
+      type,
+      icon,
+      color,
+      metadata,
+      timestamp: new Date(),
+      count: 1,
+      read: false
+    };
+
+    // Store notification
+    this.notifications.set(notificationId, notification);
+    
+    // Show toast
+    this.showNotificationToast(notification);
+    
+    // Update bell count
+    this.updateNotificationCount();
+    
+    // Update dropdown if open
+    this.updateNotificationDropdown();
+    
+    console.log(`📢 Notification created: ${title}`);
+  }
+
+  // Generate unique notification ID for deduplication
+  generateNotificationId(title, message, type) {
+    const content = `${type}-${title}-${message.substring(0, 50)}`;
+    return btoa(content).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  }
+
+  // Update existing notification display when duplicates are found
+  updateExistingNotificationDisplay(notification) {
+    const toastElement = document.querySelector(`[data-notification-id="${notification.id}"]`);
+    if (toastElement) {
+      const countElement = toastElement.querySelector('.notification-count');
+      if (countElement) {
+        countElement.textContent = notification.count > 1 ? `(${notification.count})` : '';
+        countElement.style.display = notification.count > 1 ? 'inline' : 'none';
+      }
+      
+      // Update timestamp
+      const timeElement = toastElement.querySelector('.notification-time');
+      if (timeElement) {
+        timeElement.textContent = this.getTimeAgo(notification.lastSeen);
+      }
+    }
+  }
+
+  // Enhanced notification toast with better styling
+  showNotificationToast(notification) {
+    const container = this.getToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `admin-notification-toast ${notification.type}`;
+    toast.dataset.notificationId = notification.id;
+    
+    toast.innerHTML = `
+      <div class="notification-toast-content">
+        <div class="notification-icon">
+          <i class="${notification.icon}" style="color: ${notification.color};"></i>
+        </div>
+        <div class="notification-text">
+          <div class="notification-title">
+            ${notification.title}
+            <span class="notification-count" style="display: none;"></span>
+          </div>
+          <div class="notification-message">${this.truncateMessage(notification.message, 80)}</div>
+          <div class="notification-time">${this.getTimeAgo(notification.timestamp)}</div>
+        </div>
+        <div class="notification-actions">
+          ${this.getToastActions(notification)}
+        </div>
+      </div>
+    `;
+
+    // Auto-remove after 8 seconds (longer for better UX)
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, 8000);
+
+    container.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+  }
+
+  // Get appropriate actions for toast notifications
+  getToastActions(notification) {
+    let actions = `
+      <button class="toast-action-btn close" onclick="this.closest('.admin-notification-toast').remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+    // Add type-specific actions
+    switch (notification.type) {
+      case 'gym-registration':
+        actions = `
+          <button class="toast-action-btn view" onclick="window.enhancedComm?.viewGymDetails('${notification.metadata?.gymId}')">
+            <i class="fas fa-eye"></i>
+          </button>
+          ${actions}
+        `;
+        break;
+      case 'support-ticket':
+      case 'grievance':
+        actions = `
+          <button class="toast-action-btn view" onclick="window.enhancedComm?.viewTicketDetails('${notification.metadata?.ticketId}')">
+            <i class="fas fa-ticket-alt"></i>
+          </button>
+          ${actions}
+        `;
+        break;
+    }
+
+    return actions;
   }
 
   // Create notification modal for detailed view
@@ -943,6 +1038,180 @@ This ticket was automatically created from a gym admin notification marked as a 
     this.unreadCount++;
     this.updateNotificationUI();
     this.showToast(testNotification);
+  }
+
+  // Truncate message for toast display
+  truncateMessage(message, maxLength = 80) {
+    if (message.length <= maxLength) return message;
+    return message.substring(0, maxLength) + '...';
+  }
+
+  // Get time ago format for timestamps
+  getTimeAgo(timestamp) {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - time) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  }
+
+  // Get or create toast container
+  getToastContainer() {
+    let container = document.getElementById('adminNotificationToasts');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'adminNotificationToasts';
+      container.className = 'admin-notification-toasts';
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  // Enhanced create notification modal for detailed view
+  createNotificationDetailsModal() {
+    if (document.getElementById('notificationDetailsModal')) return;
+
+    const modalHTML = `
+      <div id="notificationDetailsModal" class="enhanced-modal" style="display: none;">
+        <div class="enhanced-modal-content">
+          <div class="enhanced-modal-header">
+            <h3 id="modalNotificationTitle">Notification Details</h3>
+            <button class="enhanced-close-btn" onclick="this.closest('.enhanced-modal').style.display='none'">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="enhanced-modal-body">
+            <div id="modalNotificationContent">
+              <!-- Notification details will be loaded here -->
+            </div>
+          </div>
+          <div class="enhanced-modal-footer">
+            <button class="enhanced-btn enhanced-btn-secondary" onclick="this.closest('.enhanced-modal').style.display='none'">
+              Close
+            </button>
+            <button class="enhanced-btn enhanced-btn-primary" id="modalActionButton" style="display: none;">
+              Take Action
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+
+  // Show notification details in modal
+  showNotificationDetails(notification) {
+    const modal = document.getElementById('notificationDetailsModal');
+    const title = document.getElementById('modalNotificationTitle');
+    const content = document.getElementById('modalNotificationContent');
+    const actionButton = document.getElementById('modalActionButton');
+
+    if (!modal || !title || !content || !actionButton) return;
+
+    title.textContent = notification.title;
+    
+    const detailsHTML = `
+      <div class="notification-detail-item">
+        <strong>Type:</strong> ${notification.type.replace(/-/g, ' ').toUpperCase()}
+      </div>
+      <div class="notification-detail-item">
+        <strong>Time:</strong> ${new Date(notification.timestamp).toLocaleString()}
+      </div>
+      <div class="notification-detail-item">
+        <strong>Message:</strong>
+        <div class="notification-full-message">${notification.message}</div>
+      </div>
+      ${notification.metadata ? `
+        <div class="notification-detail-item">
+          <strong>Additional Details:</strong>
+          <pre>${JSON.stringify(notification.metadata, null, 2)}</pre>
+        </div>
+      ` : ''}
+    `;
+
+    content.innerHTML = detailsHTML;
+
+    // Configure action button based on notification type
+    this.configureModalActionButton(notification, actionButton);
+
+    modal.style.display = 'block';
+  }
+
+  // Configure modal action button based on notification type
+  configureModalActionButton(notification, actionButton) {
+    actionButton.style.display = 'none';
+    actionButton.onclick = null;
+
+    switch (notification.type) {
+      case 'gym-registration':
+        if (notification.metadata?.gymId) {
+          actionButton.style.display = 'block';
+          actionButton.textContent = 'Review Gym';
+          actionButton.onclick = () => {
+            window.enhancedComm?.viewGymDetails(notification.metadata.gymId);
+            document.getElementById('notificationDetailsModal').style.display = 'none';
+          };
+        }
+        break;
+      case 'support-ticket':
+      case 'grievance':
+        if (notification.metadata?.ticketId) {
+          actionButton.style.display = 'block';
+          actionButton.textContent = 'View Ticket';
+          actionButton.onclick = () => {
+            window.enhancedComm?.viewTicketDetails(notification.metadata.ticketId);
+            document.getElementById('notificationDetailsModal').style.display = 'none';
+          };
+        }
+        break;
+    }
+  }
+
+  // Integrate with enhanced communication system
+  integrateWithEnhancedSystem() {
+    if (window.enhancedComm) {
+      // Subscribe to enhanced system notifications
+      if (typeof window.enhancedComm.onNotificationReceived === 'function') {
+        window.enhancedComm.onNotificationReceived = (notification) => {
+          this.createNotification(
+            notification.title,
+            notification.message,
+            notification.type,
+            notification.metadata
+          );
+        };
+      }
+
+      // Provide deduplication service to enhanced system
+      window.enhancedComm.notificationDeduplication = {
+        isDuplicate: (notification) => {
+          const id = this.generateNotificationId(notification.title, notification.message, notification.type);
+          return this.notifications.has(id);
+        },
+        addNotification: (notification) => {
+          const id = this.generateNotificationId(notification.title, notification.message, notification.type);
+          if (this.notifications.has(id)) {
+            const existing = this.notifications.get(id);
+            existing.count++;
+            existing.lastSeen = new Date();
+            this.updateExistingNotificationDisplay(existing);
+            return false; // Indicates duplicate
+          } else {
+            notification.id = id;
+            notification.count = 1;
+            notification.lastSeen = new Date();
+            this.notifications.set(id, notification);
+            return true; // Indicates new notification
+          }
+        }
+      };
+
+      console.log('Admin notification system integrated with enhanced communication system');
+    }
   }
 }
 

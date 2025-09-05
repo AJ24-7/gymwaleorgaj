@@ -1,5 +1,5 @@
 /**
- * Enhanced Biometric Enrollment Manager for Fitverse
+ * Enhanced Biometric Enrollment Manager for Gym-Wale
  * Works with the Enhanced Biometric Agent v2.0
  */
 

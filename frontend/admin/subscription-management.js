@@ -1,6 +1,7 @@
 // Subscription Management for Admin Dashboard
 class SubscriptionManager {
   constructor() {
+    this.BASE_URL = "http://localhost:5000";
     this.currentPage = 1;
     this.itemsPerPage = 10;
     this.currentFilters = {};
@@ -87,7 +88,7 @@ class SubscriptionManager {
   async loadSubscriptionAnalytics() {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/subscriptions/admin/analytics', {
+      const response = await fetch(`${this.BASE_URL}/api/subscriptions/admin/analytics`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -126,7 +127,7 @@ class SubscriptionManager {
         ...this.currentFilters
       });
 
-      const response = await fetch(`/api/subscriptions/admin/all?${params}`, {
+      const response = await fetch(`${this.BASE_URL}/api/subscriptions/admin/all?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -337,7 +338,7 @@ class SubscriptionManager {
   async viewSubscription(subscriptionId) {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`/api/subscriptions/admin/${subscriptionId}`, {
+      const response = await fetch(`${this.BASE_URL}/api/subscriptions/admin/${subscriptionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -497,7 +498,7 @@ class SubscriptionManager {
       const token = localStorage.getItem('adminToken');
       const params = new URLSearchParams(this.currentFilters);
       
-      const response = await fetch(`/api/subscriptions/admin/export?${params}`, {
+      const response = await fetch(`${this.BASE_URL}/api/subscriptions/admin/export?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -3,28 +3,37 @@
 
 class AdminAuthGuard {
     constructor() {
+        // Prevent multiple instances
+        if (window.adminAuthGuardInstance) {
+            console.log('⚠️ AdminAuthGuard already exists, skipping duplicate');
+            return window.adminAuthGuardInstance;
+        }
+        
+        window.adminAuthGuardInstance = this;
         this.baseURL = 'http://localhost:5000/api/admin';
+        this.isCheckingAuth = false;
+        
+        console.log('🔐 AdminAuthGuard initialized');
         this.checkAuthentication();
     }
 
     async checkAuthentication() {
-        // First check if any admin exists in the system
-        try {
-            const adminExistsResponse = await fetch(`${this.baseURL}/check-admin-exists`);
-            const adminExistsResult = await adminExistsResponse.json();
-            
-            if (!adminExistsResult.adminExists) {
-                this.redirectToSetup('No admin account exists. Please complete the initial setup.');
-                return;
-            }
-        } catch (error) {
-            console.log('Could not check admin existence, proceeding with normal auth check');
+        if (this.isCheckingAuth) {
+            console.log('⚠️ Authentication check already in progress');
+            return;
         }
+        
+        this.isCheckingAuth = true;
+        console.log('🔍 Starting authentication check...');
 
         const token = localStorage.getItem('adminToken');
         const loginTimestamp = localStorage.getItem('loginTimestamp');
         
+        console.log('🔑 Token exists:', !!token);
+        console.log('⏰ Login timestamp:', loginTimestamp);
+        
         if (!token) {
+            console.log('❌ No token found, redirecting to login');
             this.redirectToLogin('No authentication token found');
             return;
         }
@@ -34,7 +43,10 @@ class AdminAuthGuard {
             const sessionAge = Date.now() - new Date(loginTimestamp).getTime();
             const sessionTimeout = parseInt(localStorage.getItem('sessionTimeout')) || 1800000; // 30 minutes
             
+            console.log(`⏰ Session age: ${Math.round(sessionAge / 1000)}s, timeout: ${sessionTimeout / 1000}s`);
+            
             if (sessionAge > sessionTimeout) {
+                console.log('⏰ Session expired, clearing and redirecting');
                 this.clearSession();
                 this.redirectToLogin('Session expired');
                 return;
@@ -43,6 +55,7 @@ class AdminAuthGuard {
 
         // Verify token with server
         try {
+            console.log('🔍 Verifying token with server...');
             const response = await fetch(`${this.baseURL}/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -50,8 +63,11 @@ class AdminAuthGuard {
                 }
             });
 
+            console.log('📡 Server response status:', response.status);
+
             if (response.status === 401) {
                 // Token is invalid or expired
+                console.log('❌ Token invalid/expired, clearing session');
                 this.clearSession();
                 this.redirectToLogin('Authentication expired');
                 return;
@@ -59,6 +75,8 @@ class AdminAuthGuard {
 
             if (response.ok) {
                 const result = await response.json();
+                console.log('✅ Authentication verified successfully');
+                console.log('👤 Admin data:', result.admin);
                 
                 // Store admin info for use in the dashboard
                 localStorage.setItem('currentAdmin', JSON.stringify(result.admin));
@@ -66,15 +84,22 @@ class AdminAuthGuard {
                 // Start session monitoring
                 this.startSessionMonitoring();
                 
-                // Show the main content
-                this.showMainContent();
+                // Show the main content with a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    console.log('🎨 Showing main content...');
+                    this.showMainContent();
+                    this.isCheckingAuth = false;
+                }, 200);
                 
-                console.log('Authentication verified successfully');
+                console.log('🎉 Auth guard setup complete');
             } else {
-                throw new Error('Authentication verification failed');
+                console.log('❌ Server returned non-OK status:', response.status);
+                const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                throw new Error(`Authentication verification failed: ${errorData.message}`);
             }
         } catch (error) {
-            console.error('Authentication check failed:', error);
+            console.error('❌ Authentication check failed:', error);
+            this.isCheckingAuth = false;
             this.redirectToLogin('Authentication verification failed');
         }
     }
@@ -161,20 +186,32 @@ class AdminAuthGuard {
     }
 
     showMainContent() {
+        console.log('🎨 showMainContent() called');
+        
         // Hide loading screen if present
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
+            console.log('📴 Hiding loading screen');
             loadingScreen.style.display = 'none';
+        } else {
+            console.log('⚠️ No loading screen found');
         }
 
         // Show main admin interface
         const mainContent = document.getElementById('mainContent');
         if (mainContent) {
+            console.log('📱 Showing main content');
             mainContent.style.display = 'block';
+            mainContent.style.visibility = 'visible';
+            mainContent.style.opacity = '1';
+        } else {
+            console.error('❌ mainContent element not found!');
         }
 
         // Update admin info in UI
         this.updateAdminInfo();
+        
+        console.log('✅ Main content should now be visible');
     }
 
     updateAdminInfo() {
@@ -243,15 +280,26 @@ class AdminAuthGuard {
     }
 
     redirectToLogin(reason = '') {
-        console.log('Redirecting to login:', reason);
+        console.log('🔄 redirectToLogin called with reason:', reason);
+        
+        // Prevent redirecting if we're already on the login page
+        if (window.location.pathname.includes('admin-login.html')) {
+            console.log('⚠️ Already on login page, skipping redirect');
+            return;
+        }
+        
+        // Mark that we're being redirected due to auth issues
+        sessionStorage.setItem('adminLoggedOut', 'true');
         
         // Show a brief message if needed
         if (reason && reason !== 'No authentication token found') {
+            console.log('📢 Showing alert:', reason);
             alert(reason + '. Please login again.');
         }
         
+        console.log('🚀 Redirecting to login page...');
         // Redirect to professional login page
-        window.location.href = '/frontend/admin/admin-login.html';
+        window.location.href = 'admin-login.html';
     }
 
     redirectToSetup(reason = '') {
@@ -269,8 +317,17 @@ class AdminAuthGuard {
 
 // Initialize authentication guard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM loaded, initializing auth guard...');
+    
+    // Prevent multiple initializations
+    if (window.adminAuthGuardInitialized) {
+        console.log('⚠️ Auth guard already initialized, skipping');
+        return;
+    }
+    window.adminAuthGuardInitialized = true;
     // Add loading screen if not present
     if (!document.getElementById('loading-screen')) {
+        console.log('📱 Creating loading screen...');
         const loadingScreen = document.createElement('div');
         loadingScreen.id = 'loading-screen';
         loadingScreen.innerHTML = `
@@ -315,21 +372,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide main content initially
     const mainContent = document.getElementById('mainContent');
     if (mainContent) {
+        console.log('👻 Hiding main content during auth check');
         mainContent.style.display = 'none';
+    } else {
+        console.warn('⚠️ mainContent element not found!');
     }
 
-    // Initialize auth guard
+    // Initialize auth guard (only once)
+    console.log('🔐 Creating AdminAuthGuard instance...');
     new AdminAuthGuard();
 });
 
 // Global logout function that can be called from anywhere
 window.adminLogout = function() {
-    const authGuard = new AdminAuthGuard();
-    authGuard.logout('User requested logout');
+    console.log('🚪 Admin logout requested');
+    if (window.adminAuthGuardInstance) {
+        window.adminAuthGuardInstance.logout('User requested logout');
+    } else {
+        // Fallback if no instance exists
+        localStorage.clear();
+        window.location.href = 'admin-login.html';
+    }
 };
 
-// Handle browser back/forward button
+// Handle browser back/forward button - but don't create new instances
 window.addEventListener('popstate', () => {
-    // Re-check authentication when navigating
-    new AdminAuthGuard();
+    console.log('🔄 Browser navigation detected');
+    // Just re-check auth with existing instance if available
+    if (window.adminAuthGuardInstance && !window.adminAuthGuardInstance.isCheckingAuth) {
+        console.log('🔍 Re-checking authentication...');
+        window.adminAuthGuardInstance.checkAuthentication();
+    }
 });
