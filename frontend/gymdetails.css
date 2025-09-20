@@ -1295,87 +1295,171 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    border: 2px solid #e9ecef;
 }
 
 .membership-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    border-color: #1976d2;
 }
 
-.membership-card::before {
-    content: '';
+.membership-card .discount-badge {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    background: var(--primary-color);
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .membership-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.membership-title {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
 }
 
 .membership-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: white;
 }
 
 .membership-title h3 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: var(--dark-color);
-    margin-bottom: 0.3rem;
+    margin: 0;
 }
 
 .membership-price {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--primary-color);
-}
-
-.membership-price span {
-    font-size: 1rem;
-    color: #666;
-    font-weight: 400;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: #e3f2fd;
+    color: #1976d2;
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
 }
 
 .membership-benefits {
     list-style: none;
-    margin: 1.5rem 0;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
 }
 
 .membership-benefits li {
-    padding: 0.5rem 0;
+    padding: 0.3rem 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
-    color: #666;
 }
 
 .membership-benefits li i {
     color: var(--primary-color);
     width: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
-.membership-discount {
-    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
+.membership-note {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.membership-discount-info {
+    font-size: 0.92em;
+    color: #1976d2;
+    margin: 4px 0 0 0;
+}
+
+/* Month selection buttons */
+.month-btn-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 14px 0 10px 0;
+    justify-items: center;
+}
+
+.month-btn {
+    background: #f1f8e9;
+    color: #1976d2;
+    border: 1.5px solid #b2dfdb;
+    border-radius: 8px;
+    padding: 7px 0;
+    font-size: 1em;
     font-weight: 600;
-    margin: 1rem 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 90px;
+    outline: none;
     text-align: center;
+}
+
+.month-btn:hover {
+    background: #e3f2fd;
+    border-color: #1976d2;
+    color: #1976d2;
+}
+
+.month-btn.active,
+.month-btn:focus-visible {
+    background: linear-gradient(135deg, #1976d2 60%, #1565c0 100%);
+    color: #fff;
+    border-color: #1976d2;
+    box-shadow: 0 2px 8px rgba(25,118,210,0.10);
+    transform: scale(1.07);
+    z-index: 1;
+}
+
+.duration-selection {
+    margin: 14px 0 10px 0;
+}
+
+.duration-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.final-price {
+    font-size: 1.2rem;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.discount-info {
+    font-size: 0.95em;
+    color: #2e7d32;
+    display: none;
+    margin-bottom: 10px;
 }
 
 .buy-membership-btn {

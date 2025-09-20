@@ -477,50 +477,164 @@ function closeEquipmentModal() {
 function populateMembershipPlans(plans) {
     const membershipGrid = document.getElementById('membership-grid');
     
-    if (plans.length === 0) {
+    if (!plans || plans.length === 0) {
         membershipGrid.innerHTML = '<p class="no-content">No membership plans available.</p>';
         return;
     }
-    
-    membershipGrid.innerHTML = plans.map(plan => {
-        const discountHtml = plan.discount > 0 ? 
-            `<div class="membership-discount">
-                ${plan.discount}% OFF for ${plan.discountMonths} months!
-            </div>` : '';
+
+    membershipGrid.innerHTML = plans.map((plan, idx) => {
+        // Plan color and icon
+        const planColor = plan.color || '#38b000';
+        const planIcon = plan.icon || 'fa-leaf';
         
-        const finalPrice = plan.discount > 0 ? 
-            plan.price - (plan.price * plan.discount / 100) : plan.price;
+        // Generate discount badge
+        const planDiscount = plan.discount || 0;
+        const discountBadge = planDiscount > 0 ? 
+            `<div class="discount-badge">${planDiscount}%</div>` : '';
         
-        const originalPriceHtml = plan.discount > 0 ? 
-            `<span style="text-decoration: line-through; color: #999; font-size: 1rem;">₹${plan.price}</span> ` : '';
+        // Generate benefits list
+        const planBenefits = Array.isArray(plan.benefits) ? plan.benefits : [];
+        
+        // Generate month buttons
+        const monthOptions = [1, 3, 6, 12];
+        const monthBtnGroup = monthOptions.map(months => 
+            `<button type="button" class="month-btn" data-plan-idx="${idx}" data-months="${months}">${months} ${months === 1 ? 'Month' : 'Months'}</button>`
+        ).join('');
+        
+        // Discount months information
+        let discountMonths = [];
+        let discountMin = null;
+        
+        if (Array.isArray(plan.discountMonths)) {
+            discountMonths = plan.discountMonths.map(Number);
+        } else if (typeof plan.discountMonths === 'object' && plan.discountMonths !== null && plan.discountMonths.min) {
+            discountMin = Number(plan.discountMonths.min);
+        } else if (typeof plan.discountMonths === 'number' && plan.discountMonths > 0) {
+            discountMin = plan.discountMonths;
+        }
+        
+        // Discount months text
+        let discountMonthsText = '';
+        if (planDiscount > 0 && discountMin) {
+            discountMonthsText = `<div class="membership-discount-info">Discount applies for: <b>${discountMin}+ months</b></div>`;
+        } else if (planDiscount > 0 && discountMonths.length > 0) {
+            discountMonthsText = `<div class="membership-discount-info">Discount applies for: <b>${discountMonths.join(', ')} month${discountMonths.length > 1 ? 's' : ''}</b></div>`;
+        }
+        
+        const paymentId = `paymentAmount_${idx}`;
+        const discountId = `discountInfo_${idx}`;
         
         return `
-            <div class="membership-card">
+            <div class="membership-card" data-plan="${plan._id || idx}" data-plan-name="${plan.name}">
+                ${discountBadge}
                 <div class="membership-header">
-                    <div class="membership-icon" style="background: ${plan.color || '#38b000'};">
-                        <i class="fas ${plan.icon || 'fa-leaf'}"></i>
-                    </div>
                     <div class="membership-title">
-                        <h3>${plan.name}</h3>
-                        <div class="membership-price">
-                            ${originalPriceHtml}₹${Math.round(finalPrice)}
-                            <span>/month</span>
+                        <div class="membership-icon" style="background: ${planColor};">
+                            <i class="fas ${planIcon}"></i>
                         </div>
+                        <h3>${plan.name}</h3>
                     </div>
+                    <div class="membership-price">₹${plan.price}/mo</div>
                 </div>
-                ${discountHtml}
+                
                 <ul class="membership-benefits">
-                    ${plan.benefits.map(benefit => 
+                    ${planBenefits.map(benefit => 
                         `<li><i class="fas fa-check"></i> ${benefit}</li>`
                     ).join('')}
                 </ul>
+                
                 ${plan.note ? `<p class="membership-note">${plan.note}</p>` : ''}
-                <button class="btn-primary buy-membership-btn" onclick="buyMembership('${plan.name}', ${finalPrice})">
-                    <i class="fas fa-shopping-cart"></i> Buy Now
+                ${discountMonthsText}
+                
+                <div class="duration-selection">
+                    <span class="duration-label">Select Duration:</span>
+                    <div class="month-btn-group" data-plan-idx="${idx}">
+                        ${monthBtnGroup}
+                    </div>
+                </div>
+                
+                <div id="${paymentId}" class="final-price" style="color: ${planColor};">₹0</div>
+                <div id="${discountId}" class="discount-info">Discount applied!</div>
+                
+                <button class="btn-primary buy-membership-btn" 
+                        onclick="buyMembershipWithDuration('${plan.name}', ${idx}, '${plan._id || ''}', ${plan.price}, ${plan.discount || 0})"
+                        disabled>
+                    <i class="fas fa-shopping-cart"></i> Select Duration First
                 </button>
             </div>
         `;
     }).join('');
+
+    // Add event listeners for month buttons
+    document.querySelectorAll('.month-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(btn.getAttribute('data-plan-idx'));
+            const plan = plans[idx];
+            const months = parseInt(btn.getAttribute('data-months'));
+            const paymentId = `paymentAmount_${idx}`;
+            const discountId = `discountInfo_${idx}`;
+            
+            // Remove active from all buttons in this group
+            document.querySelectorAll(`.month-btn[data-plan-idx="${idx}"]`).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            let totalAmount = 0;
+            let discount = 0;
+            
+            if (plan && months) {
+                totalAmount = plan.price * months;
+                
+                // Calculate discount
+                let discountMonths = [];
+                let discountMin = null;
+                
+                if (Array.isArray(plan.discountMonths)) {
+                    discountMonths = plan.discountMonths.map(Number);
+                } else if (typeof plan.discountMonths === 'object' && plan.discountMonths !== null && plan.discountMonths.min) {
+                    discountMin = Number(plan.discountMonths.min);
+                } else if (typeof plan.discountMonths === 'number' && plan.discountMonths > 0) {
+                    discountMin = plan.discountMonths;
+                }
+                
+                if (plan.discount && plan.discount > 0) {
+                    if (discountMin && months >= discountMin) {
+                        discount = (totalAmount * plan.discount) / 100;
+                    } else if (discountMonths.length > 0 && discountMonths.includes(months)) {
+                        discount = (totalAmount * plan.discount) / 100;
+                    }
+                }
+                
+                totalAmount = totalAmount - discount;
+            }
+            
+            // Update payment and discount display
+            const originalAmount = plan.price * months;
+            if (discount > 0) {
+                document.getElementById(paymentId).innerHTML = `
+                    <span style="text-decoration: line-through; color: #999; font-size: 1rem;">₹${originalAmount}</span>
+                    ₹${Math.round(totalAmount)}
+                `;
+                document.getElementById(discountId).style.display = 'block';
+                document.getElementById(discountId).textContent = `Discount applied: ₹${Math.round(discount)} saved!`;
+            } else {
+                document.getElementById(paymentId).textContent = `₹${Math.round(totalAmount)}`;
+                document.getElementById(discountId).style.display = 'none';
+            }
+            
+            // Enable buy button and update its onclick
+            const membershipCard = document.querySelector(`[data-plan="${plan._id || idx}"]`);
+            const buyBtn = membershipCard ? membershipCard.querySelector('.buy-membership-btn') : null;
+            
+            if (buyBtn) {
+                buyBtn.disabled = false;
+                buyBtn.innerHTML = `<i class="fas fa-shopping-cart"></i> Buy ${months} Month${months > 1 ? 's' : ''} - ₹${Math.round(totalAmount)}`;
+                buyBtn.setAttribute('data-months', months);
+                buyBtn.setAttribute('data-total', Math.round(totalAmount));
+                buyBtn.setAttribute('data-original', originalAmount);
+                buyBtn.setAttribute('data-discount', Math.round(discount));
+            }
+        });
+    });
 }
 
 // Populate activities tab
@@ -1966,10 +2080,264 @@ async function handleTrialBooking(e) {
     }
 }
 
-// Membership purchase handler
-function buyMembership(planName, price) {
-    // For now, just show an alert. In a real app, this would integrate with payment gateway
-    showSuccess(`Membership purchase feature coming soon! You selected: ${planName} (₹${price}/month)`);
+// Membership purchase handler with authentication and payment integration
+async function buyMembership(planName, finalPrice, planId, originalPrice, discount) {
+    console.log('Starting membership purchase process:', {
+        planName,
+        finalPrice,
+        planId,
+        originalPrice,
+        discount,
+        gymId: currentGym?._id
+    });
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // Redirect to login with return URL
+        const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&price=${finalPrice}`);
+        window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+        return;
+    }
+
+    try {
+        // Verify token is still valid and get user info
+        const userResponse = await fetch(`${BASE_URL}/api/users/profile`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!userResponse.ok) {
+            // Token invalid, redirect to login
+            localStorage.removeItem('token');
+            const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&price=${finalPrice}`);
+            window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+            return;
+        }
+
+        const user = await userResponse.json();
+        console.log('User authenticated:', user);
+
+        // Prepare registration data
+        const registrationData = {
+            // User details
+            memberName: user.name || user.fullName,
+            email: user.email,
+            phone: user.phone || user.mobile,
+            age: calculateAge(user.dateOfBirth) || 25,
+            gender: user.gender || 'Other',
+            
+            // Gym details
+            gymId: currentGym._id,
+            gymName: currentGym.gymName,
+            
+            // Membership plan details
+            planSelected: planName,
+            monthlyPlan: '1 Month', // Default to 1 month, can be extended
+            paymentAmount: finalPrice,
+            paymentMode: 'Online',
+            
+            // Additional info
+            activityPreference: 'General fitness',
+            address: user.address || '',
+            
+            // Plan metadata
+            planId: planId,
+            originalPrice: originalPrice,
+            discount: discount,
+            
+            // Registration type
+            registrationType: 'online_membership'
+        };
+
+        console.log('Registration data prepared:', registrationData);
+
+        // Store data for payment gateway
+        sessionStorage.setItem('membershipRegistrationData', JSON.stringify(registrationData));
+        sessionStorage.setItem('userToken', token);
+        
+        // Redirect to payment gateway
+        const paymentUrl = `/frontend/payment-gateway.html?` + new URLSearchParams({
+            type: 'membership',
+            gymId: currentGym._id,
+            gymName: currentGym.gymName,
+            planName: planName,
+            amount: finalPrice,
+            originalPrice: originalPrice,
+            discount: discount,
+            email: user.email,
+            phone: user.phone,
+            name: user.name || user.fullName
+        }).toString();
+        
+        console.log('Redirecting to payment gateway:', paymentUrl);
+        window.location.href = paymentUrl;
+
+    } catch (error) {
+        console.error('Error during membership purchase:', error);
+        showError('Failed to process membership purchase. Please try again.');
+    }
+}
+
+// Membership purchase handler with duration selection
+async function buyMembershipWithDuration(planName, planIdx, planId, originalPrice, discount) {
+    console.log('🛒 buyMembershipWithDuration called with:', {
+        planName, planIdx, planId, originalPrice, discount
+    });
+    
+    const buyBtn = event.target;
+    console.log('🔘 Button element:', buyBtn);
+    console.log('🔘 Button attributes:', {
+        'data-months': buyBtn.getAttribute('data-months'),
+        'data-total': buyBtn.getAttribute('data-total'),
+        'data-original': buyBtn.getAttribute('data-original'),
+        'data-discount': buyBtn.getAttribute('data-discount')
+    });
+    
+    const months = parseInt(buyBtn.getAttribute('data-months'));
+    const totalAmount = parseInt(buyBtn.getAttribute('data-total'));
+    const originalAmount = parseInt(buyBtn.getAttribute('data-original'));
+    const discountAmount = parseInt(buyBtn.getAttribute('data-discount'));
+    
+    if (!months) {
+        console.error('❌ No months selected');
+        showError('Please select a duration first');
+        return;
+    }
+    
+    console.log('✅ Starting membership purchase process with duration:', {
+        planName,
+        planIdx,
+        planId,
+        originalPrice,
+        discount,
+        months,
+        totalAmount,
+        originalAmount,
+        discountAmount,
+        gymId: currentGym?._id,
+        gymName: currentGym?.gymName
+    });
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // Redirect to login with return URL
+        const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&months=${months}&price=${totalAmount}`);
+        window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+        return;
+    }
+
+    try {
+        // Verify token is still valid and get user info
+        const userResponse = await fetch(`${BASE_URL}/api/users/profile`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!userResponse.ok) {
+            // Token invalid, redirect to login
+            localStorage.removeItem('token');
+            const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&months=${months}&price=${totalAmount}`);
+            window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+            return;
+        }
+
+        const user = await userResponse.json();
+        console.log('User authenticated:', user);
+
+        // Prepare registration data with duration information
+        const registrationData = {
+            // User details
+            memberName: user.name || user.fullName,
+            email: user.email,
+            phone: user.phone || user.mobile,
+            age: calculateAge(user.dateOfBirth) || 25,
+            gender: user.gender || 'Other',
+            
+            // Gym details
+            gymId: currentGym._id,
+            gymName: currentGym.gymName,
+            
+            // Membership plan details with duration
+            planSelected: planName,
+            monthlyPlan: `${months} Month${months > 1 ? 's' : ''}`,
+            paymentAmount: totalAmount,
+            paymentMode: 'Online',
+            
+            // Duration and pricing details
+            duration: months,
+            monthlyPrice: originalPrice,
+            totalOriginalAmount: originalAmount,
+            discountAmount: discountAmount,
+            finalAmount: totalAmount,
+            
+            // Additional info
+            activityPreference: 'General fitness',
+            address: user.address || '',
+            
+            // Plan metadata
+            planId: planId,
+            originalPrice: originalPrice,
+            discount: discount,
+            
+            // Registration type
+            registrationType: 'online_membership_duration'
+        };
+
+        console.log('Registration data prepared:', registrationData);
+
+        // Store data for payment gateway
+        sessionStorage.setItem('membershipRegistrationData', JSON.stringify(registrationData));
+        sessionStorage.setItem('userToken', token);
+        
+        // Redirect to payment gateway with duration info
+        const paymentUrl = `/frontend/payment-gateway.html?` + new URLSearchParams({
+            type: 'membership',
+            gymId: currentGym._id,
+            gymName: currentGym.gymName,
+            planName: planName,
+            duration: months,
+            amount: totalAmount,
+            originalPrice: originalPrice,
+            monthlyPrice: originalPrice,
+            originalAmount: originalAmount,
+            discount: discount,
+            discountAmount: discountAmount,
+            email: user.email,
+            phone: user.phone,
+            name: user.name || user.fullName
+        }).toString();
+        
+        console.log('Redirecting to payment gateway:', paymentUrl);
+        window.location.href = paymentUrl;
+
+    } catch (error) {
+        console.error('Error in membership purchase:', error);
+        showError('Failed to process membership purchase. Please try again.');
+    }
+}
+
+// Helper function to calculate age from date of birth
+function calculateAge(dateOfBirth) {
+    if (!dateOfBirth) return null;
+    
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
 }
 
 

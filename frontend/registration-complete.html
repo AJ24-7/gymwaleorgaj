@@ -1154,7 +1154,39 @@
         // Main Data Loading Function
         async function loadRegistrationData() {
             try {
-                // Get data from various sources
+                // Check for membership registration success data first
+                const membershipSuccess = sessionStorage.getItem('registrationSuccess');
+                if (membershipSuccess) {
+                    const membershipData = JSON.parse(membershipSuccess);
+                    console.log('Loading membership success data:', membershipData);
+                    
+                    if (membershipData.type === 'membership') {
+                        // Handle membership registration completion
+                        const registrationData = {
+                            memberId: membershipData.membershipId || 'Generated at gym',
+                            name: membershipData.memberName,
+                            email: '', // Will be hidden for privacy
+                            phone: '', // Will be hidden for privacy
+                            gymName: membershipData.gymName,
+                            membershipPlan: membershipData.planName,
+                            paymentStatus: 'Paid',
+                            paymentAmount: membershipData.amount,
+                            paymentId: membershipData.paymentId,
+                            registrationDate: new Date().toISOString(),
+                            isUpdate: false,
+                            type: 'membership'
+                        };
+                        
+                        // Clear the success data to prevent reuse
+                        sessionStorage.removeItem('registrationSuccess');
+                        
+                        displayRegistrationData(registrationData);
+                        showLoading(false);
+                        return;
+                    }
+                }
+
+                // Get data from various sources (existing flow)
                 const memberId = getUrlParameter('memberId') || getUrlParameter('id');
                 const memberData = getUrlParameter('memberData');
                 const isUpdate = getUrlParameter('update') === 'true' || getUrlParameter('membershipUpdate') === 'true';

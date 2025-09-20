@@ -1,6 +1,37 @@
 /* ========== Support System Styles ========== */
 
 /* Support Page Header */
+.support-header-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.support-header-actions .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.support-header-actions .btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.support-header-actions .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
 .support-stats {
     display: flex;
     gap: 30px;
@@ -1082,4 +1113,67 @@
 
 .channel-option[data-channel="notification"] .channel-icon {
     color: #ffc107;
+}
+
+/* ========== Contact Message & Support Ticket Indicators ========== */
+.item-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.item-type.contact-message {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+    border: 1px solid #90caf9;
+}
+
+.item-type.support-ticket {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    color: #7b1fa2;
+    border: 1px solid #ce93d8;
+}
+
+.item-type i {
+    font-size: 0.9em;
+}
+
+/* Enhanced ticket card styling for different types */
+.support-ticket-card[data-item-type="contact_message"] {
+    border-left: 4px solid #2196f3;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.02) 0%, rgba(33, 150, 243, 0.05) 100%);
+}
+
+.support-ticket-card[data-item-type="contact_message"]:hover {
+    border-left-color: #1976d2;
+    box-shadow: 0 4px 20px rgba(33, 150, 243, 0.15);
+}
+
+.support-ticket-card[data-item-type="support_ticket"] {
+    border-left: 4px solid #9c27b0;
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.02) 0%, rgba(156, 39, 176, 0.05) 100%);
+}
+
+.support-ticket-card[data-item-type="support_ticket"]:hover {
+    border-left-color: #7b1fa2;
+    box-shadow: 0 4px 20px rgba(156, 39, 176, 0.15);
+}
+
+/* Convert ticket button styling */
+.convert-ticket-btn {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.convert-ticket-btn:hover {
+    background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
 }

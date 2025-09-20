@@ -3,6 +3,9 @@ const router = express.Router();
 const multer = require('multer');
 const Trainer = require('../models/trainerModel');
 const trainerController = require('../controllers/trainerController');
+const adminAuth = require('../middleware/adminAuth');
+const { requireRole } = require('../middleware/adminAuth');
+const gymadminAuth = require('../middleware/gymadminAuth');
 
 
 // File storage config
@@ -70,9 +73,20 @@ router.get('/', async (req, res) => {
 router.post('/register', cpUpload, trainerController.registerTrainer);
 
 // Approve a trainer
-router.patch('/:id/approve', trainerController.approveTrainer);
+// ================= Dual Verification Flow =================
+// Gym-based trainer registration => reviewTarget = gymAdmin
+// Independent trainer registration => reviewTarget = mainAdmin
+// The following endpoints expose the pending queues for each flow.
+// Frontend dashboards (gym admin panel vs main admin panel) will call the relevant endpoint.
+// Pending lists (protected)
+// Use gymadminAuth to allow gym admins (JWT without role) as well as super/admin tokens (handled separately)
+router.get('/pending/gym-based', gymadminAuth, trainerController.getPendingGymBasedTrainers);
+router.get('/pending/independent', gymadminAuth, trainerController.getPendingIndependentTrainers);
+
+// Approve / Reject (protected)
+router.patch('/:id/approve', gymadminAuth, trainerController.approveTrainer);
 // Reject a trainer
-router.patch('/:id/reject', trainerController.rejectTrainer);
+router.patch('/:id/reject', gymadminAuth, trainerController.rejectTrainer);
 // Delete a trainer
 router.delete('/:id', trainerController.deleteTrainer);
 

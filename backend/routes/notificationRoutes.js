@@ -249,7 +249,7 @@ router.post('/send-email', gymadminAuth, async (req, res) => {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <div style="background: linear-gradient(135deg, #1976d2, #42a5f5); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
               <h1 style="margin: 0; font-size: 24px;">
-                <i class="fas fa-dumbbell"></i> Fit-Verse
+                <i class="fas fa-dumbbell"></i> Gym-Wale
               </h1>
             </div>
             <div style="padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px;">
@@ -260,7 +260,7 @@ router.post('/send-email', gymadminAuth, async (req, res) => {
               <div style="text-align: center; margin-top: 20px; padding: 15px; background: white; border-radius: 6px;">
                 <p style="margin: 0; color: #666; font-size: 14px;">
                   Best regards,<br>
-                  <strong style="color: #1976d2;">Fit-Verse Team</strong>
+                  <strong style="color: #1976d2;">Gym-Wale Team</strong>
                 </p>
               </div>
             </div>

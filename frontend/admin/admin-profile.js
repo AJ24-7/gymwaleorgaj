@@ -83,7 +83,6 @@ class AdminProfileManager {
     setupEventListeners() {
         // Profile Edit Modal
         const editProfileBtn = document.getElementById('editProfileBtn');
-        const refreshProfileBtn = document.getElementById('refreshProfileBtn');
         const closeProfileEditModal = document.getElementById('closeProfileEditModal');
         const cancelProfileEdit = document.getElementById('cancelProfileEdit');
         const profileEditForm = document.getElementById('profileEditForm');
@@ -114,7 +113,6 @@ class AdminProfileManager {
 
         // Event Bindings
         if (editProfileBtn) editProfileBtn.addEventListener('click', () => this.openEditModal());
-        if (refreshProfileBtn) refreshProfileBtn.addEventListener('click', () => this.loadProfile());
         if (closeProfileEditModal) closeProfileEditModal.addEventListener('click', () => this.closeEditModal());
         if (cancelProfileEdit) cancelProfileEdit.addEventListener('click', () => this.closeEditModal());
         if (profileEditForm) profileEditForm.addEventListener('submit', (e) => this.handleProfileUpdate(e));
@@ -186,6 +184,7 @@ class AdminProfileManager {
 
             this.currentProfile = data.admin;
             this.populateProfileData(data.admin);
+            this.updateNavbarProfile(data.admin);
             this.loadActivityLog();
             this.loadSettingsFromBackend();
             
@@ -202,6 +201,18 @@ class AdminProfileManager {
     // ============= Profile Data Population =============
     populateProfileData(profile) {
         console.log('[PROFILE] Populating profile data:', profile);
+
+        // Profile Picture
+        const profileAvatar = document.getElementById('profileAvatar');
+        if (profileAvatar) {
+            if (profile.profilePicture) {
+                profileAvatar.src = `${PROFILE_CONFIG.BASE_URL}${profile.profilePicture}`;
+            } else {
+                // Use default avatar
+                profileAvatar.src = profileAvatar.getAttribute('onerror').match(/this\.src='([^']+)'/)?.[1] || 
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDgiIGN5PSI0OCIgcj0iNDgiIGZpbGw9IiMzNzQxNTEiLz4KPHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI4IDI4QzMzLjUyMjggMjggNDAgMjQuNDE4MyA0MCAyMFY4QzQwIDMuNTgxNzMgMzMuNTIyOCAwIDI4IDBDMjAuNDc3MiAwIDE2IDMuNTgxNzMgMTYgOFYyMEMxNiAyNC40MTgzIDIyLjQ3NzIgMjggMjggMjhaIiBmaWxsPSIjRjlGQUZCIi8+CjxwYXRoIGQ9Ik0yOCAzMkMxNi41MzYgMzIgOCA0MC41MzYgOCA1MkM4IDUyIDIyLjUzNiA1NiAyOCA1NkMzMy40NjQgNTYgNDggNTIgNDggNTJDNDggNDAuNTM2IDM5LjQ2NCAzMiAyOCAzMloiIGZpbGw9IiNGOUZBRkIiLz4KPC9zdmc+Cjwvc3ZnPgo=';
+            }
+        }
 
         // Basic Information
         this.updateElement('profileName', profile.name || 'Unknown');
@@ -273,6 +284,34 @@ class AdminProfileManager {
         }
 
         console.log('[PROFILE] Profile data populated successfully');
+    }
+
+    // ============= Update Navbar Profile =============
+    updateNavbarProfile(profile) {
+        try {
+            console.log('[PROFILE] Updating navbar with profile data:', profile);
+            
+            // Update navbar admin avatar
+            const navbarAdminAvatar = document.getElementById('navbarAdminAvatar');
+            if (navbarAdminAvatar) {
+                if (profile.profilePicture) {
+                    navbarAdminAvatar.src = `${PROFILE_CONFIG.BASE_URL}${profile.profilePicture}`;
+                } else {
+                    // Keep the default fallback that's already in the onerror attribute
+                    navbarAdminAvatar.src = '/assets/admin-avatar.png';
+                }
+            }
+
+            // Update navbar admin name
+            const navbarAdminName = document.getElementById('navbarAdminName');
+            if (navbarAdminName) {
+                navbarAdminName.textContent = profile.name || 'Admin User';
+            }
+
+            console.log('[PROFILE] Navbar profile updated successfully');
+        } catch (error) {
+            console.error('[PROFILE] Error updating navbar profile:', error);
+        }
     }
 
     // ============= New Helper Methods =============
@@ -440,26 +479,41 @@ class AdminProfileManager {
 
     async handlePasswordChange(event) {
         event.preventDefault();
-        
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Updating...';
+        }
+
         try {
             console.log('[PROFILE] Changing password...');
             
             const formData = new FormData(event.target);
-            const currentPassword = formData.get('currentPassword');
-            const newPassword = formData.get('newPassword');
-            const confirmPassword = formData.get('confirmPassword');
+            let currentPassword = formData.get('currentPassword');
+            let newPassword = formData.get('newPassword');
+            let confirmPassword = formData.get('confirmPassword');
 
-            // Validation
-            if (!currentPassword || !newPassword || !confirmPassword) {
+            // Preserve raw password inputs EXACTLY (do not trim prior to sending)
+            currentPassword = currentPassword ? currentPassword.toString() : '';
+            newPassword = newPassword ? newPassword.toString() : '';
+            confirmPassword = confirmPassword ? confirmPassword.toString() : '';
+
+            const trimmedNew = newPassword.trim();
+            const trimmedCurrent = currentPassword.trim();
+
+            // Validation (policies use trimmed versions but raw preserved for backend dual-compare)
+            if (currentPassword.length === 0 || newPassword.length === 0 || confirmPassword.length === 0) {
                 throw new Error('All password fields are required');
             }
-
             if (newPassword !== confirmPassword) {
                 throw new Error('New passwords do not match');
             }
-
-            if (newPassword.length < 6) {
-                throw new Error('New password must be at least 6 characters long');
+            if (trimmedNew.length < 8) {
+                throw new Error('New password must be at least 8 characters long (excluding leading/trailing spaces)');
+            }
+            if (trimmedNew === trimmedCurrent) {
+                throw new Error('New password must be different from current password');
             }
 
             const token = localStorage.getItem('adminToken');
@@ -473,20 +527,30 @@ class AdminProfileManager {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    currentPassword,
-                    newPassword
-                })
+                body: JSON.stringify({ currentPassword, newPassword })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            let data = null;
+            try {
+                data = await response.json();
+            } catch(parseErr) {
+                console.warn('[PROFILE] Could not parse password change response JSON');
             }
 
-            const data = await response.json();
-            
-            if (!data.success) {
+            if (!response.ok) {
+                const serverMsg = data && (data.message || data.error);
+                if (data && data.code === 'INVALID_CURRENT' && data.debug) {
+                    console.warn('[PROFILE][DEBUG] Password mismatch diagnostics:', data.debug);
+                }
+                throw new Error(serverMsg || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            if (data && data.success === false) {
                 throw new Error(data.message || 'Failed to change password');
+            }
+
+            if (data && data.migrated) {
+                console.log('[PROFILE] Legacy password migrated to secure hash.');
             }
 
             this.closePasswordModal();
@@ -496,6 +560,11 @@ class AdminProfileManager {
         } catch (error) {
             console.error('[PROFILE] Error changing password:', error);
             this.showNotification(error.message || 'Failed to change password', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = submitBtn.dataset.originalText || 'Change Password';
+            }
         }
     }
 
@@ -905,23 +974,65 @@ class AdminProfileManager {
                 throw new Error('File size too large. Maximum size is 5MB.');
             }
 
-            // Preview the image
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const profileAvatar = document.getElementById('profileAvatar');
-                if (profileAvatar) {
-                    profileAvatar.src = e.target.result;
-                }
-            };
-            reader.readAsDataURL(file);
+            // Show loading state
+            this.showNotification('Uploading profile picture...', 'info');
 
-            // In a real implementation, you would upload to the server here
-            console.log('[PROFILE] Avatar upload simulated:', file.name);
-            this.showNotification('Avatar updated successfully (Demo)', 'success');
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                throw new Error('Authentication token not found');
+            }
+
+            // Upload to server
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/profile/upload-picture`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                    // Don't set Content-Type header for FormData - browser will set it with boundary
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to upload profile picture');
+            }
+
+            // Update profile avatar immediately
+            const profileAvatar = document.getElementById('profileAvatar');
+            if (profileAvatar) {
+                profileAvatar.src = `${PROFILE_CONFIG.BASE_URL}${data.profilePicture}`;
+            }
+
+            // Update navbar avatar
+            const navbarAdminAvatar = document.getElementById('navbarAdminAvatar');
+            if (navbarAdminAvatar) {
+                navbarAdminAvatar.src = `${PROFILE_CONFIG.BASE_URL}${data.profilePicture}`;
+            }
+
+            // Update current profile data
+            if (this.currentProfile) {
+                this.currentProfile.profilePicture = data.profilePicture;
+            }
+
+            console.log('[PROFILE] Profile picture uploaded successfully:', data.profilePicture);
+            this.showNotification('Profile picture updated successfully', 'success');
 
         } catch (error) {
-            console.error('[PROFILE] Error uploading avatar:', error);
-            this.showNotification(error.message || 'Failed to upload avatar', 'error');
+            console.error('[PROFILE] Error uploading profile picture:', error);
+            this.showNotification(error.message || 'Failed to upload profile picture', 'error');
+            
+            // Reset file input
+            event.target.value = '';
         }
     }
 
@@ -1026,13 +1137,630 @@ class AdminProfileManager {
         });
     }
 
-    showNotification(message, type = 'info') {
-        // Use the global notification system if available
-        if (window.showNotification) {
-            window.showNotification(message, type);
-        } else {
-            console.log(`[PROFILE] ${type.toUpperCase()}: ${message}`);
+    // ============= Quick Action Methods =============
+    
+    async viewSessions() {
+        try {
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/sessions`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showSessionsModal(data.sessions);
+            } else {
+                throw new Error('Failed to fetch sessions');
+            }
+        } catch (error) {
+            console.error('Error fetching sessions:', error);
+            // Show demo data if backend fails
+            const demoSessions = [
+                {
+                    id: 'current',
+                    device: this.getDeviceInfo(),
+                    browser: this.getBrowserName(),
+                    ip: '192.168.1.100',
+                    lastActivity: new Date(),
+                    current: true,
+                    location: 'Local Network'
+                }
+            ];
+            this.showSessionsModal(demoSessions);
+            this.showNotification('Showing demo session data - Backend unavailable', 'warning');
         }
+    }
+
+    async downloadProfileData() {
+        try {
+            // Show download options modal
+            const exportType = await this.showExportOptionsModal();
+            if (!exportType) return;
+
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/export/${exportType}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `admin-${exportType}-export.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                this.showNotification('Data exported successfully', 'success');
+            } else {
+                throw new Error('Failed to export data');
+            }
+        } catch (error) {
+            console.error('Error exporting data:', error);
+            this.showNotification('Failed to export data', 'error');
+        }
+    }
+
+    showExportOptionsModal() {
+        return new Promise((resolve) => {
+            const modalHtml = `
+                <div class="modal" id="exportModal" style="display: block;">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-download"></i> Export Data</h3>
+                            <button class="modal-close" onclick="closeExportModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="export-options" style="display: flex; flex-direction: column; gap: 12px;">
+                                <button class="btn btn-outline-primary" onclick="selectExport('profile')" style="padding: 15px; text-align: left;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        <i class="fas fa-user-circle" style="margin-right: 8px;"></i>Profile Data Only
+                                    </div>
+                                    <small style="color: #64748b;">Export your basic profile information and settings</small>
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="selectExport('activity')" style="padding: 15px; text-align: left;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        <i class="fas fa-history" style="margin-right: 8px;"></i>Activity Logs (30 days)
+                                    </div>
+                                    <small style="color: #64748b;">Export your recent activity and security logs</small>
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="selectExport('full')" style="padding: 15px; text-align: left;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        <i class="fas fa-database" style="margin-right: 8px;"></i>Complete Data Export
+                                    </div>
+                                    <small style="color: #64748b;">Export all available data including profile, activity, and notifications</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            window.selectExport = (type) => {
+                document.getElementById('exportModal').remove();
+                delete window.selectExport;
+                delete window.closeExportModal;
+                resolve(type);
+            };
+            
+            window.closeExportModal = () => {
+                document.getElementById('exportModal').remove();
+                delete window.selectExport;
+                delete window.closeExportModal;
+                resolve(null);
+            };
+        });
+    }
+
+    async viewNotifications() {
+        try {
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showNotificationsModal(data.notifications || data);
+            } else {
+                throw new Error('Failed to fetch notifications');
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+            // Show demo data if backend fails
+            const demoNotifications = [
+                {
+                    id: 'demo1',
+                    title: 'Profile Updated',
+                    message: 'Your admin profile has been successfully updated.',
+                    type: 'success',
+                    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+                    read: false
+                },
+                {
+                    id: 'demo2', 
+                    title: 'New Login Detected',
+                    message: 'A new login was detected from your current device.',
+                    type: 'security',
+                    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+                    read: true
+                },
+                {
+                    id: 'demo3',
+                    title: 'System Maintenance',
+                    message: 'Scheduled maintenance will occur tonight at 2 AM.',
+                    type: 'info',
+                    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                    read: true
+                }
+            ];
+            this.showNotificationsModal(demoNotifications);
+            this.showNotification('Showing demo notification data - Backend unavailable', 'warning');
+        }
+    }
+
+    async viewAuditLog() {
+        try {
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/security/logs?hours=24`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showAuditLogModal(data.logs);
+            } else {
+                throw new Error('Failed to fetch audit logs');
+            }
+        } catch (error) {
+            console.error('Error fetching audit logs:', error);
+            this.showNotification('Failed to load audit logs', 'error');
+        }
+    }
+
+    async viewFullActivity() {
+        try {
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/security/logs?hours=168`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showActivityModal(data.logs, 'Full Activity Log (7 Days)');
+            } else {
+                throw new Error('Failed to fetch activity logs');
+            }
+        } catch (error) {
+            console.error('Error fetching activity logs:', error);
+            this.showNotification('Failed to load activity logs', 'error');
+        }
+    }
+
+    async updateNotificationSettings(type, enabled) {
+        try {
+            // Store preference locally (can be extended to save to backend)
+            localStorage.setItem(`admin_${type}_notifications`, enabled.toString());
+            this.showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+        } catch (error) {
+            console.error('Error updating notification settings:', error);
+            this.showNotification('Failed to update notification settings', 'error');
+        }
+    }
+
+    async updateAutoLogout(minutes) {
+        try {
+            localStorage.setItem('admin_auto_logout', minutes);
+            this.showNotification(`Auto logout set to ${minutes === '0' ? 'Never' : minutes + ' minutes'}`, 'success');
+        } catch (error) {
+            console.error('Error updating auto logout:', error);
+            this.showNotification('Failed to update auto logout setting', 'error');
+        }
+    }
+
+    async updateThemePreference(theme) {
+        try {
+            localStorage.setItem('admin_theme_preference', theme);
+            // Apply theme if needed
+            document.body.setAttribute('data-theme', theme);
+            this.showNotification(`Theme changed to ${theme}`, 'success');
+        } catch (error) {
+            console.error('Error updating theme:', error);
+            this.showNotification('Failed to update theme', 'error');
+        }
+    }
+
+    // ============= Modal Helper Methods =============
+    
+    showSessionsModal(sessions) {
+        const modal = document.getElementById('sessionsModal');
+        const container = document.getElementById('sessionsListContainer');
+        const totalCount = document.getElementById('totalSessionsCount');
+        const currentIndicator = document.getElementById('currentSessionIndicator');
+        const otherCount = document.getElementById('otherSessionsCount');
+        const terminateAllBtn = document.getElementById('terminateAllBtn');
+        
+        // Update stats
+        totalCount.textContent = sessions.length;
+        currentIndicator.textContent = '1';
+        otherCount.textContent = Math.max(0, sessions.length - 1);
+        
+        // Show/hide terminate all button
+        if (sessions.length > 1) {
+            terminateAllBtn.style.display = 'block';
+        } else {
+            terminateAllBtn.style.display = 'none';
+        }
+        
+        // Generate sessions list
+        if (sessions.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                    <i class="fas fa-desktop" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h4>No Active Sessions</h4>
+                    <p>There are no active sessions for your account.</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="sessions-grid" style="display: flex; flex-direction: column; gap: 15px;">
+                    ${sessions.map((session, index) => `
+                        <div class="session-card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; position: relative;">
+                            ${session.current ? `<div style="position: absolute; top: 10px; right: 10px; background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">Current Session</div>` : ''}
+                            
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="background: ${session.current ? '#28a745' : '#6c757d'}; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-${this.getDeviceIcon(session.device)}" style="font-size: 20px;"></i>
+                                </div>
+                                
+                                <div style="flex: 1;">
+                                    <h5 style="margin: 0 0 5px 0; color: #1e293b;">${session.device || 'Unknown Device'}</h5>
+                                    <div style="display: flex; gap: 20px; color: #64748b; font-size: 14px; margin-bottom: 8px;">
+                                        <span><i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i>${session.location || 'Unknown Location'}</span>
+                                        <span><i class="fas fa-network-wired" style="margin-right: 5px;"></i>${session.ipAddress || 'Unknown IP'}</span>
+                                    </div>
+                                    <div style="color: #64748b; font-size: 13px;">
+                                        Last Activity: ${new Date(session.lastActivity).toLocaleString()}
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    ${!session.current ? `
+                                        <button class="btn btn-outline-danger btn-sm" onclick="terminateSession(${session.id}, ${index})" style="padding: 6px 12px;">
+                                            <i class="fas fa-sign-out-alt"></i> Terminate
+                                        </button>
+                                    ` : `
+                                        <div style="color: #28a745; font-weight: 500; font-size: 14px;">
+                                            <i class="fas fa-check-circle"></i> Active
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        
+        // Setup close handlers
+        this.setupModalCloseHandlers('sessionsModal', 'closeSessionsModal');
+    }
+
+    showNotificationsModal(notifications) {
+        const modal = document.getElementById('notificationsModal');
+        const container = document.getElementById('notificationsListContainer');
+        const totalCount = document.getElementById('totalNotificationsCount');
+        const unreadCount = document.getElementById('unreadNotificationsCount');
+        
+        // Calculate counts
+        const unreadNotifications = notifications.filter(n => !n.read);
+        totalCount.textContent = notifications.length;
+        unreadCount.textContent = unreadNotifications.length;
+        
+        // Generate notifications list
+        if (notifications.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                    <i class="fas fa-bell-slash" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h4>No Notifications</h4>
+                    <p>You don't have any notifications at the moment.</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="notifications-grid" style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+                    ${notifications.map((notification, index) => `
+                        <div class="notification-card ${!notification.read ? 'unread' : ''}" style="
+                            background: ${!notification.read ? '#f0f9ff' : '#fff'};
+                            border: 1px solid ${!notification.read ? '#0ea5e9' : '#e2e8f0'};
+                            border-left: 4px solid ${this.getNotificationColor(notification.type || 'info')};
+                            border-radius: 8px;
+                            padding: 16px;
+                            position: relative;
+                        ">
+                            ${!notification.read ? `<div style="position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%;"></div>` : ''}
+                            
+                            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                <div style="background: ${this.getNotificationColor(notification.type || 'info')}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas fa-${this.getNotificationIcon(notification.type || 'info')}" style="font-size: 14px;"></i>
+                                </div>
+                                
+                                <div style="flex: 1; min-width: 0;">
+                                    <h6 style="margin: 0 0 4px 0; color: #1e293b; font-size: 15px; font-weight: 600;">
+                                        ${notification.title || 'Notification'}
+                                    </h6>
+                                    <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px; line-height: 1.4;">
+                                        ${notification.message || notification.description || 'No description available'}
+                                    </p>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <small style="color: #64748b; font-size: 12px;">
+                                            ${new Date(notification.createdAt || notification.timestamp).toLocaleString()}
+                                        </small>
+                                        ${!notification.read ? `
+                                            <button class="btn btn-outline-primary btn-sm" onclick="markNotificationRead('${notification._id || notification.id}', ${index})" style="font-size: 11px; padding: 4px 8px;">
+                                                Mark Read
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        
+        // Setup close handlers
+        this.setupModalCloseHandlers('notificationsModal', 'closeNotificationsModal');
+    }
+
+    showActivityModal(logs, title) {
+        const modal = document.getElementById('activityModal');
+        const container = document.getElementById('activityLogsContainer');
+        const modalTitle = document.getElementById('activityModalTitle');
+        const totalCount = document.getElementById('totalActivityCount');
+        const timeRange = document.getElementById('activityTimeRange');
+        
+        // Update header
+        modalTitle.textContent = title;
+        totalCount.textContent = logs.length;
+        
+        // Generate activity logs
+        if (logs.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                    <i class="fas fa-history" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h4>No Activity Found</h4>
+                    <p>No activity logs found for the selected time period.</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="activity-timeline" style="max-height: 500px; overflow-y: auto;">
+                    ${logs.map((log, index) => `
+                        <div class="activity-item" style="
+                            display: flex;
+                            gap: 15px;
+                            padding: 16px;
+                            border-bottom: 1px solid #f1f5f9;
+                            position: relative;
+                        ">
+                            <div style="
+                                background: ${this.getLogLevelColor(log.level || log.type)};
+                                color: white;
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-shrink: 0;
+                            ">
+                                <i class="fas fa-${this.getLogIcon(log.level || log.type)}" style="font-size: 14px;"></i>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                                    <h6 style="margin: 0; color: #1e293b; font-size: 15px; font-weight: 600;">
+                                        ${log.event || log.action || 'System Event'}
+                                    </h6>
+                                    <span class="badge" style="
+                                        background: ${this.getLogLevelColor(log.level || log.type)};
+                                        color: white;
+                                        padding: 2px 8px;
+                                        border-radius: 12px;
+                                        font-size: 11px;
+                                        font-weight: 500;
+                                    ">${log.level || log.type || 'INFO'}</span>
+                                </div>
+                                
+                                <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px; line-height: 1.4;">
+                                    ${log.details || log.description || 'No details available'}
+                                </p>
+                                
+                                <div style="display: flex; gap: 15px; font-size: 12px; color: #64748b;">
+                                    <span><i class="fas fa-clock" style="margin-right: 4px;"></i>${new Date(log.timestamp || log.createdAt).toLocaleString()}</span>
+                                    ${log.ipAddress ? `<span><i class="fas fa-network-wired" style="margin-right: 4px;"></i>${log.ipAddress}</span>` : ''}
+                                    ${log.userAgent ? `<span><i class="fas fa-desktop" style="margin-right: 4px;"></i>${this.getUserAgentInfo(log.userAgent)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        
+        // Setup close handlers
+        this.setupModalCloseHandlers('activityModal', 'closeActivityModal');
+    }
+
+    // Helper method to setup modal close handlers
+    setupModalCloseHandlers(modalId, closeButtonId) {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(closeButtonId);
+        const overlay = modal.querySelector('.modal-overlay');
+        
+        // Close button handler
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+        }
+        
+        // Overlay click handler
+        if (overlay) {
+            overlay.onclick = () => {
+                modal.style.display = 'none';
+            };
+        }
+        
+        // ESC key handler
+        const escHandler = (e) => {
+            if (e.key === 'Escape' && (modal.style.display === 'flex' || modal.style.display === 'block')) {
+                modal.style.display = 'none';
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
+
+    // Helper methods for icons and colors
+    getDeviceIcon(device) {
+        const deviceLower = (device || '').toLowerCase();
+        if (deviceLower.includes('mobile') || deviceLower.includes('android') || deviceLower.includes('iphone')) return 'mobile-alt';
+        if (deviceLower.includes('tablet') || deviceLower.includes('ipad')) return 'tablet-alt';
+        if (deviceLower.includes('desktop') || deviceLower.includes('windows') || deviceLower.includes('mac')) return 'desktop';
+        return 'laptop';
+    }
+
+    getNotificationColor(type) {
+        switch(type?.toLowerCase()) {
+            case 'error': case 'danger': return '#dc3545';
+            case 'warning': return '#ffc107';
+            case 'success': return '#28a745';
+            case 'info': default: return '#17a2b8';
+        }
+    }
+
+    getNotificationIcon(type) {
+        switch(type?.toLowerCase()) {
+            case 'error': case 'danger': return 'exclamation-triangle';
+            case 'warning': return 'exclamation-circle';
+            case 'success': return 'check-circle';
+            case 'info': default: return 'info-circle';
+        }
+    }
+
+    getLogLevelColor(level) {
+        switch(level?.toLowerCase()) {
+            case 'error': case 'danger': return '#dc3545';
+            case 'warning': return '#ffc107';
+            case 'success': return '#28a745';
+            case 'info': default: return '#17a2b8';
+        }
+    }
+
+    getLogIcon(level) {
+        switch(level?.toLowerCase()) {
+            case 'error': case 'danger': return 'times-circle';
+            case 'warning': return 'exclamation-triangle';
+            case 'success': return 'check-circle';
+            case 'info': default: return 'info-circle';
+        }
+    }
+
+    getUserAgentInfo(userAgent) {
+        if (!userAgent) return 'Unknown Browser';
+        if (userAgent.includes('Chrome')) return 'Chrome';
+        if (userAgent.includes('Firefox')) return 'Firefox';
+        if (userAgent.includes('Safari')) return 'Safari';
+        if (userAgent.includes('Edge')) return 'Edge';
+        return 'Unknown Browser';
+    }
+
+    showNotification(message, type = 'info') {
+        if (window.showNotification) {
+            try { window.showNotification(message, type); return; } catch(e) { /* fallback below */ }
+        }
+
+        // Create / reuse container
+        let container = document.getElementById('localNotificationContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'localNotificationContainer';
+            Object.assign(container.style, {
+                position: 'fixed', top: '16px', right: '16px', zIndex: '9999',
+                display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '400px'
+            });
+            document.body.appendChild(container);
+        }
+
+        const palette = { success:'#2e7d32', error:'#c62828', warning:'#ed6c02', info:'#0277bd' };
+        const toast = document.createElement('div');
+        toast.role = 'alert';
+        Object.assign(toast.style, {
+            background: palette[type] || palette.info,
+            color: '#fff', padding: '12px 14px', borderRadius: '6px', fontSize: '14px',
+            fontFamily: 'system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'flex-start',
+            gap: '10px', opacity: '0', transform: 'translateY(-6px)', transition: 'opacity .25s, transform .25s'
+        });
+
+        const strong = document.createElement('strong');
+        strong.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ': ';
+        strong.style.fontWeight = '600';
+        const span = document.createElement('span');
+        span.textContent = message;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        Object.assign(closeBtn.style, {
+            background: 'transparent', border: 'none', color: 'inherit', fontSize: '16px',
+            cursor: 'pointer', marginLeft: 'auto', lineHeight: '1'
+        });
+
+        closeBtn.addEventListener('click', removeToast);
+
+        toast.appendChild(strong);
+        toast.appendChild(span);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+
+        const timeout = setTimeout(removeToast, 5000);
+        function removeToast() {
+            clearTimeout(timeout);
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-6px)';
+            setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 250);
+        }
+
+        // Log for debugging
+        console.log(`[PROFILE] ${type.toUpperCase()}: ${message}`);
     }
 }
 
@@ -1059,5 +1787,207 @@ function initializeProfileTab() {
 // Export for global access
 window.adminProfileManager = adminProfileManager;
 window.initializeProfileTab = initializeProfileTab;
+
+// ============= Global Modal Functions =============
+
+// Session Management Functions
+window.refreshSessions = async function() {
+    if (window.adminProfileManager) {
+        await window.adminProfileManager.viewSessions();
+    }
+};
+
+window.terminateSession = async function(sessionId, index) {
+    try {
+        const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/sessions/${sessionId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Remove the session card from UI
+            const sessionCards = document.querySelectorAll('.session-card');
+            if (sessionCards[index]) {
+                sessionCards[index].remove();
+            }
+            
+            // Update counts
+            const totalCount = document.getElementById('totalSessionsCount');
+            const otherCount = document.getElementById('otherSessionsCount');
+            if (totalCount) totalCount.textContent = parseInt(totalCount.textContent) - 1;
+            if (otherCount) otherCount.textContent = Math.max(0, parseInt(otherCount.textContent) - 1);
+            
+            // Hide terminate all button if no other sessions
+            if (parseInt(otherCount.textContent) === 0) {
+                document.getElementById('terminateAllBtn').style.display = 'none';
+            }
+            
+            if (window.adminProfileManager) {
+                window.adminProfileManager.showNotification('Session terminated successfully', 'success');
+            }
+        } else {
+            throw new Error('Failed to terminate session');
+        }
+    } catch (error) {
+        console.error('Error terminating session:', error);
+        if (window.adminProfileManager) {
+            window.adminProfileManager.showNotification('Failed to terminate session', 'error');
+        }
+    }
+};
+
+window.terminateAllOtherSessions = async function() {
+    if (!confirm('Are you sure you want to terminate all other sessions? This will log out all other devices.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/sessions/all`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Refresh the sessions modal
+            await window.refreshSessions();
+            if (window.adminProfileManager) {
+                window.adminProfileManager.showNotification('All other sessions terminated successfully', 'success');
+            }
+        } else {
+            throw new Error('Failed to terminate all sessions');
+        }
+    } catch (error) {
+        console.error('Error terminating all sessions:', error);
+        if (window.adminProfileManager) {
+            window.adminProfileManager.showNotification('Failed to terminate all sessions', 'error');
+        }
+    }
+};
+
+// Notification Functions
+window.refreshNotifications = async function() {
+    if (window.adminProfileManager) {
+        await window.adminProfileManager.viewNotifications();
+    }
+};
+
+window.markNotificationRead = async function(notificationId, index) {
+    try {
+        const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Update the notification card in UI
+            const notificationCards = document.querySelectorAll('.notification-card');
+            if (notificationCards[index]) {
+                const card = notificationCards[index];
+                card.classList.remove('unread');
+                card.style.background = '#fff';
+                card.style.border = '1px solid #e2e8f0';
+                
+                // Remove unread indicator and mark read button
+                const unreadDot = card.querySelector('div[style*="background: #0ea5e9"]');
+                if (unreadDot) unreadDot.remove();
+                
+                const markReadBtn = card.querySelector('button');
+                if (markReadBtn) markReadBtn.remove();
+            }
+            
+            // Update unread count
+            const unreadCount = document.getElementById('unreadNotificationsCount');
+            if (unreadCount) {
+                unreadCount.textContent = Math.max(0, parseInt(unreadCount.textContent) - 1);
+            }
+            
+            if (window.adminProfileManager) {
+                window.adminProfileManager.showNotification('Notification marked as read', 'success');
+            }
+        } else {
+            throw new Error('Failed to mark notification as read');
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        if (window.adminProfileManager) {
+            window.adminProfileManager.showNotification('Failed to mark notification as read', 'error');
+        }
+    }
+};
+
+window.markAllNotificationsRead = async function() {
+    try {
+        const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/notifications/mark-all-read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Refresh notifications modal
+            await window.refreshNotifications();
+            if (window.adminProfileManager) {
+                window.adminProfileManager.showNotification('All notifications marked as read', 'success');
+            }
+        } else {
+            throw new Error('Failed to mark all notifications as read');
+        }
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        if (window.adminProfileManager) {
+            window.adminProfileManager.showNotification('Failed to mark all notifications as read', 'error');
+        }
+    }
+};
+
+window.filterNotifications = function(filter) {
+    // Update active filter button
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter notifications (implement filtering logic here)
+    // For now, just refresh to show all
+    window.refreshNotifications();
+};
+
+// Activity Log Functions
+window.refreshActivityLog = async function() {
+    const timeFilter = document.getElementById('activityTimeFilter');
+    const hours = timeFilter ? timeFilter.value : 24;
+    
+    if (window.adminProfileManager) {
+        try {
+            const response = await fetch(`${PROFILE_CONFIG.BASE_URL}/api/admin/security/logs?hours=${hours}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                window.adminProfileManager.showActivityModal(data.logs, `Activity Log (${hours === '24' ? '24 Hours' : hours === '168' ? '7 Days' : hours === '720' ? '30 Days' : '90 Days'})`);
+            }
+        } catch (error) {
+            console.error('Error refreshing activity log:', error);
+        }
+    }
+};
+
+window.changeActivityTimeRange = function() {
+    window.refreshActivityLog();
+};
 
 console.log('[PROFILE] Admin Profile Management System loaded successfully');

@@ -155,16 +155,27 @@ exports.approveGym = async (req, res) => {
     await adminNotificationService.notifyGymApproval(gym);
 
     try {
-      await sendEmail(
-        gym.email,
-        '🎉 Your Gym Registration is Approved!',
-        `<h3>Hello ${gym.contactPerson || gym.gymName || 'Gym Owner'},</h3>
-        <p>Your gym "${gym.gymName}" has been approved by FIT-verse Admin. You can now <a href="http://localhost:5000/frontend/public/login.html">log in</a> and manage your profile.</p>
-        <p><strong>Login Details:</strong><br/>
-        Email: ${gym.email}<br/>
-        Use your registration password to log in.</p>
-        <p>Thank you for choosing FIT-verse!</p>`
-      );
+      await sendEmail({
+        to: gym.email,
+        subject: '🎉 Gym Registration Approved',
+        title: 'Your Gym is Approved!',
+        preheader: `Welcome aboard ${gym.gymName}`,
+        bodyHtml: `
+          <p>Hello ${gym.contactPerson || gym.gymName || 'Gym Owner'},</p>
+          <p>Your gym <strong>${gym.gymName}</strong> has been <strong>approved</strong>. You can now log in and complete your profile details, manage trainers, and onboard members.</p>
+          <ul style="margin:16px 0 20px;padding-left:20px;">
+            <li><strong>Portal Access:</strong> Use the email you registered with</li>
+            <li><strong>Security:</strong> Update your password after first login</li>
+            <li><strong>Next Steps:</strong> Upload logo, set membership plans, invite trainers</li>
+          </ul>
+          <p style="margin-top:0;">Need help? Visit our support center anytime.</p>
+          <p style="margin-top:26px;font-size:14px;color:#cbd5e1;">If you did not request this registration, please ignore this email or contact support.</p>
+        `,
+        action: {
+          label: 'Access Admin Portal',
+          url: process.env.ADMIN_PORTAL_URL || 'http://localhost:5000/frontend/public/login.html'
+        }
+      });
       console.log(`✅ Approval email sent to ${gym.email}`);
     } catch (emailErr) {
       console.error(`❌ Failed to send approval email to ${gym.email}:`, emailErr.message);
@@ -199,15 +210,24 @@ exports.rejectGym = async (req, res) => {
     await adminNotificationService.notifyGymRejection(gym, reason);
     
     try {
-      await sendEmail(
-        gym.email,
-        '❌ Your Gym Registration is Rejected',
-        `<h3>Hello ${gym.ownerName || gym.name || 'Gym Owner'},</h3>
-        <p>Unfortunately, your gym "<strong>${gym.name}</strong>" has been rejected.</p>
-        <p><strong>Reason:</strong> ${reason}</p>
-        <p>Please review your submission and try again if appropriate.</p>
-        <p>- Team FIT-verse</p>`
-      );
+      await sendEmail({
+        to: gym.email,
+        subject: '❌ Gym Registration Review Result',
+        title: 'Registration Not Approved',
+        preheader: 'Your submission needs updates',
+        bodyHtml: `
+          <p>Hello ${gym.ownerName || gym.gymName || 'Gym Owner'},</p>
+          <p>We reviewed the registration for <strong>${gym.gymName || gym.name || 'your gym'}</strong>, and at this time it <strong>was not approved</strong>.</p>
+          <p><strong>Reason Provided:</strong></p>
+          <blockquote style="margin:14px 0;padding:14px 18px;background:#1e293b;border-left:4px solid #e11d48;border-radius:10px;color:#f1f5f9;">${reason}</blockquote>
+          <p>You can revise the required details and resubmit your application. Common issues include missing documents, unverifiable address, or incomplete profile data.</p>
+          <p style="margin-top:24px;">If you believe this decision was in error, please reach out through the support channel.</p>
+        `,
+        action: {
+          label: 'Review Requirements',
+          url: process.env.GYM_REQUIREMENTS_URL || 'http://localhost:5000/frontend/public/gym-register.html'
+        }
+      });
       console.log(`✅ Rejection email sent to ${gym.email}`);
     } catch (emailErr) {
       console.error(`❌ Failed to send rejection email to ${gym.email}:`, emailErr.message);

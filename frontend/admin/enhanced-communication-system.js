@@ -19,6 +19,7 @@ class EnhancedCommunicationSystem {
     async init() {
         console.log('🔄 Enhanced Communication System Initializing...');
         try {
+            this.injectRequiredStyles();
             this.bindEventListeners();
             this.initializeNotificationSystem();
             
@@ -47,7 +48,7 @@ class EnhancedCommunicationSystem {
     initializeNotificationSystem() {
         this.createNotificationToastContainer();
         this.enhanceNotificationDropdown();
-        this.setupNotificationPolling();
+        // Note: Notification polling is handled by startPeriodicUpdates() called in init()
     }
 
     createNotificationToastContainer() {
@@ -241,10 +242,431 @@ class EnhancedCommunicationSystem {
             await Promise.all([
                 this.loadSupportStats(),
                 this.loadSupportTickets(),
-                this.loadGrievances()
+                this.loadGrievances(),
+                this.loadUserCommunications()
             ]);
         } catch (error) {
             console.error('Error loading support data:', error);
+        }
+    }
+
+    // ========== USER COMMUNICATION INTEGRATION ==========
+
+    async loadUserCommunications(filters = {}) {
+        // If filters are provided, use the filtered loading method
+        if (Object.keys(filters).length > 0) {
+            return this.loadContactMessagesWithFilters(filters);
+        }
+        
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    this.updateUserCommunicationsDisplay(data.messages);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user communications:', error);
+        }
+    }
+
+    updateUserCommunicationsDisplay(messages) {
+        const communicationsList = document.getElementById('contactMessagesList');
+        if (!communicationsList) return;
+
+        if (messages.length === 0) {
+            communicationsList.innerHTML = `
+                <div class="no-communications">
+                    <i class="fas fa-comments"></i>
+                    <p>No user communications found</p>
+                </div>
+            `;
+            return;
+        }
+
+        communicationsList.innerHTML = '';
+        messages.forEach(message => {
+            const messageElement = this.createUserCommunicationElement(message);
+            communicationsList.appendChild(messageElement);
+        });
+    }
+
+    createUserCommunicationElement(message) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `user-communication-card ${message.priority}`;
+        messageEl.dataset.messageId = message._id;
+
+        const timeAgo = this.getTimeAgo(new Date(message.createdAt));
+        const statusClass = message.status?.replace('-', '') || 'new';
+
+        messageEl.innerHTML = `
+            <div class="communication-header">
+                <div class="communication-info">
+                    <h4 class="communication-subject">${message.subject}</h4>
+                    <div class="communication-meta">
+                        <span class="communication-from">${message.name} (${message.email})</span>
+                        <span class="communication-category">${this.getCategoryDisplayName(message.category)}</span>
+                        ${message.phone ? `<span class="communication-phone"><i class="fas fa-phone"></i> ${message.phone}</span>` : ''}
+                    </div>
+                </div>
+                <div class="communication-status">
+                    <span class="status-badge ${statusClass}">${message.status || 'New'}</span>
+                    <span class="priority-badge ${message.priority || 'medium'}">${message.priority || 'Medium'}</span>
+                </div>
+            </div>
+            <div class="communication-content">
+                <div class="communication-message">${this.truncateMessage(message.message, 150)}</div>
+                ${message.quickMessage ? `
+                    <div class="quick-message-info">
+                        <i class="fas fa-flash"></i> Quick Message: ${message.quickMessage}
+                    </div>
+                ` : ''}
+                ${message.interestedActivities && message.interestedActivities.length > 0 ? `
+                    <div class="interested-activities">
+                        <i class="fas fa-star"></i> Interested in: ${message.interestedActivities.join(', ')}
+                    </div>
+                ` : ''}
+            </div>
+            <div class="communication-footer">
+                <div class="communication-time">
+                    <i class="fas fa-clock"></i> ${timeAgo}
+                </div>
+                <div class="communication-actions">
+                    <button class="btn btn-sm btn-primary" onclick="window.enhancedComm.viewUserCommunication('${message._id}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="window.enhancedComm.replyToUserCommunication('${message._id}')">
+                        <i class="fas fa-reply"></i> Reply
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="window.enhancedComm.convertToTicket('${message._id}')">
+                        <i class="fas fa-ticket-alt"></i> Convert to Ticket
+                    </button>
+                </div>
+            </div>
+        `;
+
+        return messageEl;
+    }
+
+    getCategoryDisplayName(category) {
+        const categoryMap = {
+            'general': 'General Inquiry',
+            'membership': 'Membership',
+            'service': 'Service Support', 
+            'technical': 'Technical Support',
+            'partnership': 'Partnership',
+            'complaint': 'Complaint/Feedback'
+        };
+        return categoryMap[category] || category;
+    }
+
+    async viewUserCommunication(messageId) {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages/${messageId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    this.showUserCommunicationModal(data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user communication:', error);
+            this.showErrorToast('Failed to load communication details');
+        }
+    }
+
+    showUserCommunicationModal(message) {
+        const existingModal = document.getElementById('userCommunicationModal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'userCommunicationModal';
+        modal.className = 'enhanced-modal';
+        modal.innerHTML = `
+            <div class="enhanced-modal-overlay"></div>
+            <div class="enhanced-modal-content large">
+                <div class="enhanced-modal-header">
+                    <h3><i class="fas fa-envelope"></i> User Communication Details</h3>
+                    <button class="enhanced-modal-close" onclick="this.closest('.enhanced-modal').remove()">&times;</button>
+                </div>
+                <div class="enhanced-modal-body">
+                    <div class="communication-details">
+                        <div class="detail-section">
+                            <h4>Contact Information</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Name:</label>
+                                    <span>${message.name}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Email:</label>
+                                    <span>${message.email}</span>
+                                </div>
+                                ${message.phone ? `
+                                    <div class="detail-item">
+                                        <label>Phone:</label>
+                                        <span>${message.phone}</span>
+                                    </div>
+                                ` : ''}
+                                <div class="detail-item">
+                                    <label>Category:</label>
+                                    <span class="category-badge">${this.getCategoryDisplayName(message.category)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Message Details</h4>
+                            <div class="detail-item full-width">
+                                <label>Subject:</label>
+                                <span class="subject-text">${message.subject}</span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <label>Message:</label>
+                                <div class="message-content">${message.message.replace(/\n/g, '<br>')}</div>
+                            </div>
+                            ${message.quickMessage ? `
+                                <div class="detail-item full-width">
+                                    <label>Quick Message Template:</label>
+                                    <span class="quick-message-tag">${message.quickMessage}</span>
+                                </div>
+                            ` : ''}
+                            ${message.interestedActivities && message.interestedActivities.length > 0 ? `
+                                <div class="detail-item full-width">
+                                    <label>Interested Activities:</label>
+                                    <div class="activity-tags">
+                                        ${message.interestedActivities.map(activity => 
+                                            `<span class="activity-tag">${activity}</span>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="detail-section">
+                            <h4>Metadata</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Received:</label>
+                                    <span>${new Date(message.createdAt).toLocaleString()}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Status:</label>
+                                    <span class="status-badge ${message.status || 'new'}">${message.status || 'New'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Priority:</label>
+                                    <span class="priority-badge ${message.priority || 'medium'}">${message.priority || 'Medium'}</span>
+                                </div>
+                                ${message.ticketId ? `
+                                    <div class="detail-item">
+                                        <label>Ticket ID:</label>
+                                        <span class="ticket-link" onclick="window.enhancedComm.viewTicketDetails('${message.ticketId}')">#${message.ticketId}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="communication-actions">
+                        <button class="btn btn-success" onclick="window.enhancedComm.replyToUserCommunication('${message._id}')">
+                            <i class="fas fa-reply"></i> Send Reply
+                        </button>
+                        ${!message.ticketId ? `
+                            <button class="btn btn-info" onclick="window.enhancedComm.convertToTicket('${message._id}')">
+                                <i class="fas fa-ticket-alt"></i> Convert to Support Ticket
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-warning" onclick="window.enhancedComm.updateCommunicationStatus('${message._id}', 'resolved')">
+                            <i class="fas fa-check"></i> Mark as Resolved
+                        </button>
+                        <button class="btn btn-secondary" onclick="this.closest('.enhanced-modal').remove()">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    async replyToUserCommunication(messageId) {
+        const existingModal = document.getElementById('replyToUserModal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'replyToUserModal';
+        modal.className = 'enhanced-modal';
+        modal.innerHTML = `
+            <div class="enhanced-modal-overlay"></div>
+            <div class="enhanced-modal-content">
+                <div class="enhanced-modal-header">
+                    <h3><i class="fas fa-reply"></i> Reply to User Communication</h3>
+                    <button class="enhanced-modal-close" onclick="this.closest('.enhanced-modal').remove()">&times;</button>
+                </div>
+                <div class="enhanced-modal-body">
+                    <div class="reply-form">
+                        <div class="form-group">
+                            <label>Reply Message:</label>
+                            <textarea id="userReplyMessage" placeholder="Type your reply message..." rows="6"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Communication Channels:</label>
+                            <div class="channel-checkboxes">
+                                <label><input type="checkbox" value="email" checked> Email</label>
+                                <label><input type="checkbox" value="notification" checked> In-App Notification</label>
+                                <label><input type="checkbox" value="sms"> SMS (if phone available)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Update Status:</label>
+                            <select id="communicationStatus">
+                                <option value="">Keep Current Status</option>
+                                <option value="replied">Replied</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="createTicketAfterReply"> 
+                                Convert to Support Ticket after reply
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="reply-actions">
+                        <button class="btn btn-secondary" onclick="this.closest('.enhanced-modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="window.enhancedComm.submitUserReply('${messageId}')">
+                            <i class="fas fa-paper-plane"></i> Send Reply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    async submitUserReply(messageId) {
+        const replyMessage = document.getElementById('userReplyMessage')?.value;
+        const status = document.getElementById('communicationStatus')?.value;
+        const createTicket = document.getElementById('createTicketAfterReply')?.checked;
+        const channels = Array.from(document.querySelectorAll('#replyToUserModal .channel-checkboxes input:checked'))
+            .map(cb => cb.value);
+
+        if (!replyMessage.trim()) {
+            this.showErrorToast('Please enter a reply message');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages/${messageId}/reply`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: replyMessage,
+                    status: status || null,
+                    channels: channels,
+                    createTicket: createTicket
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('replyToUserModal')?.remove();
+                this.showSuccessToast('Reply sent successfully');
+                this.loadUserCommunications(); // Refresh the list
+                
+                if (data.ticketId) {
+                    this.showSuccessToast(`Support ticket #${data.ticketId} created`);
+                }
+            } else {
+                throw new Error('Failed to send reply');
+            }
+        } catch (error) {
+            console.error('Error sending reply:', error);
+            this.showErrorToast('Failed to send reply');
+        }
+    }
+
+    async convertToTicket(messageId) {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages/${messageId}/convert-ticket`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showSuccessToast(`Successfully converted to support ticket #${data.ticketId}`);
+                this.loadUserCommunications(); // Refresh communications
+                this.loadSupportTickets(); // Refresh support tickets
+                
+                // Close any open modal
+                document.querySelector('.enhanced-modal')?.remove();
+            } else {
+                throw new Error('Failed to convert to ticket');
+            }
+        } catch (error) {
+            console.error('Error converting to ticket:', error);
+            this.showErrorToast('Failed to convert to support ticket');
+        }
+    }
+
+    async updateCommunicationStatus(messageId, status) {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages/${messageId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (response.ok) {
+                this.showSuccessToast(`Status updated to ${status}`);
+                this.loadUserCommunications(); // Refresh the list
+                
+                // Close any open modal
+                document.querySelector('.enhanced-modal')?.remove();
+            } else {
+                throw new Error('Failed to update status');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            this.showErrorToast('Failed to update status');
         }
     }
 
@@ -687,14 +1109,520 @@ class EnhancedCommunicationSystem {
         }, 5000);
     }
 
+    // ========== DYNAMIC CSS INJECTION ==========
+
+    injectRequiredStyles() {
+        if (document.getElementById('enhancedCommStyles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'enhancedCommStyles';
+        style.textContent = `
+            /* User Communication Cards */
+            .user-communication-card {
+                background: #fff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+            }
+
+            .user-communication-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transform: translateY(-1px);
+            }
+
+            .user-communication-card.urgent {
+                border-left: 4px solid #ef4444;
+            }
+
+            .user-communication-card.high {
+                border-left: 4px solid #f59e0b;
+            }
+
+            .communication-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 12px;
+            }
+
+            .communication-subject {
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 4px 0;
+            }
+
+            .communication-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                font-size: 13px;
+                color: #6b7280;
+            }
+
+            .communication-meta span {
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+
+            .communication-status {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 4px;
+            }
+
+            .communication-content {
+                margin-bottom: 12px;
+            }
+
+            .communication-message {
+                color: #374151;
+                line-height: 1.5;
+                margin-bottom: 8px;
+            }
+
+            .quick-message-info {
+                background: #dbeafe;
+                color: #1d4ed8;
+                padding: 6px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                display: inline-block;
+                margin-bottom: 4px;
+            }
+
+            .interested-activities {
+                background: #f0fdf4;
+                color: #166534;
+                padding: 6px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                display: inline-block;
+            }
+
+            .communication-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 12px;
+                border-top: 1px solid #f3f4f6;
+            }
+
+            .communication-time {
+                color: #6b7280;
+                font-size: 12px;
+            }
+
+            .communication-actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            /* Enhanced Modal Styles */
+            .enhanced-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10000;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .enhanced-modal.show {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .enhanced-modal-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(4px);
+            }
+
+            .enhanced-modal-content {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            .enhanced-modal-content.large {
+                max-width: 800px;
+            }
+
+            .enhanced-modal-header {
+                padding: 20px 24px;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .enhanced-modal-header h3 {
+                margin: 0;
+                color: #111827;
+                font-size: 18px;
+            }
+
+            .enhanced-modal-close {
+                background: none;
+                border: none;
+                font-size: 24px;
+                color: #6b7280;
+                cursor: pointer;
+                padding: 0;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s ease;
+            }
+
+            .enhanced-modal-close:hover {
+                background: #f3f4f6;
+                color: #374151;
+            }
+
+            .enhanced-modal-body {
+                padding: 24px;
+            }
+
+            /* Communication Detail Styles */
+            .communication-details {
+                margin-bottom: 24px;
+            }
+
+            .detail-section {
+                margin-bottom: 24px;
+            }
+
+            .detail-section h4 {
+                color: #111827;
+                font-size: 16px;
+                margin: 0 0 12px 0;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .detail-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+            }
+
+            .detail-item {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .detail-item.full-width {
+                grid-column: 1 / -1;
+            }
+
+            .detail-item label {
+                font-weight: 600;
+                color: #374151;
+                font-size: 13px;
+                margin-bottom: 4px;
+            }
+
+            .detail-item span {
+                color: #111827;
+            }
+
+            .subject-text {
+                font-size: 16px;
+                font-weight: 500;
+            }
+
+            .message-content {
+                background: #f9fafb;
+                padding: 12px;
+                border-radius: 6px;
+                border: 1px solid #e5e7eb;
+                line-height: 1.6;
+            }
+
+            .category-badge, .status-badge, .priority-badge {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .category-badge {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .status-badge.new {
+                background: #fef3c7;
+                color: #92400e;
+            }
+
+            .status-badge.replied {
+                background: #d1fae5;
+                color: #065f46;
+            }
+
+            .status-badge.resolved {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .priority-badge.high {
+                background: #fed7aa;
+                color: #c2410c;
+            }
+
+            .priority-badge.urgent {
+                background: #fecaca;
+                color: #dc2626;
+            }
+
+            .priority-badge.medium {
+                background: #e0e7ff;
+                color: #3730a3;
+            }
+
+            .quick-message-tag {
+                background: #ede9fe;
+                color: #5b21b6;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .activity-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .activity-tag {
+                background: #f0fdf4;
+                color: #166534;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+
+            .ticket-link {
+                color: #2563eb;
+                cursor: pointer;
+                text-decoration: underline;
+            }
+
+            .ticket-link:hover {
+                color: #1d4ed8;
+            }
+
+            /* Form Styles */
+            .form-group {
+                margin-bottom: 16px;
+            }
+
+            .form-group label {
+                display: block;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 6px;
+            }
+
+            .form-group textarea, .form-group select {
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.2s ease;
+            }
+
+            .form-group textarea:focus, .form-group select:focus {
+                outline: none;
+                border-color: #2563eb;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            }
+
+            .channel-checkboxes {
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+
+            .channel-checkboxes label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-weight: normal;
+                cursor: pointer;
+            }
+
+            /* Action Buttons */
+            .communication-actions, .reply-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
+            }
+
+            /* Urgent Communication Alert */
+            .urgent-communication-alert {
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 9999;
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+                animation: slideInRight 0.3s ease;
+            }
+
+            .urgent-communication-alert .alert-content {
+                padding: 16px 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .urgent-communication-alert button {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .urgent-communication-alert button:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .urgent-communication-alert .close-btn {
+                background: none;
+                border: none;
+                font-size: 18px;
+                padding: 4px 8px;
+            }
+
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            /* No Communications State */
+            .no-communications {
+                text-align: center;
+                padding: 40px 20px;
+                color: #6b7280;
+            }
+
+            .no-communications i {
+                font-size: 48px;
+                margin-bottom: 16px;
+                opacity: 0.5;
+            }
+
+            .no-communications p {
+                margin: 0;
+                font-size: 16px;
+            }
+
+            /* Toast Styles */
+            .admin-toast {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 16px;
+                animation: slideInRight 0.3s ease;
+            }
+
+            .admin-toast.success {
+                border-left: 4px solid #10b981;
+            }
+
+            .admin-toast.error {
+                border-left: 4px solid #ef4444;
+            }
+
+            .admin-toast.info {
+                border-left: 4px solid #3b82f6;
+            }
+
+            .toast-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .toast-close {
+                background: none;
+                border: none;
+                font-size: 18px;
+                color: #6b7280;
+                cursor: pointer;
+                padding: 0;
+                width: 24px;
+                height: 24px;
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
     // ========== EVENT LISTENERS ==========
 
     bindEventListeners() {
+        // Main tab switching - Users tab removed, now integrated into Support tab
+
         // Support tab switching
         document.querySelectorAll('.support-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const userType = e.currentTarget.dataset.tab;
                 this.switchSupportTab(userType);
+            });
+        });
+
+        // Communication tab switching
+        document.querySelectorAll('.communication-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const commType = e.currentTarget.dataset.tab;
+                this.switchCommunicationTab(commType);
             });
         });
 
@@ -712,6 +1640,91 @@ class EnhancedCommunicationSystem {
         if (markAllReadBtn) {
             markAllReadBtn.onclick = () => this.markAllNotificationsAsRead();
         }
+
+        // Communication filters
+        document.querySelectorAll('.communication-filter').forEach(filter => {
+            filter.addEventListener('change', (e) => {
+                this.filterCommunications(e.target.name, e.target.value);
+            });
+        });
+
+        // Real-time updates for user communications
+        this.setupUserCommunicationPolling();
+    }
+
+    switchCommunicationTab(commType) {
+        // Update active tab
+        document.querySelectorAll('.communication-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${commType}"]`)?.classList.add('active');
+
+        // Update active content
+        document.querySelectorAll('.communication-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`${commType}-communications`)?.classList.add('active');
+
+        // Load data for this communication type
+        if (commType === 'contact') {
+            this.loadUserCommunications();
+        } else if (commType === 'support') {
+            this.loadSupportTickets();
+        }
+    }
+
+    filterCommunications(filterType, filterValue) {
+        // Apply filters to communications based on type and value
+        this.currentFilters = this.currentFilters || {};
+        this.currentFilters[filterType] = filterValue;
+        
+        // Reload communications with filters
+        this.loadUserCommunications(this.currentFilters);
+    }
+
+    filterContactMessages(filterType, filterValue) {
+        // Apply filters to contact messages in Users tab
+        this.contactFilters = this.contactFilters || {};
+        this.contactFilters[filterType] = filterValue;
+        
+        // Reload contact messages with filters
+        this.loadContactMessagesWithFilters(this.contactFilters);
+    }
+
+    async loadContactMessagesWithFilters(filters = {}) {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const queryParams = new URLSearchParams();
+            
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value && value.trim()) {
+                    queryParams.append(key, value);
+                }
+            });
+            
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages?${queryParams}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    this.updateUserCommunicationsDisplay(data.messages);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading filtered contact messages:', error);
+        }
+    }
+
+    setupUserCommunicationPolling() {
+        // Poll for new user communications every 15 seconds
+        setInterval(() => {
+            this.loadUserCommunications();
+        }, 15000);
     }
 
     switchSupportTab(userType) {
@@ -780,6 +1793,84 @@ class EnhancedCommunicationSystem {
         setInterval(() => {
             this.loadSupportStats();
         }, 120000);
+
+        // Update user communications every minute
+        setInterval(() => {
+            if (this.isUsersTabActive()) {
+                this.loadUserCommunications();
+            }
+        }, 60000);
+
+        // Check for urgent communications every 30 seconds
+        setInterval(() => {
+            this.checkUrgentCommunications();
+        }, 30000);
+    }
+
+    isCurrentTab(tabId) {
+        const activeTab = document.querySelector('.communication-tab.active');
+        return activeTab && activeTab.dataset.tab === tabId.replace('-communications', '');
+    }
+
+    isUsersTabActive() {
+        const usersContent = document.getElementById('users-content');
+        return usersContent && usersContent.classList.contains('active');
+    }
+
+    async checkUrgentCommunications() {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/urgent`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.urgentCount > 0) {
+                    this.showUrgentCommunicationAlert(data.urgentCount);
+                }
+            }
+        } catch (error) {
+            console.error('Error checking urgent communications:', error);
+        }
+    }
+
+    showUrgentCommunicationAlert(count) {
+        // Only show if not already showing
+        if (document.getElementById('urgentCommAlert')) return;
+
+        const alert = document.createElement('div');
+        alert.id = 'urgentCommAlert';
+        alert.className = 'urgent-communication-alert';
+        alert.innerHTML = `
+            <div class="alert-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${count} urgent communication${count > 1 ? 's' : ''} require${count === 1 ? 's' : ''} immediate attention</span>
+                <button onclick="window.enhancedComm.goToUrgentCommunications(); this.parentElement.parentElement.remove()">
+                    View Now
+                </button>
+                <button onclick="this.parentElement.parentElement.remove()" class="close-btn">&times;</button>
+            </div>
+        `;
+
+        document.body.appendChild(alert);
+
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (alert.parentElement) {
+                alert.remove();
+            }
+        }, 10000);
+    }
+
+    goToUrgentCommunications() {
+        // Switch to communications tab and filter by urgent
+        showTab('communication-content');
+        this.switchCommunicationTab('contact');
+        this.filterCommunications('priority', 'urgent');
     }
 
     // ========== PUBLIC API METHODS ==========

@@ -465,17 +465,27 @@ exports.requestOtp = async (req, res) => {
     gymAdmin.passwordResetExpires = Date.now() + 10 * 60 * 1000; 
     await gymAdmin.save();
     // Send OTP email
-    const emailSubject = 'Your Password Reset OTP';
-    const emailHtml = `
-      <h3>Hello ${gymAdmin.contactPerson || gymAdmin.gymName},</h3>
-      <p>You requested a password reset for your FIT-verse admin account.</p>
-      <p>Your One-Time Password (OTP) is: <strong>${otp}</strong></p>
-      <p>This OTP is valid for 10 minutes.</p>
-      <p>If you did not request this, please ignore this email.</p>
-      <p>Thank you,<br/>The FIT-verse Team</p>
+    const emailSubject = '🔐 Password Reset Code';
+    const bodyHtml = `
+      <p>Hello ${gymAdmin.contactPerson || gymAdmin.gymName},</p>
+      <p>We received a request to reset the password for your admin account.</p>
+      <p style="font-size:14px;margin-top:14px;">Use the One-Time Password (OTP) below to continue:</p>
+      <div style="font-size:32px;font-weight:700;letter-spacing:6px;margin:18px 0 10px;color:#38bdf8;">${otp}</div>
+      <p style="margin:0 0 14px;">This code expires in <strong>10 minutes</strong>.</p>
+      <p>If you did not request this, you can safely ignore this email. Your account remains secure.</p>
     `;
     try {
-      await sendEmail(gymAdmin.email, emailSubject, emailHtml);
+      await sendEmail({
+        to: gymAdmin.email,
+        subject: emailSubject,
+        title: 'Password Reset Verification',
+        preheader: 'Your password reset security code',
+        bodyHtml,
+        action: {
+          label: 'Reset Password',
+          url: process.env.ADMIN_PORTAL_URL || 'http://localhost:5000/frontend/public/login.html'
+        }
+      });
       res.status(200).json({ success: true, message: 'OTP sent to your email address. Please check your inbox (and spam folder).' });
     } catch (emailError) {
       console.error('[requestOtp] Error sending OTP email:', emailError.message, emailError.stack);
@@ -808,32 +818,46 @@ exports.registerGym = async (req, res) => {
         '12month': 'Annual'
       };
       
-      await sendEmail(
-        newGym.email,
-        'Your Gym Registration is Received - Gym-Wale',
-        `<h2>Thank you for registering your gym on Gym-Wale!</h2>
-        <p>Dear ${newGym.contactPerson || newGym.gymName},</p>
-        <p>Your registration has been received and is under review. Our team will contact you soon.</p>
-        
-        <div style="background: #e3eafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #1976d2; margin: 0 0 10px 0;">Your Subscription Plan</h3>
-          <p style="margin: 5px 0;"><strong>Plan:</strong> ${planNames[subscriptionPlan] || 'Monthly'}</p>
-          <p style="margin: 5px 0;"><strong>Trial Period:</strong> 1 Month FREE</p>
-          <p style="margin: 5px 0;">Your free trial will begin once your gym is approved by our admin team.</p>
-        </div>
-        
-        <p>During your trial period, you'll have access to all features including:</p>
-        <ul>
-          <li>Customizable Dashboard</li>
-          <li>Full Payment Management</li>
-          <li>Enhanced Membership Handler</li>
-          <li>Fingerprint & Face Recognition</li>
-          <li>Advanced Analytics & Reports</li>
-          <li>And much more!</li>
-        </ul>
-        
-        <p>Regards,<br/>Gym-Wale Team</p>`
-      );
+      await sendEmail({
+        to: newGym.email,
+        subject: 'Your Gym Registration is Received - Gym-Wale',
+        title: 'Welcome to Gym-Wale!',
+        preheader: 'Your gym registration has been received and is under review',
+        bodyHtml: `
+          <p>Dear <strong style="color:#10b981;">${newGym.contactPerson || newGym.gymName}</strong>,</p>
+          <p>🎉 Thank you for registering your gym on <strong>Gym-Wale</strong>!</p>
+          <p>Your registration has been received and is under review. Our team will contact you soon.</p>
+          
+          <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;">
+            <h4 style="color:#38bdf8;margin:0 0 12px 0;">📋 Your Subscription Plan</h4>
+            <table style="width:100%;font-size:13px;">
+              <tr><td style="padding:6px 0;color:#94a3b8;width:120px;"><strong>Plan:</strong></td><td style="padding:6px 0;">${planNames[subscriptionPlan] || 'Monthly'}</td></tr>
+              <tr><td style="padding:6px 0;color:#94a3b8;"><strong>Trial Period:</strong></td><td style="padding:6px 0;color:#10b981;">1 Month FREE</td></tr>
+            </table>
+            <p style="color:#cbd5e1;font-size:13px;margin:12px 0 0 0;">Your free trial will begin once your gym is approved by our admin team.</p>
+          </div>
+          
+          <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;">
+            <h4 style="color:#38bdf8;margin:0 0 12px 0;">✨ Features You'll Get:</h4>
+            <ul style="margin:0;padding-left:16px;color:#cbd5e1;font-size:14px;">
+              <li style="margin-bottom:6px;">Customizable Dashboard</li>
+              <li style="margin-bottom:6px;">Full Payment Management</li>
+              <li style="margin-bottom:6px;">Enhanced Membership Handler</li>
+              <li style="margin-bottom:6px;">Fingerprint & Face Recognition</li>
+              <li style="margin-bottom:6px;">Advanced Analytics & Reports</li>
+              <li>And much more!</li>
+            </ul>
+          </div>
+          
+          <p style="color:#cbd5e1;font-size:14px;text-align:center;margin-top:20px;">
+            Welcome to the Gym-Wale family! 🏋️‍♂️
+          </p>
+        `,
+        action: {
+          label: 'Track Status',
+          url: process.env.BRAND_PORTAL_URL || 'https://gym-wale.com/status'
+        }
+      });
     } catch (mailErr) {
       console.error('Error sending registration email:', mailErr);
     }
@@ -1082,11 +1106,15 @@ exports.getGymsByCities = async (req, res) => {
 
     // Optional: Transform data if needed, for example, to construct full image URLs
     const processedGyms = gyms.map(gym => {
+      // Attempt to keep original stored logo reference; frontend will normalize.
+      // Support older fields if they ever existed (defensive coding)
+      const rawLogo = gym.logoUrl || gym.logo || gym.logoURL || gym.logo_path || gym.logoFile || '';
       return {
         _id: gym._id,
         id: gym._id, // for frontend compatibility if using 'id'
         name: gym.gymName,
-        city: gym.location.city, 
+        city: gym.location.city,
+        logoUrl: rawLogo // expose logo so trainer registration picker can display logos
       };
     });
 
@@ -1547,7 +1575,37 @@ const sendLoginNotification = async (gymId, loginAttempt) => {
       });
       
       try {
-        await sendEmail(gym.email, subject, message);
+        await sendEmail({
+          to: gym.email,
+          subject,
+          title: 'Login Alert',
+          preheader: loginAttempt.success ? 'Successful login detected' : 'Failed login attempt detected',
+          bodyHtml: `
+            <p>Hi <strong style="color:#10b981;">${gym.contactPerson || gym.gymName}</strong>,</p>
+            <p>${loginAttempt.success ? '✅' : '❌'} A login attempt was detected for your gym account.</p>
+            
+            <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;">
+              <table style="width:100%;font-size:13px;">
+                <tr><td style="padding:6px 0;color:#94a3b8;width:120px;"><strong>Status:</strong></td><td style="padding:6px 0;color:${loginAttempt.success ? '#10b981' : '#ef4444'};">${loginAttempt.success ? 'Successful' : 'Failed'}</td></tr>
+                <tr><td style="padding:6px 0;color:#94a3b8;"><strong>Time:</strong></td><td style="padding:6px 0;">${new Date(loginAttempt.timestamp).toLocaleString()}</td></tr>
+                <tr><td style="padding:6px 0;color:#94a3b8;"><strong>IP Address:</strong></td><td style="padding:6px 0;">${loginAttempt.ip}</td></tr>
+                <tr><td style="padding:6px 0;color:#94a3b8;"><strong>Location:</strong></td><td style="padding:6px 0;">${loginAttempt.location || 'Unknown'}</td></tr>
+                ${loginAttempt.userAgent ? `<tr><td style="padding:6px 0;color:#94a3b8;"><strong>Device:</strong></td><td style="padding:6px 0;font-size:12px;">${loginAttempt.userAgent}</td></tr>` : ''}
+              </table>
+            </div>
+            
+            ${loginAttempt.suspicious ? '<p style="color:#ef4444;">⚠️ <strong>Warning:</strong> This login attempt has been marked as suspicious.</p>' : ''}
+            ${!loginAttempt.success ? `<p style="color:#ef4444;"><strong>Failure reason:</strong> ${loginAttempt.failureReason}</p>` : ''}
+            
+            <p style="color:#cbd5e1;font-size:14px;">
+              If this wasn't you, please secure your account immediately.
+            </p>
+          `,
+          action: {
+            label: 'Secure Account',
+            url: process.env.BRAND_PORTAL_URL || 'https://gym-wale.com/security'
+          }
+        });
         console.log(`✅ Email notification sent successfully to: ${gym.email}`);
       } catch (emailError) {
         console.error(`❌ Failed to send email notification to: ${gym.email}`, emailError);

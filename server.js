@@ -1,10 +1,41 @@
-console.log('<<<<< SERVER.JS IS LOADING - VERSION 1.2.0>>>>>'); // Replace XYZ with a new number each time
-const dotenv = require('dotenv');
-const express = require("express");
-const connectDB = require('./backend/config/db');
-const mongoose = require("mongoose");
-const cors = require("cors");
+console.log('<<<<< SERVER.JS IS LOADING - VERSION 1.2.0>>>>>');
+
+// Import required modules
+const mongoose = require('mongoose');
+const express = require('express');
+const cors = require('cors');
+const bcryptjs = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const path = require('path');
+require('dotenv').config();
+
+// Create Express app
+const app = express();
+
+// Ensure critical upload directories exist (prevents silent Multer ENOENT errors)
+const fs = require('fs');
+const uploadDirs = [
+  path.join(__dirname, 'uploads'),
+  path.join(__dirname, 'uploads', 'trainers')
+];
+uploadDirs.forEach(dir => {
+  try { if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); console.log('📁 Created directory:', dir); } } catch (e) { console.error('❌ Failed to create directory', dir, e); }
+});
+
+console.log('tempAuth imported:', typeof require('./backend/controllers/simpleAdminAuth').tempAuth);
+
+// Request logging middleware - placed early to catch all requests
+app.use((req, res, next) => {
+  console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`   Headers: ${JSON.stringify(req.headers)}`);
+  next();
+});
+
+// Face Recognition Service
+const FaceRecognitionService = require('./backend/services/faceRecognitionService');
+const dotenv = require('dotenv');
+const connectDB = require('./backend/config/db');
 
 dotenv.config();
 
@@ -29,8 +60,10 @@ const gymNotificationRoutes = require('./backend/routes/gymNotificationRoutes');
 const supportRoutes = require('./backend/routes/supportRoutes');
 const communicationRoutes = require('./backend/routes/communicationRoutes');
 const gymCommunicationRoutes = require('./backend/routes/gymCommunicationRoutes');
+const whatsappRoutes = require('./backend/routes/whatsappRoutes');
 const attendanceRoutes = require('./backend/routes/attendanceRoutes');
 const paymentRoutes = require('./backend/routes/paymentRoutes');
+const cashValidationRoutes = require('./backend/routes/cashValidationRoutes');
 const equipmentRoutes = require('./backend/routes/equipmentRoutes');
 const qrCodeRoutes = require('./backend/routes/qrCodeRoutes');
 const biometricRoutes = require('./backend/routes/biometricRoutes');
@@ -42,8 +75,6 @@ if (typeof testRoutes !== 'function') {
 const NotificationScheduler = require('./backend/services/notificationScheduler');
 const SubscriptionService = require('./backend/services/subscriptionService');  
 
-
-const app = express();
 
 // <<<< TEMPORARY TEST ROUTE >>>>
 app.get('/test-route', (req, res) => {
@@ -396,11 +427,16 @@ app.get('/api/test-endpoint', (req, res) => {
 });
 
 // ✅ API routes FIRST - these take priority
+console.log('🎫 Starting API route mounting...');
 app.use('/api/users', userRoutes);
 app.use('/api/bookings', userBookingRoutes);
 app.use('/api/user-payments', userPaymentRoutes);
 app.use('/api/user-preferences', userPreferenceRoutes);
 app.use('/api/trainers', trainerRoutes);
+
+// Mount communication routes BEFORE general admin routes to prevent conflicts
+app.use('/api/admin/communication', communicationRoutes);
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
@@ -410,18 +446,29 @@ app.use('/api/diet', dietRoutes);
 app.use('/api/members', (req, res, next) => {
   next();
 }, memberRoutes);
+console.log('🎫 About to mount notifications...');
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/gym/notifications', gymNotificationRoutes);
 app.use('/api/gym/communication', gymCommunicationRoutes); // Enhanced Gym-Admin Communication System
+
+console.log('🎫 About to mount support routes...');
+console.log('🎫 supportRoutes module type:', typeof supportRoutes);
+console.log('🎫 supportRoutes is function?', typeof supportRoutes === 'function');
 app.use('/api/support', supportRoutes); // Legacy Admin Support System (still needed for admin panel)
-app.use('/api/admin/communication', communicationRoutes);
+console.log('🎫 Support routes mounted at /api/support');
+
+app.use('/api/whatsapp', whatsappRoutes); // WhatsApp Business API Integration
 app.use('/api/attendance', (req, res, next) => {
   next();
 }, attendanceRoutes);
 app.use('/api/payments', (req, res, next) => {
   next();
 }, paymentRoutes);
+app.use('/api/cash-validation', (req, res, next) => {
+  console.log(`💰 Cash validation route accessed: ${req.method} ${req.url}`);
+  next();
+}, cashValidationRoutes);
 app.use('/api/gym', (req, res, next) => {
   console.log(`🏋️ Equipment route accessed: ${req.method} ${req.url}`);
   next();

@@ -13,6 +13,31 @@ const gymadminAuth = require('../middleware/gymadminAuth');
 const sendEmail = require('../utils/sendEmail');
 const whatsappService = require('../services/whatsappService');
 
+console.log('🎫 Support Routes loading...');
+
+// Simple test endpoint without auth middleware
+router.get('/ping', (req, res) => {
+  console.log('=== SUPPORT PING ENDPOINT HIT ===');
+  res.json({ message: 'Support routes are working!', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint to verify auth middleware works on support routes
+router.get('/test-auth', authMiddleware, async (req, res) => {
+  console.log('=== SUPPORT AUTH TEST ENDPOINT ===');
+  console.log('User ID:', req.user?._id);
+  console.log('User email:', req.user?.email);
+  res.json({
+    success: true,
+    message: 'Auth middleware working on support routes',
+    user: {
+      id: req.user._id,
+      email: req.user.email
+    }
+  });
+});
+
+console.log('🎫 Support Routes loaded successfully');
+
 // Get support statistics for admin dashboard
 router.get('/stats', adminAuth, async (req, res) => {
   try {
@@ -146,6 +171,61 @@ router.get('/tickets', adminAuth, async (req, res) => {
   }
 });
 
+// Get user's own support tickets - MUST come before /tickets/:ticketId route
+router.get('/tickets/my', authMiddleware, async (req, res) => {
+  try {
+    console.log('=== SUPPORT TICKETS ROUTE HIT ===');
+    console.log('User requesting tickets:', req.user?._id || 'No user found');
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    const { page = 1, limit = 10, status, priority } = req.query;
+    
+    // Build filter query
+    const filter = { userId: req.user._id };
+    
+    if (status) {
+      filter.status = status;
+    }
+    
+    if (priority) {
+      filter.priority = priority;
+    }
+    
+    // Get tickets with pagination
+    const tickets = await Support.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .select('ticketId subject description category priority status createdAt updatedAt responseTime')
+      .lean();
+    
+    // Transform the data to match frontend expectations
+    const transformedTickets = tickets.map(ticket => ({
+      ...ticket,
+      message: ticket.description // Map description to message for frontend
+    }));
+    
+    // Get total count for pagination
+    const total = await Support.countDocuments(filter);
+    
+    res.json({
+      success: true,
+      tickets: transformedTickets,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / limit),
+        count: transformedTickets.length,
+        totalTickets: total
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user tickets:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching support tickets'
+    });
+  }
+});
+
 // Get specific ticket details
 router.get('/tickets/:ticketId', adminAuth, async (req, res) => {
   try {
@@ -176,70 +256,54 @@ router.get('/tickets/:ticketId', adminAuth, async (req, res) => {
 // Create new support ticket (for users)
 router.post('/tickets', authMiddleware, async (req, res) => {
   try {
+    console.log('=== CREATING SUPPORT TICKET ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User from auth:', req.user);
+    
     const {
       category,
       priority = 'medium',
       subject,
-      description,
-      userType,
+      message,
+      phone,
+      emailUpdates = true,
       attachments = []
     } = req.body;
 
-    let userId, userEmail, userName, userPhone;
-    
-    // Determine user details based on user type
-    if (userType === 'User') {
-      const user = await User.findById(req.user.id);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
-        });
-      }
-      userId = user._id;
-      userEmail = user.email;
-      userName = user.name;
-      userPhone = user.phone;
-    } else if (userType === 'Gym') {
-      const gym = await Gym.findById(req.user.id);
-      if (!gym) {
-        return res.status(404).json({
-          success: false,
-          message: 'Gym not found'
-        });
-      }
-      userId = gym._id;
-      userEmail = gym.email;
-      userName = gym.gymName;
-      userPhone = gym.phone;
-    } else if (userType === 'Trainer') {
-      const trainer = await Trainer.findById(req.user.id);
-      if (!trainer) {
-        return res.status(404).json({
-          success: false,
-          message: 'Trainer not found'
-        });
-      }
-      userId = trainer._id;
-      userEmail = trainer.email;
-      userName = trainer.name;
-      userPhone = trainer.phone;
+    console.log('Extracted fields:', { category, priority, subject, message, phone });
+
+    // Get user details from the authenticated user
+    const user = await User.findById(req.user._id);
+    console.log('Found user:', user ? user.email : 'NOT FOUND');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
     }
 
-    const ticket = new Support({
-      userId,
-      userType,
-      userEmail,
-      userName,
-      userPhone,
+    // Generate ticket ID
+    const ticketCount = await Support.countDocuments();
+    const ticketId = `TKT-${Date.now()}-${ticketCount + 1}`;
+    console.log('Generated ticket ID:', ticketId);
+
+    const ticketData = {
+      ticketId,
+      userId: user._id,
+      userType: 'User',
+      userEmail: user.email,
+      userName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || user.name,
+      userPhone: phone || user.phone,
       category,
       priority,
       subject,
-      description,
+      description: message, // Frontend sends 'message', backend expects 'description'
+      status: 'open', // Set default status
       attachments,
+      emailUpdates,
       messages: [{
         sender: 'user',
-        message: description,
+        message: message,
         timestamp: new Date()
       }],
       metadata: {
@@ -247,29 +311,54 @@ router.post('/tickets', authMiddleware, async (req, res) => {
         ipAddress: req.ip,
         source: 'web'
       }
-    });
+    };
+
+    console.log('Ticket data to save:', JSON.stringify(ticketData, null, 2));
+
+    const ticket = new Support(ticketData);
 
     await ticket.save();
+    console.log('Ticket saved successfully:', ticket.ticketId);
 
     // Create notification for admin
-    const notification = new Notification({
-      recipient: 'admin',
-      title: 'New Support Ticket',
-      message: `New ${priority} priority ticket from ${userName}: ${subject}`,
-      type: 'support',
-      metadata: {
-        ticketId: ticket.ticketId,
-        userType,
-        priority,
-        category
-      }
-    });
+    try {
+      // Find any admin to notify (preferably super_admin)
+      const Admin = require('../models/admin');
+      const admin = await Admin.findOne({ 
+        $or: [
+          { role: 'super_admin' },
+          { role: 'admin' }
+        ]
+      }).select('_id');
 
-    await notification.save();
+      if (admin) {
+        const notification = new Notification({
+          user: admin._id,  // Use admin ObjectId instead of 'recipient'
+          title: 'New Support Ticket',
+          message: `New ${priority} priority ticket from ${ticket.userName}: ${subject}`,
+          type: 'support',
+          metadata: {
+            ticketId: ticket.ticketId,
+            userType: 'User',
+            priority,
+            category
+          }
+        });
+
+        await notification.save();
+        console.log('Admin notification created successfully');
+      } else {
+        console.warn('No admin found for notification creation');
+      }
+    } catch (notificationError) {
+      console.error('Error creating admin notification:', notificationError);
+      // Don't fail the ticket creation if notification fails
+    }
 
     res.status(201).json({
       success: true,
       message: 'Support ticket created successfully',
+      ticketId: ticket.ticketId,
       ticket: {
         ticketId: ticket.ticketId,
         status: ticket.status,
@@ -348,7 +437,7 @@ router.post('/tickets/:ticketId/reply', adminAuth, async (req, res) => {
               </div>
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                 <p style="color: #6b7280; font-size: 12px;">
-                  This is an automated message from Fit-Verse Support Team.
+                  This is an automated message from Gym-Wale Support Team.
                   Please do not reply to this email directly.
                 </p>
               </div>
@@ -407,7 +496,7 @@ router.post('/tickets/:ticketId/reply', adminAuth, async (req, res) => {
       notificationPromises.push(
         whatsappService.sendMessage({
           to: ticket.userPhone,
-          message: `🎯 *Support Team Reply*\n\n*Ticket:* ${ticket.ticketId}\n*Subject:* ${ticket.subject}\n\n*Reply:* ${message}\n\nStatus: ${ticket.status.toUpperCase()}\nPriority: ${ticket.priority.toUpperCase()}\n\n_Please check your Fit-Verse account for full details._`
+          message: `🎯 *Support Team Reply*\n\n*Ticket:* ${ticket.ticketId}\n*Subject:* ${ticket.subject}\n\n*Reply:* ${message}\n\nStatus: ${ticket.status.toUpperCase()}\nPriority: ${ticket.priority.toUpperCase()}\n\n_Please check your Gym-Wale account for full details._`
         })
       );
     }
@@ -430,6 +519,30 @@ router.post('/tickets/:ticketId/reply', adminAuth, async (req, res) => {
       success: false,
       message: 'Error sending reply'
     });
+  }
+});
+
+// User reply to their own support ticket
+router.post('/tickets/:ticketId/reply-user', authMiddleware, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Reply message required' });
+    }
+    const ticket = await Support.findOne({ ticketId: req.params.ticketId, userId: req.user._id });
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    ticket.messages.push({ sender: 'user', message: message.trim(), timestamp: new Date(), sentVia: ['notification'] });
+    // If ticket was resolved/closed, reopen flow could be policy-based; here move resolved->open unless closed
+    if (['resolved','replied'].includes(ticket.status)) {
+      ticket.status = 'open';
+    }
+    await ticket.save();
+    res.json({ success: true, message: 'Reply added', ticket: { ticketId: ticket.ticketId, status: ticket.status, messagesCount: ticket.messages.length } });
+  } catch (error) {
+    console.error('User reply error:', error);
+    res.status(500).json({ success: false, message: 'Error adding reply' });
   }
 });
 
@@ -564,7 +677,7 @@ router.post('/admin/tickets', adminAuth, async (req, res) => {
       ticketId,
       userId: gymId || req.admin.id,
       userType: userType || 'Gym',
-      userEmail: gymEmail || 'admin@fitverse.com',
+      userEmail: gymEmail || 'admin@gym-wale.com',
       userName: gymName || 'Gym Admin',
       userPhone: gymPhone || 'N/A',
       category,

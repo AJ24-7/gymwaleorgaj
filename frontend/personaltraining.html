@@ -50,87 +50,262 @@
                 
                 <!-- 🔐 Shown only when user is logged out -->
                 <li class="nav-item" id="login-signup-nav" style="display: none;">
-                    <a href="/frontend/public/login.html"><i class="fas fa-sign-in-alt"></i> Login / Signup</a>
-                </li>
+                    <a href="/frontend/public/login.html"><i class="fas fa-sign-in-alt"></i> Login / Signup</a></li>
             </ul>
             <div class="menu-toggle">&#9776;</div>
         </nav>
     </header>
 
-    <!-- Main Content -->
-    <div class="container">
-        <section class="page-header">
-            <h1>Personal Training</h1>
-            <p>Get one-on-one guidance from our certified personal trainers to help you reach your fitness goals faster and more effectively.</p>
-        </section>
+    <!-- Hero Section with Animation Background -->
+    <section class="hero-training">
+        <div class="hero-overlay"></div>
+        
+        <!-- Floating Training Icons -->
+        <div class="hero-floating-icons">
+            <div class="floating-icon"><i class="fas fa-dumbbell"></i></div>
+            <div class="floating-icon"><i class="fas fa-user-tie"></i></div>
+            <div class="floating-icon"><i class="fas fa-heartbeat"></i></div>
+            <div class="floating-icon"><i class="fas fa-trophy"></i></div>
+            <div class="floating-icon"><i class="fas fa-stopwatch"></i></div>
+            <div class="floating-icon"><i class="fas fa-chart-line"></i></div>
+        </div>
+        
+        <!-- Animated Particles -->
+        <div class="hero-particles">
+            <div class="particle" style="left: 15%; animation-delay: 0s;"></div>
+            <div class="particle" style="left: 25%; animation-delay: 3s;"></div>
+            <div class="particle" style="left: 35%; animation-delay: 6s;"></div>
+            <div class="particle" style="left: 45%; animation-delay: 9s;"></div>
+            <div class="particle" style="left: 55%; animation-delay: 12s;"></div>
+            <div class="particle" style="left: 65%; animation-delay: 15s;"></div>
+            <div class="particle" style="left: 75%; animation-delay: 18s;"></div>
+            <div class="particle" style="left: 85%; animation-delay: 21s;"></div>
+        </div>
 
-        <!-- Trainer Registration Option -->
-        <section class="registration-section">
-            <h2>Are you a certified personal trainer?</h2>
-            <p>Join our network of fitness professionals and connect with clients looking for your expertise.</p>
-            <a href="#" class="btn" id="registerBtn">Register as a Trainer</a>
-        </section>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-medal"></i>
+                    <span>Certified Personal Training</span>
+                </div>
+                <h1 class="hero-title">
+                    Transform Your Body with <span class="gradient-text">Expert Guidance</span>
+                </h1>
+                <p class="hero-description">
+                    Get personalized fitness training from certified professionals. Whether you're a beginner or advanced athlete, 
+                    our trainers will help you achieve your goals faster and safer.
+                </p>
+                <div class="hero-cta-group">
+                    <button class="btn-primary hero-cta-btn" onclick="scrollToTrainers()">
+                        <i class="fas fa-search"></i>
+                        <span>Find Trainers</span>
+                    </button>
+                    <button class="btn-secondary hero-cta-btn" id="registerBtn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Become a Trainer</span>
+                    </button>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">200+</span>
+                        <span class="stat-label">Certified Trainers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">5K+</span>
+                        <span class="stat-label">Success Stories</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">95%</span>
+                        <span class="stat-label">Goal Achievement</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <!-- Filter for Finding Trainers -->
-        <section class="filter-section">
-            <h2>Find Your Perfect Trainer</h2>
-            <form class="filter-form">
-                <div class="form-group">
-                    <label for="location">Location</label>
-                    <select id="location">
-                        <option value="All Cities">All Cities</option>
-                        <option value="Faridabad">Faridabad</option>
-                        <option value="Delhi">Delhi</option>
-                        <option value="Gurugram">Gurugram</option>
-                        <option value="Noida">Noida</option>
-                    </select>
+    <!-- Training Benefits Section -->
+    <section class="benefits-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-star"></i>
+                    <span>Why Choose Personal Training</span>
                 </div>
-                <div class="form-group">
-                    <label for="specialty">Specialty</label>
-                    <select id="specialty">
-                        <option value="">All Specialties</option>
-                        <option value="Weight Loss">Weight Loss</option>
-                        <option value="Bodybuilding">Bodybuilding</option>
-                        <option value="Functional Training">Functional Training</option>
-                        <option value="Sports Performance">Sports Performance</option>
-                        <option value="Rehabilitation">Rehabilitation</option>
-                    </select>
+                <h2 class="section-title">Accelerate Your <span class="gradient-text">Fitness Journey</span></h2>
+                <p class="section-description">
+                    Experience the difference of personalized training with our certified professionals.
+                </p>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h3>Personalized Goals</h3>
+                    <p>Custom workout plans designed specifically for your fitness level and objectives.</p>
                 </div>
-                <div class="form-group">
-                    <label for="availability">Availability</label>
-                    <select id="availability">
-                        <option value="">Any Time</option>
-                        <option value="morning">Mornings</option>
-                        <option value="afternoon">Afternoons</option>
-                        <option value="evening">Evenings</option>
-                        <option value="weekends">Weekends</option>
-                    </select>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Safe & Effective</h3>
+                    <p>Proper form guidance and injury prevention techniques for safe progress.</p>
                 </div>
-                <div class="form-group">
-                    <button type="submit" class="btn">Find Trainers</button>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Faster Results</h3>
+                    <p>Achieve your fitness goals 3x faster with expert guidance and motivation.</p>
                 </div>
-            </form>
-        </section>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Expert Support</h3>
+                    <p>Continuous motivation and professional guidance throughout your journey.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trainer Search Section -->
+    <section class="search-section" id="trainer-search">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">
+                    <i class="fas fa-search"></i>
+                    <span>Find Your Trainer</span>
+                </div>
+                <h2 class="section-title">Discover Your Perfect <span class="gradient-text">Fitness Coach</span></h2>
+            </div>
+
+            <div class="search-card">
+                <form class="search-form">
+                    <div class="search-row">
+                        <div class="search-field">
+                            <i class="fas fa-map-marker-alt search-icon"></i>
+                            <select id="location" class="search-input">
+                                <option value="All Cities">All Cities</option>
+                                <option value="Faridabad">Faridabad</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Gurugram">Gurugram</option>
+                                <option value="Noida">Noida</option>
+                            </select>
+                        </div>
+                        <div class="search-field">
+                            <i class="fas fa-dumbbell search-icon"></i>
+                            <select id="specialty" class="search-input">
+                                <option value="">All Specialties</option>
+                                <option value="Weight Loss">Weight Loss</option>
+                                <option value="Bodybuilding">Bodybuilding</option>
+                                <option value="Functional Training">Functional Training</option>
+                                <option value="Sports Performance">Sports Performance</option>
+                                <option value="Rehabilitation">Rehabilitation</option>
+                            </select>
+                        </div>
+                        <div class="search-field">
+                            <i class="fas fa-clock search-icon"></i>
+                            <select id="availability" class="search-input">
+                                <option value="">Any Time</option>
+                                <option value="morning">Mornings</option>
+                                <option value="afternoon">Afternoons</option>
+                                <option value="evening">Evenings</option>
+                                <option value="weekends">Weekends</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i>
+                            <span>Find Trainers</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
 
         <!-- Trainers by Gym Sections -->
-   <div class="trainers-container">
-    <section class="gym-section">
-        <h2>Beast Fitness Trainers</h2>
-        <div class="trainers-grid">
-            <!-- Trainer cards will be inserted here by JavaScript -->
-        </div>
-    </section>
+        <div class="trainers-container">
+            <section class="gym-section">
+                <div class="section-header">
+                    <h2 class="section-title">Beast Fitness <span class="gradient-text">Trainers</span></h2>
+                    <p class="section-description">Meet our certified professionals at Beast Fitness</p>
+                </div>
+                <div class="trainers-grid">
+                    <!-- Trainer cards will be inserted here by JavaScript -->
+                </div>
+            </section>
 
-    <section class="gym-section">
-        <h2>Midtown Gym Trainers</h2>
-        <div class="trainers-grid">
-            <!-- Trainer cards will be inserted here by JavaScript -->
+            <section class="gym-section">
+                <div class="section-header">
+                    <h2 class="section-title">Midtown Gym <span class="gradient-text">Trainers</span></h2>
+                    <p class="section-description">Discover expert trainers at Midtown Gym</p>
+                </div>
+                <div class="trainers-grid">
+                    <!-- Trainer cards will be inserted here by JavaScript -->
+                </div>
+            </section>
         </div>
-    </section>
-</div>
 
+        <!-- Success Stories Section -->
+        <section class="success-stories">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-badge">
+                        <i class="fas fa-trophy"></i>
+                        <span>Success Stories</span>
+                    </div>
+                    <h2 class="section-title">Real Results from <span class="gradient-text">Real People</span></h2>
+                    <p class="section-description">
+                        See how our personal trainers have helped transform lives and achieve fitness goals.
+                    </p>
+                </div>
+                
+                <div class="stories-grid">
+                    <div class="story-card">
+                        <div class="story-image">
+                            <img src="/frontend/data/success1.jpg" alt="Success Story" loading="lazy">
+                        </div>
+                        <div class="story-content">
+                            <h3>Lost 25kg in 6 months</h3>
+                            <p>"My trainer helped me completely transform my lifestyle. The personalized approach made all the difference!"</p>
+                            <div class="story-author">- Priya S.</div>
+                        </div>
+                    </div>
+                    <div class="story-card">
+                        <div class="story-image">
+                            <img src="/frontend/data/success2.jpg" alt="Success Story" loading="lazy">
+                        </div>
+                        <div class="story-content">
+                            <h3>Built muscle & confidence</h3>
+                            <p>"From zero gym experience to competing in bodybuilding competitions. My trainer believed in me when I didn't."</p>
+                            <div class="story-author">- Rahul M.</div>
+                        </div>
+                    </div>
+                    <div class="story-card">
+                        <div class="story-image">
+                            <img src="/frontend/data/success3.jpg" alt="Success Story" loading="lazy">
+                        </div>
+                        <div class="story-content">
+                            <h3>Overcame injury & returned stronger</h3>
+                            <p>"After my sports injury, I thought my athletic days were over. My trainer proved me wrong with proper rehabilitation."</p>
+                            <div class="story-author">- Anjali K.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         
     </div>
+
+    <script>
+        function scrollToTrainers() {
+            document.querySelector('#trainer-search').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+    </script>
 
     <!-- Trainer Profile Modal -->
    <!-- Trainer Profile Modal -->
@@ -206,129 +381,356 @@
     <div class="modal" id="registrationModal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2>Trainer Registration</h2>
-            <p>Please fill out the form below to join our network of certified personal trainers.</p>
+            <h2>Professional Trainer Registration</h2>
+            <p>Join our network of certified personal trainers and expand your career opportunities.</p>
             
             <form class="registration-form" id="registrationForm" enctype="multipart/form-data" action="javascript:void(0);">
 
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName"  name="firstName"  required>
-                    </div>
-                    <div class="form-col">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName" required>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-col">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" required>
+                <!-- Profile Image Upload Section -->
+                <div class="profile-image-section">
+                    <label for="profileImageInput">Profile Photo</label>
+                    <div class="profile-image-upload">
+                        <div class="profile-image-preview" id="profileImagePreview">
+                            <img src="https://via.placeholder.com/120?text=Photo" alt="Profile Preview" id="profileImageTag">
+                            <div class="upload-overlay">
+                                <i class="fas fa-camera"></i>
+                                <span>Upload Photo</span>
+                            </div>
+                        </div>
+                        <input type="file" id="profileImageInput" name="photo" accept="image/*" style="display: none;">
+                        <button type="button" class="btn-upload" onclick="document.getElementById('profileImageInput').click()">
+                            <i class="fas fa-upload"></i>
+                            Choose Profile Photo
+                        </button>
                     </div>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="specialty">Primary Specialty</label>
-                        <select id="specialty" name="specialty" required>
-                            <option value="">Select your specialty</option>
-                            <option value="weight-loss">Weight Loss</option>
-                            <option value="strength">Strength Training</option>
-                            <option value="functional">Functional Training</option>
-                            <option value="sports">Sports Performance</option>
-                            <option value="rehab">Rehabilitation</option>
-                            <option value="yoga">Yoga/Pilates</option>
-                            <option value="senior">Senior Fitness</option>
-                            <option value="other">Other</option>
-                        </select>
+
+                <!-- Trainer Type Selection -->
+                <div class="form-section">
+                    <h3><i class="fas fa-user-tag"></i> Trainer Type</h3>
+                    <div class="trainer-type-selection">
+                        <div class="trainer-type-option" data-type="gym">
+                            <input type="radio" id="gymTrainer" name="trainerType" value="gym" checked>
+                            <label for="gymTrainer">
+                                <div class="option-content">
+                                    <i class="fas fa-building"></i>
+                                    <h4>Gym-Based Trainer</h4>
+                                    <p>Work with established gym facilities and their existing member base</p>
+    
+                                </div>
+                            </label>
+                        </div>
+                        <div class="trainer-type-option" data-type="independent">
+                            <input type="radio" id="independentTrainer" name="trainerType" value="independent">
+                            <label for="independentTrainer">
+                                <div class="option-content">
+                                    <i class="fas fa-user-circle"></i>
+                                    <h4>Independent Trainer</h4>
+                                    <p>Freelance trainer offering services independently across multiple locations</p>
+                            
+                                </div>
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-col">
-                        <label for="experience">Years of Experience</label>
-                        <input type="number" id="experience" min="0" name="experience" required>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="locations">Preferred Gym Locations</label>
-                        <select id="city" name="city" multiple required>
-                            <option value="Faridabad">Faridabad</option>
-                            <option value="Delhi">Delhi</option>
-                            <option value="Gurugram">Gurugram</option>
-                            <option value="Noida">Noida</option>
-                          </select>
-                        <small>Hold Ctrl/Cmd to select multiple locations</small>
-                    </div>
-                </div>
-                <!-- Gym Dropdown -->
-<div class="form-group">
-    <label for="gym">Select Gym</label>
-    <select id="gym" name="gym" required>
-      <option value="">-- Select Gym --</option>
-      <!-- gyms will be added here dynamically -->
-    </select>
-  </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="availability">Availability</label>
-                        <textarea id="availability" placeholder="Please describe your typical availability (days/times)" name="availability"></textarea>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Certifications</label>
-                        <div class="certification-upload">
-                            <p>Upload copies of your certifications (PDF, JPG, or PNG)</p>
-                            <input type="file" id="certifications" multiple accept=".pdf,.jpg,.jpeg,.png" name="certifications" multiple/>
+                    <div class="independent-trainer-info" id="independentTrainerInfo" style="display: none;">
+                        <div class="info-box">
+                            <h4><i class="fas fa-info-circle"></i> Independent Trainer Benefits</h4>
+                            <div class="info-content">
+                                <div class="info-column">
+                                    <h5>What You Get:</h5>
+                                    <ul>
+                                        <li>Profile listed on our platform</li>
+                                        <li>Direct client inquiries</li>
+                                        <li>Flexible scheduling tools</li>
+                                        <li>Payment processing support</li>
+                                        <li>Professional certification display</li>
+                                    </ul>
+                                </div>
+                                <div class="info-column">
+                                    <h5>Requirements:</h5>
+                                    <ul>
+                                        <li>Valid fitness certifications</li>
+                                        <li>Professional liability insurance</li>
+                                        <li>Minimum 1 year experience</li>
+                                        <li>Background verification</li>
+                                        <li>Client references</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="bio">Professional Bio</label>
-                        <textarea id="bio" placeholder="Tell us about your training philosophy and approach" name="bio"></textarea>
+
+                <!-- Personal Information -->
+                <div class="form-section">
+                    <h3><i class="fas fa-user"></i> Personal Information</h3>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="firstName">First Name *</label>
+                            <input type="text" id="firstName" name="firstName" required>
+                        </div>
+                        <div class="form-col">
+                            <label for="lastName">Last Name *</label>
+                            <input type="text" id="lastName" name="lastName" required>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="rate">Hourly Rate (₹)</label>
-                        <input type="number" id="rate" min="0" step="5" name="rate" required>
-                    </div>
-                    <div class="form-col">
-                        <label for="photo">Profile Photo</label>
-                        <input type="file" id="photo" accept=".jpg,.jpeg,.png" name="photo"/>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-col">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Professional Information -->
+                <div class="form-section">
+                    <h3><i class="fas fa-briefcase"></i> Professional Information</h3>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="trainerSpecialty">Primary Specialty *</label>
+                            <select id="trainerSpecialty" name="specialty" required>
+                                <option value="">Select your specialty</option>
+                                <option value="Weight Loss">Weight Loss</option>
+                                <option value="Bodybuilding">Bodybuilding</option>
+                                <option value="Functional Training">Functional Training</option>
+                                <option value="Sports Performance">Sports Performance</option>
+                                <option value="Rehabilitation">Rehabilitation</option>
+                                <option value="Yoga/Pilates">Yoga/Pilates</option>
+                                <option value="Senior Fitness">Senior Fitness</option>
+                                <option value="Youth Training">Youth Training</option>
+                                <option value="Nutrition Coaching">Nutrition Coaching</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="experience">Years of Experience *</label>
+                            <input type="number" id="experience" min="0" name="experience" required>
+                        </div>
+                    </div>
+
+                    <!-- Rate Structure Section -->
+                    <div class="rate-structure-section">
+                        <label>Training Rate Structure *</label>
+                        <div class="rate-type-selection">
+                            <div class="rate-type-option" data-type="hourly">
+                                <input type="checkbox" id="hourlyRate" name="rateTypes" value="hourly">
+                                <label for="hourlyRate">
+                                    <div class="rate-option-content">
+                                        <i class="fas fa-clock"></i>
+                                        <span class="rate-title">Per Hour</span>
+                                        <span class="rate-desc">Charge by the hour</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="rate-type-option" data-type="monthly">
+                                <input type="checkbox" id="monthlyRate" name="rateTypes" value="monthly">
+                                <label for="monthlyRate">
+                                    <div class="rate-option-content">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="rate-title">Per Month</span>
+                                        <span class="rate-desc">Monthly packages</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Dynamic Rate Input Fields -->
+                        <div class="rate-inputs-container">
+                            <div class="rate-input-group" id="hourlyRateInput" style="display: none;">
+                                <label for="hourlyRateValue">Hourly Rate (₹) *</label>
+                                <input type="number" id="hourlyRateValue" name="hourlyRateValue" min="100" step="50">
+                                <small>Recommended range: ₹500-₹3000 per hour</small>
+                            </div>
+                            <div class="rate-input-group" id="monthlyRateInput" style="display: none;">
+                                <label for="monthlyRateValue">Monthly Rate (₹) *</label>
+                                <input type="number" id="monthlyRateValue" name="monthlyRateValue" min="2000" step="500">
+                                <small>Recommended range: ₹8000-₹50000 per month</small>
+                            </div>
+                        </div>
+                        <div class="rate-selection-note">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Select at least one rate type. Offering both options can attract more clients.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="certifications">Certifications *</label>
+                            <input type="file" id="certifications" name="certifications" multiple accept=".pdf,.jpg,.jpeg,.png" required>
+                            <small>Upload your fitness certifications (PDF, JPG, PNG)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location & Gym Selection -->
+                <div class="form-section">
+                    <h3><i class="fas fa-map-marker-alt"></i> Location & Availability</h3>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="locations">Preferred Work Locations *</label>
+                            <select id="locations" name="locations" multiple required>
+                                <option value="Faridabad">Faridabad</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Gurugram">Gurugram</option>
+                                <option value="Noida">Noida</option>
+                                <option value="Online">Online Training</option>
+                                <option value="Client Location">Client's Location</option>
+                            </select>
+                            <small>Hold Ctrl/Cmd to select multiple locations</small>
+                        </div>
+                    </div>
+
+                    <!-- Gym Selection (only for gym-based trainers) -->
+                    <div class="gym-selection-section" id="gymSelectionSection">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="gymSearchInput">Preferred Gym Partner *</label>
+                                <div class="gym-search-container">
+                                    <div class="gym-search-input-wrapper">
+                                        <i class="fas fa-dumbbell gym-search-icon"></i>
+                                        <input type="text" id="gymSearchInput" name="gymSearchInput" placeholder="Type to search gym by name" autocomplete="off" required>
+                                        <button type="button" class="clear-gym-selection" id="clearGymSelection" title="Clear selection" style="display:none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" id="selectedGymId" name="gym">
+                                    <div class="gym-results-panel" id="gymResultsPanel" style="display:none;">
+                                        <div class="gym-results-status" id="gymResultsStatus">
+                                            <i class="fas fa-search"></i> <span>Start typing to search gyms in selected cities...</span>
+                                        </div>
+                                        <ul class="gym-results-list" id="gymResultsList"></ul>
+                                    </div>
+                                    <small class="gym-search-help">Select city/locations first, then search and pick a partner gym. Only gyms from chosen locations will appear.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability Schedule -->
+                    <div class="availability-section">
+                        <label>Weekly Availability</label>
+                        <div class="availability-grid">
+                            <div class="availability-day">
+                                <label>Monday</label>
+                                <input type="text" name="availability[monday]" placeholder="e.g. 6AM-10AM, 6PM-9PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Tuesday</label>
+                                <input type="text" name="availability[tuesday]" placeholder="e.g. 6AM-10AM, 6PM-9PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Wednesday</label>
+                                <input type="text" name="availability[wednesday]" placeholder="e.g. 6AM-10AM, 6PM-9PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Thursday</label>
+                                <input type="text" name="availability[thursday]" placeholder="e.g. 6AM-10AM, 6PM-9PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Friday</label>
+                                <input type="text" name="availability[friday]" placeholder="e.g. 6AM-10AM, 6PM-9PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Saturday</label>
+                                <input type="text" name="availability[saturday]" placeholder="e.g. 7AM-12PM">
+                            </div>
+                            <div class="availability-day">
+                                <label>Sunday</label>
+                                <input type="text" name="availability[sunday]" placeholder="e.g. 7AM-12PM">
+                            </div>
+                        </div>
+                        <div class="quick-availability-buttons">
+                            <button type="button" class="btn-quick" onclick="setQuickAvailability('morning')">Set All Mornings</button>
+                            <button type="button" class="btn-quick" onclick="setQuickAvailability('evening')">Set All Evenings</button>
+                            <button type="button" class="btn-quick" onclick="setQuickAvailability('fulltime')">Full Time</button>
+                            <button type="button" class="btn-quick" onclick="clearAvailability()">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Bio -->
+                <div class="form-section">
+                    <h3><i class="fas fa-file-alt"></i> Professional Profile</h3>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="bio">Professional Bio *</label>
+                            <textarea id="bio" name="bio" rows="6" required 
+                                      placeholder="Tell potential clients about your training philosophy, approach, and what makes you unique as a trainer. Include your specializations, achievements, and what clients can expect from your sessions."></textarea>
+                            <small>Minimum 30 characters. This will be displayed on your profile.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="form-section">
+                    <div class="terms-section">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+                            <span class="checkmark"></span>
+                            I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="agreeBackground" name="agreeBackground" required>
+                            <span class="checkmark"></span>
+                            I consent to background verification and reference checks
+                        </label>
+                        <label class="checkbox-container" id="insuranceCheckbox" style="display: none;">
+                            <input type="checkbox" id="agreeInsurance" name="agreeInsurance">
+                            <span class="checkmark"></span>
+                            I confirm that I have professional liability insurance (required for independent trainers)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Response Messages -->
                 <div id="formResponseMessage" style="display: none; margin-top: 15px; padding: 10px; border-radius: 5px;"></div>
 
-                <div class="form-actions" style="margin-top: 20px; text-align: right;">
-                    <button type="submit" class="btn btn-primary" id="submitRegistrationBtn">Register Profile</button>
+                <!-- Submit Button -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary btn-submit" id="submitRegistrationBtn">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Submit Application</span>
+                        <div class="btn-loader" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Success Message Container -->
+                <div id="registration-success-message" style="display: none; margin-top: 20px; padding: 20px; border-radius: 8px; text-align: center; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                    <h4 style="margin-top: 0; margin-bottom: 15px;">🎉 Application Submitted Successfully!</h4>
+                    <p style="margin-bottom: 10px;">Your trainer registration has been submitted and is now under review.</p>
+                    <p style="margin-bottom: 10px;">Our team will review your application and credentials within 2-3 business days.</p>
+                    <p style="margin-bottom: 0;">You'll receive an email notification once your application status is updated.</p>
                 </div>
             </form>
-                <!-- Success Message Container -->
-          <div id="registration-success-message" style="display: none; margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
-            <h4 style="margin-top: 0; margin-bottom: 10px;">🎉 Registration Submitted!</h4>
-            <p style="margin-bottom: 5px;">Your application is now awaiting admin approval.</p>
-            <p>You'll receive an email soon with the status.</p>
-          </div>
-            </form>
+        </div>
+    </div>
+
+    <!-- Success/Error Dialog Modal -->
+    <div id="trainer-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="trainer-modal-title">Modal Title</h3>
+                <button class="modal-close" onclick="closeTrainerModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="trainer-modal-body">
+                Modal content goes here
+            </div>
+            <div class="modal-footer" id="trainer-modal-footer">
+                <button class="action-btn secondary" onclick="closeTrainerModal()">Close</button>
+            </div>
         </div>
     </div>
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Fit-verse. All rights reserved.</p>
+        <p>&copy; 2025 Gym-Wale. All rights reserved.</p>
         <ul class="footer-links">
             <li><a href="privacy.html">Privacy Policy</a></li>
             <li><a href="terms.html">Terms of Service</a></li>

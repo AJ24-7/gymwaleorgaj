@@ -2,7 +2,7 @@
 class SupportSystem {
     constructor() {
         this.BASE_URL = "http://localhost:5000";
-        this.currentUserType = 'users';
+        this.currentTab = 'users';
         this.currentFilters = {
             priority: 'all',
             status: 'all',
@@ -33,7 +33,7 @@ class SupportSystem {
         if (!token) return null;
         
         return {
-            'Authorization': `Bearer ${this.getAdminToken()}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         };
     }
@@ -44,6 +44,69 @@ class SupportSystem {
         this.loadSupportStats();
         this.loadSupportTickets();
         this.loadQuickReplyTemplates();
+        
+        // Force refresh when support tab is activated
+        this.forceRefreshWhenActive();
+    }
+    
+    // Force refresh when support content becomes active
+    // Force refresh button functionality
+    forceRefresh() {
+        // Clear any cached data
+        this.currentPage = 1;
+        this.currentFilters = {};
+        
+        // Reload stats and current active tab
+        this.loadSupportStats();
+        
+        // Reload the current tab
+        switch(this.currentTab) {
+            case 'users':
+                this.loadUsersData(this.getAuthHeaders());
+                break;
+            case 'gym-admins':
+                this.loadGymAdminsData(this.getAuthHeaders());
+                break;
+            case 'trainers':
+                this.loadTrainersData(this.getAuthHeaders());
+                break;
+            default:
+                this.showUsersTab();
+        }
+    }
+
+    forceRefreshWhenActive() {
+        const supportTab = document.getElementById('support-tab');
+        if (supportTab) {
+            supportTab.addEventListener('click', () => {
+                console.log('🔄 Support tab clicked - Force refreshing data');
+                setTimeout(() => {
+                    this.loadSupportStats();
+                    this.loadSupportTickets();
+                }, 100);
+            });
+        }
+        
+        // Also listen for when support content becomes visible
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const supportContent = document.getElementById('support-content');
+                    if (supportContent && supportContent.classList.contains('active')) {
+                        console.log('🔄 Support content activated - Force refreshing data');
+                        setTimeout(() => {
+                            this.loadSupportStats();
+                            this.loadSupportTickets();
+                        }, 200);
+                    }
+                }
+            });
+        });
+        
+        const supportContent = document.getElementById('support-content');
+        if (supportContent) {
+            observer.observe(supportContent, { attributes: true });
+        }
     }
 
     bindEventListeners() {
@@ -174,21 +237,22 @@ class SupportSystem {
     }
 
     // Load support tickets
-    async loadSupportTickets(userType = this.currentUserType) {
+    async loadSupportTickets(userType = this.currentTab) {
         try {
-            console.log('🎫 loadSupportTickets called with userType:', userType);
-            console.log('🎫 Current filters:', this.currentFilters);
-            
             this.showLoading();
             const headers = this.getAuthHeaders();
             if (!headers) return; // Authentication failed
+
+            // If userType is 'users', load both support tickets and contact messages
+            if (userType === 'users') {
+                await this.loadUsersData(headers);
+                return;
+            }
             
             const params = new URLSearchParams({
                 userType: userType === 'gym-admins' ? 'gym' : userType === 'trainers' ? 'trainer' : 'user',
                 ...this.currentFilters
             });
-
-            console.log('🌐 API request params:', params.toString());
 
             // Use the new communication routes endpoint
             const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets?${params}`, {
@@ -197,19 +261,158 @@ class SupportSystem {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ API response:', data);
                 this.tickets = data.tickets || [];
-                console.log('🎫 Loaded tickets:', this.tickets.length);
                 this.renderTickets();
             } else {
-                console.error('❌ API response error:', response.status, response.statusText);
                 this.showError('Failed to load support tickets');
             }
         } catch (error) {
-            console.error('❌ Error loading support tickets:', error);
+            console.error('Error loading support tickets:', error);
             this.showError('Error loading support tickets');
         } finally {
             this.hideLoading();
+        }
+    }
+
+    // Load both support tickets and contact messages for users tab
+    async loadUsersData(headers) {
+        try {
+            // Load support tickets for users
+            const ticketParams = new URLSearchParams({
+                userType: 'user',
+                ...this.currentFilters
+            });
+
+            // Load contact messages
+            const [ticketsResponse, messagesResponse] = await Promise.all([
+                fetch(`${this.BASE_URL}/api/admin/communication/support/tickets?${ticketParams}`, {
+                    headers: headers
+                }),
+                fetch(`${this.BASE_URL}/api/admin/communication/contact/messages`, {
+                    headers: headers
+                })
+            ]);
+
+            let allItems = [];
+
+            // Process support tickets
+            if (ticketsResponse.ok) {
+                const ticketsData = await ticketsResponse.json();
+                if (ticketsData.success && ticketsData.tickets) {
+                    // Mark items as support tickets
+                    const tickets = ticketsData.tickets.map(ticket => ({
+                        ...ticket,
+                        itemType: 'support_ticket',
+                        displayType: 'Support Ticket'
+                    }));
+                    allItems.push(...tickets);
+                }
+            }
+
+            // Process contact messages
+            if (messagesResponse.ok) {
+                const messagesData = await messagesResponse.json();
+                if (messagesData.success && messagesData.messages) {
+                    // Convert contact messages to ticket-like format
+                    const contactMessages = messagesData.messages.map(message => ({
+                        ...message,
+                        itemType: 'contact_message',
+                        displayType: 'Contact Form',
+                        ticketId: message.ticketId || `CONTACT-${message._id}`,
+                        userName: message.userName || message.senderName || message.name || 'Unknown User',
+                        userEmail: message.userEmail || message.senderEmail || message.email || 'Unknown Email',
+                        subject: message.subject || 'Contact Form Message',
+                        description: message.description || message.message || message.content || '',
+                        category: message.category || 'general',
+                        priority: message.priority || 'medium',
+                        createdAt: message.createdAt || message.timestamp || new Date(),
+                        status: message.status || 'open'
+                    }));
+                    allItems.push(...contactMessages);
+                }
+            }
+
+            // Sort by creation date (newest first)
+            allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            this.tickets = allItems;
+            this.renderTickets();
+
+        } catch (error) {
+            console.error('Error loading users data:', error);
+            this.showError('Error loading user communications');
+        }
+    }
+
+    // Load gym admins support data
+    async loadGymAdminsData(headers) {
+        try {
+            const ticketParams = new URLSearchParams({
+                userType: 'gym-admin',
+                ...this.currentFilters
+            });
+
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets?${ticketParams}`, {
+                headers: headers
+            });
+
+            if (response.ok) {
+                const ticketsData = await response.json();
+                if (ticketsData.success && ticketsData.tickets) {
+                    const tickets = ticketsData.tickets.map(ticket => ({
+                        ...ticket,
+                        itemType: 'support_ticket',
+                        displayType: 'Support Ticket'
+                    }));
+                    this.tickets = tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                } else {
+                    this.tickets = [];
+                }
+            } else {
+                this.tickets = [];
+            }
+            
+            this.renderTickets();
+
+        } catch (error) {
+            console.error('Error loading gym admins data:', error);
+            this.showError('Error loading gym admin communications');
+        }
+    }
+
+    // Load trainers support data
+    async loadTrainersData(headers) {
+        try {
+            const ticketParams = new URLSearchParams({
+                userType: 'trainer',
+                ...this.currentFilters
+            });
+
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets?${ticketParams}`, {
+                headers: headers
+            });
+
+            if (response.ok) {
+                const ticketsData = await response.json();
+                if (ticketsData.success && ticketsData.tickets) {
+                    const tickets = ticketsData.tickets.map(ticket => ({
+                        ...ticket,
+                        itemType: 'support_ticket',
+                        displayType: 'Support Ticket'
+                    }));
+                    this.tickets = tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                } else {
+                    this.tickets = [];
+                }
+            } else {
+                this.tickets = [];
+            }
+            
+            this.renderTickets();
+
+        } catch (error) {
+            console.error('Error loading trainers data:', error);
+            this.showError('Error loading trainer communications');
         }
     }
 
@@ -227,8 +430,20 @@ class SupportSystem {
         });
         document.getElementById(`${userType}-support`)?.classList.add('active');
 
-        this.currentUserType = userType;
-        this.loadSupportTickets(userType);
+        this.currentTab = userType;
+        
+        // Load data for the selected tab
+        switch(userType) {
+            case 'users':
+                this.loadUsersData(this.getAuthHeaders());
+                break;
+            case 'gym-admins':
+                this.loadGymAdminsData(this.getAuthHeaders());
+                break;
+            case 'trainers':
+                this.loadTrainersData(this.getAuthHeaders());
+                break;
+        }
     }
 
     // Apply filters
@@ -238,29 +453,20 @@ class SupportSystem {
 
     // Render tickets
     renderTickets() {
-        const listId = this.currentUserType === 'gym-admins' ? 'gymAdminTicketsList' : 
-                      this.currentUserType === 'trainers' ? 'trainerTicketsList' : 'userTicketsList';
+        const listId = this.currentTab === 'gym-admins' ? 'gymAdminTicketsList' : 
+                      this.currentTab === 'trainers' ? 'trainerTicketsList' : 'userTicketsList';
         const container = document.getElementById(listId);
         
-        console.log('🎫 renderTickets called:', {
-            currentUserType: this.currentUserType,
-            listId: listId,
-            containerFound: !!container,
-            ticketsCount: this.tickets.length
-        });
-        
         if (!container) {
-            console.error('❌ Container not found:', listId);
+            console.error('Container not found:', listId);
             return;
         }
 
         if (this.tickets.length === 0) {
-            console.log('📭 No tickets to display, showing empty state');
             container.innerHTML = this.getEmptyStateHTML();
             return;
         }
 
-        console.log('🎫 Rendering tickets:', this.tickets.map(t => ({ id: t.ticketId, status: t.status, priority: t.priority })));
         const ticketsHTML = this.tickets.map(ticket => this.createTicketCardHTML(ticket)).join('');
         container.innerHTML = ticketsHTML;
 
@@ -298,9 +504,14 @@ class SupportSystem {
         const priorityClass = `ticket-priority ${ticket.priority}`;
         const statusClass = `ticket-status ${ticket.status}`;
         const cardClass = `support-ticket-card ${ticket.priority === 'urgent' ? 'urgent-priority' : ''} ${ticket.priority === 'high' ? 'high-priority' : ''}`;
+        
+        // Add visual indicator for contact messages vs support tickets
+        const typeIndicator = ticket.itemType === 'contact_message' ? 
+            '<span class="item-type contact-message"><i class="fas fa-envelope"></i> Contact Form</span>' : 
+            '<span class="item-type support-ticket"><i class="fas fa-ticket-alt"></i> Support Ticket</span>';
 
         return `
-            <div class="${cardClass}" data-ticket-id="${ticket.ticketId}">
+            <div class="${cardClass}" data-ticket-id="${ticket.ticketId}" data-item-type="${ticket.itemType}">
                 <div class="ticket-card-header">
                     <div class="ticket-card-left">
                         <div class="ticket-id">#${ticket.ticketId}</div>
@@ -309,6 +520,7 @@ class SupportSystem {
                             <i class="fas fa-user"></i>
                             ${ticket.userName} (${ticket.userEmail})
                         </div>
+                        ${typeIndicator}
                     </div>
                     <div class="ticket-card-right">
                         <span class="ticket-category">${this.getCategoryLabel(ticket.category)}</span>
@@ -325,14 +537,19 @@ class SupportSystem {
                         ${timeAgo}
                     </div>
                     <div class="ticket-actions">
-                        <button class="ticket-action-btn quick-reply-btn">
+                        <button class="ticket-action-btn quick-reply-btn" onclick="window.supportSystem.showQuickReplyModal('${ticket.ticketId}', '${ticket.itemType}')">
                             <i class="fas fa-reply"></i>
                             Quick Reply
                         </button>
-                        <button class="ticket-action-btn view-ticket-btn">
+                        <button class="ticket-action-btn view-ticket-btn" onclick="window.supportSystem.openSupportTicketModal('${ticket.ticketId}', '${ticket.itemType}')">
                             <i class="fas fa-eye"></i>
                             View
                         </button>
+                        ${ticket.itemType === 'contact_message' ? 
+                            `<button class="ticket-action-btn convert-ticket-btn" onclick="window.supportSystem.convertContactToTicket('${ticket._id}')">
+                                <i class="fas fa-exchange-alt"></i>
+                                Convert to Ticket
+                            </button>` : ''}
                     </div>
                 </div>
             </div>
@@ -365,19 +582,33 @@ class SupportSystem {
     }
 
     // Open support ticket modal
-    async openSupportTicketModal(ticketId) {
+    async openSupportTicketModal(ticketId, itemType = 'support_ticket') {
         try {
             const headers = this.getAuthHeaders(); 
             if (!headers) return;
             
-            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${ticketId}`, {
-                headers: headers
-            });
+            let response;
+            
+            // Handle different item types
+            if (itemType === 'contact_message') {
+                // Find the contact message in our tickets array
+                const contactMessage = this.tickets.find(t => t.ticketId === ticketId && t.itemType === 'contact_message');
+                if (contactMessage) {
+                    this.selectedTicket = contactMessage;
+                    this.showSupportTicketModal();
+                    return;
+                }
+            } else {
+                // Load support ticket details
+                response = await fetch(`${this.BASE_URL}/api/admin/communication/support/tickets/${ticketId}`, {
+                    headers: headers
+                });
 
-            if (response.ok) {
-                const data = await response.json();
-                this.selectedTicket = data.ticket;
-                this.showSupportTicketModal();
+                if (response.ok) {
+                    const data = await response.json();
+                    this.selectedTicket = data.ticket;
+                    this.showSupportTicketModal();
+                }
             }
         } catch (error) {
             console.error('Error loading ticket details:', error);
@@ -448,8 +679,13 @@ class SupportSystem {
         this.selectedTicket = null;
     }
 
+    // Show quick reply modal (alias for openQuickReplyModal for compatibility)
+    showQuickReplyModal(ticketId, itemType = 'support_ticket') {
+        this.openQuickReplyModal(ticketId, itemType);
+    }
+
     // Open quick reply modal
-    openQuickReplyModal(ticketId) {
+    openQuickReplyModal(ticketId, itemType = 'support_ticket') {
         const ticket = this.tickets.find(t => t.ticketId === ticketId);
         if (!ticket) return;
 
@@ -471,7 +707,7 @@ class SupportSystem {
         const whatsappOption = document.getElementById('quickReplyViaWhatsApp');
         const whatsappLabel = whatsappOption.closest('.channel-option');
         
-        if (ticket.userType === 'Gym' && ticket.userPhone && ticket.userPhone !== 'N/A') {
+        if ((ticket.userType === 'Gym' || ticket.itemType === 'contact_message') && ticket.userPhone && ticket.userPhone !== 'N/A') {
             whatsappOption.checked = true;
             whatsappLabel.style.opacity = '1';
             whatsappLabel.style.cursor = 'pointer';
@@ -627,6 +863,30 @@ class SupportSystem {
         } catch (error) {
             console.error('Error sending quick reply:', error);
             this.showNotification('Error sending quick reply', 'error');
+        }
+    }
+
+    // Convert contact message to support ticket
+    async convertContactToTicket(messageId) {
+        try {
+            const headers = this.getAuthHeaders();
+            if (!headers) return;
+
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/contact/messages/${messageId}/convert-ticket`, {
+                method: 'POST',
+                headers: headers
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showNotification(`Successfully converted to support ticket #${data.ticketId}`, 'success');
+                this.loadSupportTickets(); // Refresh the list
+            } else {
+                this.showNotification('Failed to convert to support ticket', 'error');
+            }
+        } catch (error) {
+            console.error('Error converting to ticket:', error);
+            this.showNotification('Error converting to support ticket', 'error');
         }
     }
 
@@ -910,8 +1170,8 @@ class MainAdminCommunicationBridge {
     setupGymAdminChannels() {
         console.log('📡 Setting up gym admin communication channels');
         
-        // Listen for gym admin messages
-        this.pollGymAdminMessages();
+        // Listen for gym admin messages - disabled to prevent 404 errors
+        // this.pollGymAdminMessages();
         
         // Setup real-time notification forwarding
         this.setupNotificationForwarding();
@@ -920,21 +1180,26 @@ class MainAdminCommunicationBridge {
     // Poll for messages from gym admins
     async pollGymAdminMessages() {
         try {
-            const headers = this.getAuthHeaders(); if (!headers) return;
-            const response = await fetch(`${this.BASE_URL}/api/admin/communication/support/gym-admin-communications`, {
+            const headers = this.getAuthHeaders(); 
+            if (!headers) return;
+            
+            // Use the correct endpoint for gym messages
+            const response = await fetch(`${this.BASE_URL}/api/admin/communication/gym-messages`, {
                 headers: headers
             });
 
             if (response.ok) {
                 const data = await response.json();
                 this.processGymAdminMessages(data.messages || []);
+            } else {
+                console.warn('Failed to fetch gym messages:', response.status);
             }
         } catch (error) {
             console.error('Error polling gym admin messages:', error);
         }
 
-        // Poll every 30 seconds
-        setTimeout(() => this.pollGymAdminMessages(), 30000);
+        // Poll every 30 seconds - commented out to prevent continuous errors
+        // setTimeout(() => this.pollGymAdminMessages(), 30000);
     }
 
     // Process messages from gym admins

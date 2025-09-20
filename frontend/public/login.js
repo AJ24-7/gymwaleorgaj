@@ -8,6 +8,13 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const API_BASE_URL = "http://localhost:5000/api/users";
 
+  // Check if user was redirected for membership purchase
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectReason = urlParams.get('reason');
+  if (redirectReason === 'membership') {
+    showError('Please login or create an account to purchase membership');
+  }
+
   // Utility Functions
   function showError(message) {
     errorMsg.textContent = message;
@@ -209,7 +216,17 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("username", data.user.name || data.user.username);
         
         setTimeout(() => {
-          window.location.href = "./userprofile.html";
+          // Check for redirect URL parameter
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect');
+          
+          if (redirectUrl) {
+            // Decode and redirect to the original URL
+            window.location.href = decodeURIComponent(redirectUrl);
+          } else {
+            // Default redirect to user profile
+            window.location.href = "./userprofile.html";
+          }
         }, 1000);
       } else {
         throw new Error(data.message || "Login failed.");
@@ -262,7 +279,17 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("username", data.user.name || data.user.username);
         
         setTimeout(() => {
-          window.location.href = "./userprofile.html";
+          // Check for redirect URL parameter
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect');
+          
+          if (redirectUrl) {
+            // Decode and redirect to the original URL
+            window.location.href = decodeURIComponent(redirectUrl);
+          } else {
+            // Default redirect to user profile
+            window.location.href = "./userprofile.html";
+          }
         }, 1000);
       } else {
         throw new Error(data.message || "Signup failed.");

@@ -3,6 +3,9 @@ const Member = require('../models/Member');
 const Gym = require('../models/gym');
 const sendEmail = require('../utils/sendEmail');
 
+// Import cash validation functions
+const { createCashValidationRequest } = require('./cashValidationController');
+
 // Register member via QR code
 const registerMemberViaQR = async (req, res) => {
   try {
@@ -125,16 +128,8 @@ const registerMemberViaQR = async (req, res) => {
     if (paymentMode === 'cash' && registrationType !== 'trial') {
       console.log('💰 Cash payment detected - creating cash validation request');
       
-      // Generate unique validation code
-      const generateValidationCode = () => {
-        return 'CV' + Math.random().toString(36).substring(2, 15).toUpperCase();
-      };
-
-      const validationCode = generateValidationCode();
-      
-      // Create cash validation request instead of member
+      // Create cash validation request using the dedicated system
       const validationData = {
-        validationCode,
         memberName: finalMemberName,
         email,
         phone,
@@ -142,9 +137,6 @@ const registerMemberViaQR = async (req, res) => {
         duration: monthlyPlan,
         amount: paymentAmount,
         gymId: gymId || 'default_gym',
-        status: 'pending',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 2 * 60 * 1000), // 2 minutes
         qrToken: qrToken,
         registrationData: {
           age: parseInt(age),
@@ -154,14 +146,14 @@ const registerMemberViaQR = async (req, res) => {
         }
       };
 
-      // Store in cash validation system (assuming it's imported)
-      // For now, we'll return a response indicating cash validation is needed
+      const { validationCode, expiresAt } = createCashValidationRequest(validationData);
+      
       return res.status(202).json({
         success: true,
         requiresCashValidation: true,
         validationCode,
         message: 'Cash validation request created. Please ask gym admin to confirm payment.',
-        expiresAt: validationData.expiresAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
         timeLeft: 120, // 2 minutes in seconds
         nextSteps: {
           message: 'Payment verification required',
@@ -172,95 +164,103 @@ const registerMemberViaQR = async (req, res) => {
       });
     }
 
-    // For trial registrations and online payments, proceed with immediate member creation
-    const memberData = {
-      gym: gymId,
-      memberName: finalMemberName,
-      age: parseInt(age),
-      gender,
-      phone,
-      email,
-      paymentMode: paymentMode || 'pending',
-      paymentAmount: parseFloat(paymentAmount),
-      planSelected: finalPlanSelected.charAt(0).toUpperCase() + finalPlanSelected.slice(1).toLowerCase(), // Ensure proper case
-      monthlyPlan: monthlyPlan.charAt(0).toUpperCase() + monthlyPlan.slice(1).toLowerCase(), // Ensure proper case
-      activityPreference,
-      address: address || '',
-      joinDate: new Date(),
-      membershipId: `${gym.name.substring(0,3).toUpperCase()}${Date.now()}`,
-      paymentStatus: registrationType === 'trial' ? 'paid' : 'pending'
-    };
-
-    console.log('Creating member with data:', memberData);
-
-    const newMember = new Member(memberData);
-    await newMember.save();
-
-    // Increment QR code usage
-    await qrCode.incrementUsage({
-      memberId: newMember._id,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-
-    // Send welcome email
-    try {
-      await sendWelcomeEmail(newMember, gym, registrationType, specialOffer);
-    } catch (emailError) {
-      console.error('Error sending welcome email:', emailError);
-      // Don't fail registration if email fails
-    }
-
-    // Determine next steps based on registration type
-    let nextSteps = {};
-    
-    if (registrationType === 'trial') {
-      nextSteps = {
-        message: 'Trial membership activated! You can start using the gym immediately.',
-        action: 'visit_gym',
-        details: 'Your 3-day trial starts now. Visit the gym to begin your fitness journey!',
-        redirectUrl: '/registration-complete?type=trial'
+    // ONLY for trial registrations and online payments (NOT for cash payments)
+    if (registrationType === 'trial' || paymentMode !== 'cash') {
+      const memberData = {
+        gym: gymId,
+        memberName: finalMemberName,
+        age: parseInt(age),
+        gender,
+        phone,
+        email,
+        paymentMode: paymentMode || 'pending',
+        paymentAmount: parseFloat(paymentAmount),
+        planSelected: finalPlanSelected.charAt(0).toUpperCase() + finalPlanSelected.slice(1).toLowerCase(), // Ensure proper case
+        monthlyPlan: parseInt(monthlyPlan), // Convert to number
+        activityPreference,
+        address: address || '',
+        joinDate: new Date(),
+        membershipId: `${(gym.gymName || gym.name || 'GYM').substring(0,3).toUpperCase()}${Date.now()}`,
+        paymentStatus: registrationType === 'trial' ? 'paid' : 'pending'
       };
-    } else {
-      // For paid memberships, prepare payment options
-      const baseAmount = selectedPlan?.price || 1000; // Default amount if plan not found
-      const duration = selectedPlan?.duration || 1;
+
+      console.log('Creating member with data:', memberData);
+
+      const newMember = new Member(memberData);
+      await newMember.save();
+
+      // Increment QR code usage
+      await qrCode.incrementUsage({
+        memberId: newMember._id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      // Send welcome email
+      try {
+        await sendWelcomeEmail(newMember, gym, registrationType, specialOffer);
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail registration if email fails
+      }
+
+      // Determine next steps based on registration type
+      let nextSteps = {};
       
-      nextSteps = {
-        message: 'Registration successful! Please complete payment to activate your membership.',
-        action: 'payment_required',
-        paymentOptions: {
-          memberId: newMember._id,
-          amount: baseAmount,
-          duration: duration,
-          planName: selectedPlan?.name || 'Membership Plan',
-          supportedMethods: ['razorpay', 'stripe', 'upi', 'paypal']
-        },
-        paymentUrl: `/payment?member=${newMember._id}&plan=${selectedPlan}&amount=${baseAmount}`,
-        details: 'Choose your preferred payment method to complete the registration.',
-        redirectUrl: '/payment-gateway'
-      };
-    }
+      if (registrationType === 'trial') {
+        nextSteps = {
+          message: 'Trial membership activated! You can start using the gym immediately.',
+          action: 'visit_gym',
+          details: 'Your 3-day trial starts now. Visit the gym to begin your fitness journey!',
+          redirectUrl: '/registration-complete?type=trial'
+        };
+      } else {
+        // For paid memberships, prepare payment options
+        const baseAmount = selectedPlan?.price || 1000; // Default amount if plan not found
+        const duration = selectedPlan?.duration || 1;
+        
+        nextSteps = {
+          message: 'Registration successful! Please complete payment to activate your membership.',
+          action: 'payment_required',
+          paymentOptions: {
+            memberId: newMember._id,
+            amount: baseAmount,
+            duration: duration,
+            planName: selectedPlan?.name || 'Membership Plan',
+            supportedMethods: ['razorpay', 'stripe', 'upi', 'paypal']
+          },
+          paymentUrl: `/payment?member=${newMember._id}&plan=${selectedPlan}&amount=${baseAmount}`,
+          details: 'Choose your preferred payment method to complete the registration.',
+          redirectUrl: '/payment-gateway'
+        };
+      }
 
-    res.status(201).json({
-      message: 'Member registration successful',
-      member: {
-        id: newMember._id,
-        name: newMember.memberName,
-        email: newMember.email,
-        membershipPlan: newMember.planSelected, // Map to existing field
-        planSelected: newMember.planSelected,
-        monthlyPlan: newMember.monthlyPlan,
-        membershipId: newMember.membershipId,
-        paymentStatus: newMember.paymentStatus
-      },
-      gym: {
-        name: gym.name,
-        address: gym.address,
-        contact: gym.contact
-      },
-      nextSteps
-    });
+      res.status(201).json({
+        message: 'Member registration successful',
+        member: {
+          id: newMember._id,
+          name: newMember.memberName,
+          email: newMember.email,
+          membershipPlan: newMember.planSelected, // Map to existing field
+          planSelected: newMember.planSelected,
+          monthlyPlan: newMember.monthlyPlan,
+          membershipId: newMember.membershipId,
+          paymentStatus: newMember.paymentStatus
+        },
+        gym: {
+          name: gym.gymName || gym.name,
+          address: gym.address,
+          contact: gym.contact
+        },
+        nextSteps
+      });
+    } else {
+      // This should never happen because cash payments return early above
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment mode or registration type combination'
+      });
+    }
 
   } catch (error) {
     console.error('Error in QR member registration:', error);
@@ -394,7 +394,47 @@ const sendWelcomeEmail = async (member, gym, registrationType, specialOffer) => 
     await sendEmail({
       to: member.email,
       subject,
-      html: htmlContent
+      title: `Welcome to ${gym.name}!`,
+      preheader: registrationType === 'instant' ? 'Your membership is confirmed and active' : 'Complete your payment to activate membership',
+      bodyHtml: `
+        <p>Hi <strong style="color:#10b981;">${member.name}</strong>,</p>
+        <p>🎉 Welcome to <strong>${gym.name}</strong>! Your registration via QR code is complete.</p>
+        
+        <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;">
+          <table style="width:100%;font-size:13px;">
+            <tr><td style="padding:6px 0;color:#94a3b8;width:140px;"><strong>Member ID:</strong></td><td style="padding:6px 0;background:#0d4d89;color:#ffffff;padding:4px 10px;border-radius:6px;font-weight:600;letter-spacing:1px;">${member.membershipId}</td></tr>
+            <tr><td style="padding:6px 0;color:#94a3b8;"><strong>Plan:</strong></td><td style="padding:6px 0;">${member.planSelected}</td></tr>
+            <tr><td style="padding:6px 0;color:#94a3b8;"><strong>Status:</strong></td><td style="padding:6px 0;color:${registrationType === 'instant' ? '#10b981' : '#f59e0b'};">${registrationType === 'instant' ? 'Active' : 'Pending Payment'}</td></tr>
+            ${member.validUntil ? `<tr><td style="padding:6px 0;color:#94a3b8;"><strong>Valid Until:</strong></td><td style="padding:6px 0;">${new Date(member.validUntil).toLocaleDateString()}</td></tr>` : ''}
+          </table>
+        </div>
+        
+        ${registrationType === 'instant' 
+          ? '<p style="color:#10b981;text-align:center;">✅ Your membership is confirmed and active!</p>'
+          : '<p style="color:#f59e0b;text-align:center;">⏳ Complete your payment to activate your membership.</p>'
+        }
+        
+        ${specialOffer ? `
+          <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;">
+            <h4 style="color:#38bdf8;margin:0 0 8px 0;">🎁 Special Offer</h4>
+            <p style="color:#cbd5e1;margin:0;font-size:14px;">${specialOffer}</p>
+          </div>
+        ` : ''}
+        
+        <p style="color:#cbd5e1;font-size:14px;text-align:center;margin-top:20px;">
+          ${registrationType === 'instant' 
+            ? 'Start your fitness journey today! 💪'
+            : 'Once payment is completed, you\'ll receive your membership confirmation.'
+          }
+        </p>
+      `,
+      action: {
+        label: registrationType === 'instant' ? 'Visit Gym' : 'Complete Payment',
+        url: registrationType === 'instant' 
+          ? `#gym-${gym._id}` 
+          : `${process.env.BRAND_PORTAL_URL || 'https://gym-wale.com'}/payment/${member.membershipId}`
+      },
+      footerNote: `This email was sent because you registered via QR code at ${gym.name}`
     });
 
     console.log(`Welcome email sent to ${member.email}`);

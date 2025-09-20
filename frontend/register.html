@@ -577,6 +577,7 @@
 
                 <!-- Hidden Fields -->
                 <input type="hidden" id="planSelected" name="planSelected">
+                <input type="hidden" id="monthlyPlan" name="monthlyPlan">
                 <input type="hidden" id="gymId" name="gymId">
                 <input type="hidden" id="qrToken" name="qrToken">
 
@@ -1136,6 +1137,10 @@
                         // Remove active from all buttons in this group
                         document.querySelectorAll(`.month-btn[data-plan-idx="${idx}"]`).forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
+                        
+                        // Update the hidden monthlyPlan field
+                        document.getElementById('monthlyPlan').value = months;
+                        
                         let totalAmount = 0;
                         let discount = 0;
                         if (plan && months) {

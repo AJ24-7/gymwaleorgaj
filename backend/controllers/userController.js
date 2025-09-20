@@ -150,11 +150,17 @@ const registerUser = async (req, res) => {
     try {
       console.log('📧 Sending welcome email to:', email);
       const welcomeEmailHTML = generateWelcomeEmailTemplate(firstName || username, email);
-      await sendEmail(
-        email, 
-        '🎉 Welcome to FIT-verse - Your Fitness Journey Starts Now!', 
-        welcomeEmailHTML
-      );
+      await sendEmail({
+        to: email,
+        subject: '🎉 Welcome to Gym-Wale - Your Fitness Journey Starts Now!',
+        title: 'Welcome Aboard!',
+        preheader: 'Your account has been created successfully',
+        bodyHtml: welcomeEmailHTML.includes('<html') ? '<p>Your account is ready.</p>' : welcomeEmailHTML,
+        action: {
+          label: 'Get Started',
+          url: process.env.PORTAL_LOGIN_URL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/frontend/public/login.html` : 'http://localhost:5000/frontend/public/login.html')
+        }
+      });
       console.log('✅ Welcome email sent successfully to:', email);
     } catch (emailError) {
       console.error('❌ Error sending welcome email:', emailError.message);
@@ -389,7 +395,30 @@ const requestPasswordResetOTP = async (req, res) => {
     await user.save();
 
     // Send OTP email
-    await sendEmail(user.email, 'Your Password Reset OTP', `<p>Your OTP for password reset is: <b>${otp}</b>. It is valid for 10 minutes.</p>`);
+    await sendEmail({
+      to: user.email,
+      subject: 'Your Password Reset OTP',
+      title: 'Password Reset Requested',
+      preheader: 'Your OTP for password reset',
+      bodyHtml: `
+        <p>Hi there,</p>
+        <p>🔒 You requested a password reset for your account.</p>
+        
+        <div style="background:#1e293b;border:1px solid #334155;padding:18px;border-radius:14px;margin:18px 0;text-align:center;">
+          <p style="color:#94a3b8;margin:0 0 8px 0;font-size:14px;">Your OTP Code:</p>
+          <div style="background:#0d4d89;color:#ffffff;padding:12px 20px;border-radius:8px;font-weight:700;font-size:24px;letter-spacing:3px;margin:8px auto;display:inline-block;">${otp}</div>
+          <p style="color:#94a3b8;margin:8px 0 0 0;font-size:13px;">Valid for 10 minutes</p>
+        </div>
+        
+        <p style="color:#cbd5e1;font-size:14px;">
+          ⚠️ <strong>Security Notice:</strong> If you didn't request this, please ignore this email.
+        </p>
+      `,
+      action: {
+        label: 'Reset Password',
+        url: `#reset-password`
+      }
+    });
 
     res.json({ success: true, message: 'OTP sent to your email.' });
   } catch (err) {

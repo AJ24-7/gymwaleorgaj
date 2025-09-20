@@ -98,6 +98,9 @@
             <button class="settings-tab-btn" data-tab="account">
                 <i class="fas fa-user-cog"></i> Account
             </button>
+            <button class="settings-tab-btn" data-tab="support">
+                <i class="fas fa-life-ring"></i> Help & Support
+            </button>
         </div>
 
         <!-- Settings Content -->
@@ -377,10 +380,232 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Help & Support Tab -->
+            <div class="settings-tab-content" id="support-tab">
+                <div class="tab-header">
+                    <h2><i class="fas fa-life-ring"></i> Help & Support</h2>
+                    <p>Get help with your account, report issues, and find answers to common questions</p>
+                </div>
+
+                <!-- Support Quick Actions -->
+                <div class="support-quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="quick-actions-grid">
+                        <div class="quick-action-card" onclick="openQuickReport('technical')">
+                            <div class="action-icon">
+                                <i class="fas fa-bug"></i>
+                            </div>
+                            <h4>Report Technical Issue</h4>
+                            <p>App bugs, login problems, or technical errors</p>
+                        </div>
+                        <div class="quick-action-card" onclick="openQuickReport('billing')">
+                            <div class="action-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <h4>Billing Issue</h4>
+                            <p>Payment problems or subscription issues</p>
+                        </div>
+                        <div class="quick-action-card" onclick="openQuickReport('membership')">
+                            <div class="action-icon">
+                                <i class="fas fa-id-card"></i>
+                            </div>
+                            <h4>Membership Help</h4>
+                            <p>Gym access or membership questions</p>
+                        </div>
+                        <div class="quick-action-card" onclick="openQuickReport('general')">
+                            <div class="action-icon">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <h4>General Inquiry</h4>
+                            <p>Other questions or feedback</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Tickets -->
+                <div class="support-tickets-section">
+                    <div class="section-header">
+                        <h3>My Support Tickets</h3>
+                        <button class="refresh-tickets-btn" onclick="refreshSupportTickets()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="user-support-tickets" class="support-tickets-list">
+                        <div class="loading-placeholder">Loading your support tickets...</div>
+                    </div>
+                </div>
+
+                <!-- Contact Options -->
+                <div class="contact-options">
+                    <h3>Other Ways to Get Help</h3>
+                    <div class="contact-methods">
+                        <div class="contact-method">
+                            <div class="method-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <h4>Email Support</h4>
+                            <p>Send us an email for detailed inquiries</p>
+                            <a href="mailto:support@gymwale.com" class="action-btn secondary">
+                                <i class="fas fa-envelope"></i> Email Us
+                            </a>
+                        </div>
+                        <div class="contact-method">
+                            <div class="method-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <h4>Phone Support</h4>
+                            <p>Call us during business hours (9AM-6PM IST)</p>
+                            <a href="tel:+911234567890" class="action-btn secondary">
+                                <i class="fas fa-phone"></i> Call Now
+                            </a>
+                        </div>
+                        <div class="contact-method">
+                            <div class="method-icon">
+                                <i class="fab fa-whatsapp"></i>
+                            </div>
+                            <h4>WhatsApp Support</h4>
+                            <p>Quick support via WhatsApp</p>
+                            <a href="https://wa.me/911234567890" class="action-btn secondary" target="_blank">
+                                <i class="fab fa-whatsapp"></i> Chat Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
+                <div class="faq-section">
+                    <h3>Frequently Asked Questions</h3>
+                    <div class="faq-list">
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                <span>How do I book a gym trial?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>To book a gym trial, go to our gym search page, find a gym you're interested in, and click the "Book Trial" button. You can book up to 3 free trials per month.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                <span>How do I cancel my membership?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>You can cancel your membership by going to the Memberships tab in your settings, selecting the membership you want to cancel, and clicking "Cancel Membership". Please note our cancellation policy.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                <span>How do I update my payment method?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Go to the Payments tab in your settings, click "Add Payment Method" to add a new card, or click on an existing method to update it.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                <span>What if I'm having trouble accessing a gym?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>If you're having trouble accessing a gym, first check that your membership is active in the Memberships tab. If it's active and you're still having issues, contact the gym directly or submit a support ticket.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                <span>How do I get a refund?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Refund policies vary by gym and membership type. Please check your membership terms or contact support for assistance with refund requests.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Information -->
+                <div class="app-info">
+                    <h3>App Information</h3>
+                    <div class="app-details">
+                        <div class="app-detail-item">
+                            <label>App Version</label>
+                            <span>2.1.0</span>
+                        </div>
+                        <div class="app-detail-item">
+                            <label>Last Updated</label>
+                            <span>September 2025</span>
+                        </div>
+                        <div class="app-detail-item">
+                            <label>Support Hours</label>
+                            <span>Mon-Fri 9AM-6PM IST</span>
+                        </div>
+                        <div class="app-detail-item">
+                            <label>Platform</label>
+                            <span>Web App</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- Modals -->
+    <!-- Quick Report Modal -->
+    <div id="quick-report-modal" class="modal-overlay">
+        <div class="modal-content quick-report-modal">
+            <div class="modal-header">
+                <h3 id="quick-report-title">Report Issue</h3>
+                <button class="modal-close" onclick="closeQuickReportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="quick-report-form">
+                    <input type="hidden" id="report-category" value="">
+                    
+                    <div class="form-group">
+                        <label for="report-subject">Subject *</label>
+                        <input type="text" id="report-subject" required maxlength="100" placeholder="specific title of your issue">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="report-priority">Priority</label>
+                        <select id="report-priority">
+                            <option value="low">Low - General question</option>
+                            <option value="medium" selected>Medium - Need assistance</option>
+                            <option value="high">High - Urgent issue</option>
+                            <option value="urgent">Urgent - Critical problem</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="report-message">Describe your issue *</label>
+                        <textarea id="report-message" required rows="5" maxlength="1000" placeholder="Please provide as much detail as possible about your issue..."></textarea>
+                        <small class="char-count">0/1000 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="report-email-updates" checked>
+                            <label for="report-email-updates">Send me email updates about this ticket</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="closeQuickReportModal()">Cancel</button>
+                <button class="action-btn primary" onclick="submitQuickReport()" id="submit-report-btn">
+                    <i class="fas fa-paper-plane"></i> Submit Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Modal -->
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">

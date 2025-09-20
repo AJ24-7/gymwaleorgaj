@@ -2,7 +2,95 @@
 // SETTINGS PAGE JAVASCRIPT
 // ===============================================
 
-console.log('Settings page script loaded!');
+// Utility function to get and validate token
+function getValidToken() {
+    const token = localStorage.getItem('token');
+    
+    // Log for debugging
+    console.log('Getting token:', {
+        exists: !!token,
+        type: typeof token,
+        length: token ? token.length : 'N/A',
+        isNull: token === null,
+        isStringNull: token === 'null',
+        isUndefined: token === 'undefined',
+        preview: token ? token.substring(0, 20) + '...' : 'No token'
+    });
+    
+    // Validate token
+    if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
+        console.error('Invalid token detected:', token);
+        
+        // Clean up corrupted token
+        if (token === 'null' || token === 'undefined' || (token && token.trim() === '')) {
+            console.log('Cleaning up corrupted token from localStorage');
+            localStorage.removeItem('token');
+        }
+        
+        return null;
+    }
+    
+    return token.trim();
+}
+
+// Debug function for troubleshooting token issues
+function debugTokenState() {
+    console.log('=== TOKEN DEBUG INFO ===');
+    const rawToken = localStorage.getItem('token');
+    console.log('Raw localStorage token:', rawToken);
+    console.log('Token type:', typeof rawToken);
+    console.log('Token === null:', rawToken === null);
+    console.log('Token === "null":', rawToken === 'null');
+    console.log('Token === "undefined":', rawToken === 'undefined');
+    console.log('Token length:', rawToken ? rawToken.length : 'N/A');
+    console.log('All localStorage keys:', Object.keys(localStorage));
+    console.log('All localStorage items:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(`  ${key}: ${value} (type: ${typeof value})`);
+    }
+    
+    const validToken = getValidToken();
+    console.log('Validated token:', validToken ? 'Valid' : 'Invalid');
+    if (validToken) {
+        console.log('Token preview:', validToken.substring(0, 20) + '...');
+    }
+    console.log('=== END TOKEN DEBUG ===');
+    return {
+        rawToken,
+        validToken,
+        allStorage: { ...localStorage }
+    };
+}
+
+// Make debug function globally available
+window.debugTokenState = debugTokenState;
+
+// Function to handle token invalidation
+function handleInvalidToken(context = 'unknown') {
+    console.error(`Invalid token detected in ${context}`);
+    console.log('Clearing invalid token and redirecting...');
+    
+    // Clear the invalid token
+    localStorage.removeItem('token');
+    
+    // Show a user-friendly message
+    const message = 'Your session has expired. Please log in again.';
+    if (typeof showError === 'function') {
+        showError(message);
+    } else {
+        alert(message);
+    }
+    
+    // Redirect to login after a short delay
+    setTimeout(() => {
+        window.location.href = '/frontend/public/login.html';
+    }, 2000);
+}
+
+// Make this globally available too
+window.handleInvalidToken = handleInvalidToken;
 
 // Global variables
 // BASE_URL is defined globally in the HTML file
@@ -21,6 +109,10 @@ const modalOverlay = document.getElementById('modal-overlay');
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - Settings Page');
     
+    // Debug token state at startup
+    console.log('=== STARTUP TOKEN CHECK ===');
+    debugTokenState();
+    
     // Check authentication first
     checkAuthentication();
     
@@ -35,19 +127,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Check user authentication
 function checkAuthentication() {
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     const userProfileNav = document.getElementById('user-profile-nav');
     const loginSignupNav = document.getElementById('login-signup-nav');
     
     if (!token) {
-        // Redirect to login if not authenticated
-        window.location.href = '/frontend/public/login.html';
+        handleInvalidToken('checkAuthentication');
         return;
     }
     
-    // Show user profile nav
-    if (userProfileNav) userProfileNav.style.display = 'block';
-    if (loginSignupNav) loginSignupNav.style.display = 'none';
+    console.log('Valid token found, verifying with server...');
+    
+    // Verify token by making a profile request like contact.js does
+    fetch(`${BASE_URL}/api/users/profile`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(async (res) => {
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error(`Profile fetch failed with ${res.status}: ${errText}`);
+            // If profile fetch fails, handle the invalid token
+            handleInvalidToken('checkAuthentication-fetch');
+            return;
+        }
+        return res.json();
+    })
+    .then(user => {
+        if (user) {
+            console.log('User authenticated successfully:', user.email);
+            // Show user profile nav
+            if (userProfileNav) userProfileNav.style.display = 'block';
+            if (loginSignupNav) loginSignupNav.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Authentication check failed:', error);
+        handleInvalidToken('checkAuthentication-catch');
+    });
 }
 
 // Initialize navigation functionality
@@ -138,6 +258,10 @@ function loadTabData(tabName) {
         case 'account':
             loadAccountData();
             break;
+        case 'support':
+            initializeSupportTab();
+            refreshSupportTickets();
+            break;
     }
 }
 
@@ -146,7 +270,12 @@ async function loadUserData() {
     try {
         showLoadingScreen();
         
-        const token = localStorage.getItem('token');
+        const token = getValidToken();
+        if (!token) {
+            console.error('No valid token for loading user data');
+            throw new Error('Authentication required');
+        }
+        
         const response = await fetch(`${BASE_URL}/api/users/profile`, {
             method: 'GET',
             headers: {
@@ -177,18 +306,13 @@ async function loadUserData() {
 function updateUserDisplay() {
     if (!currentUser) return;
     
-    // Update profile image
+    // Update profile image - use same pattern as contact.js
     const profileImg = document.getElementById('settings-profile-img');
     const navProfileImg = document.getElementById('profile-icon-img');
     
-    let profilePicUrl = '/uploads/profile-pics/default.png';
-    if (currentUser.profileImage) {
-        if (currentUser.profileImage.startsWith('http')) {
-            profilePicUrl = currentUser.profileImage;
-        } else {
-            profilePicUrl = `${BASE_URL}${currentUser.profileImage}`;
-        }
-    }
+    const profilePicUrl = currentUser.profileImage
+        ? (currentUser.profileImage.startsWith('http') ? currentUser.profileImage : `${BASE_URL}${currentUser.profileImage}`)
+        : `${BASE_URL}/uploads/profile-pics/default.png`;
     
     if (profileImg) profileImg.src = profilePicUrl;
     if (navProfileImg) navProfileImg.src = profilePicUrl;
@@ -1179,32 +1303,276 @@ function confirmAccountDeletion() {
     }
 }
 
-// Utility functions
-function formatDate(dateString) {
-    if (!dateString) {
-        return 'Date not available';
+// ========== HELP & SUPPORT FUNCTIONS ==========
+
+// Open Quick Report Modal
+function openQuickReport(category) {
+    console.log('Opening quick report for category:', category);
+    const modal = document.getElementById('quick-report-modal');
+    const title = document.getElementById('quick-report-title');
+    const categoryInput = document.getElementById('report-category');
+    
+    if (!modal || !title || !categoryInput) {
+        console.error('Modal elements not found:', { modal, title, categoryInput });
+        return;
     }
     
-    const date = new Date(dateString);
+    const categoryTitles = {
+        'technical': 'Report Technical Issue',
+        'billing': 'Report Billing Issue', 
+        'membership': 'Membership Help Request',
+        'general': 'General Inquiry'
+    };
     
-    // Check if the date is valid
-    if (isNaN(date.getTime())) {
-        return 'Invalid date';
+    title.textContent = categoryTitles[category] || 'Report Issue';
+    categoryInput.value = category;
+    
+    // Reset form
+    document.getElementById('quick-report-form').reset();
+    document.getElementById('report-category').value = category;
+    updateCharCount();
+    
+    modal.classList.add('active');
+}
+
+// Close Quick Report Modal
+function closeQuickReportModal() {
+    document.getElementById('quick-report-modal').classList.remove('active');
+}
+
+// Update character count for message
+function updateCharCount() {
+    const textarea = document.getElementById('report-message');
+    const counter = document.querySelector('.char-count');
+    if (textarea && counter) {
+        const count = textarea.value.length;
+        counter.textContent = `${count}/1000 characters`;
+        if (count > 900) {
+            counter.style.color = '#ef4444';
+        } else if (count > 800) {
+            counter.style.color = '#f59e0b';
+        } else {
+            counter.style.color = '#6b7280';
+        }
+    }
+}
+
+// Submit Quick Report
+async function submitQuickReport() {
+    const form = document.getElementById('quick-report-form');
+    const submitBtn = document.getElementById('submit-report-btn');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
     }
     
-    return date.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+    const token = getValidToken();
+    console.log('Submit report - Using validated token');
+    
+    if (!token) {
+        console.error('No valid token for submit report');
+        showError('Please log in to submit a support ticket.');
+        return;
+    }
+    
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitBtn.disabled = true;
+    
+    try {
+        const formData = {
+            category: document.getElementById('report-category').value,
+            subject: document.getElementById('report-subject').value,
+            message: document.getElementById('report-message').value,
+            priority: document.getElementById('report-priority').value,
+            emailUpdates: document.getElementById('report-email-updates').checked
+        };
+        
+        const response = await fetch(`${BASE_URL}/api/support/tickets`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                showError('Your session has expired. Please log in again.');
+                return;
+            }
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message like contact page
+            showSuccessDialog(`Support ticket #${result.ticketId} created successfully!`, {
+                ticketId: result.ticketId,
+                message: "We'll get back to you soon. You can track your ticket status in the support section."
+            });
+            closeQuickReportModal();
+            refreshSupportTickets();
+        } else {
+            throw new Error(result.message || 'Failed to submit ticket');
+        }
+        
+    } catch (error) {
+        console.error('Error submitting ticket:', error);
+        showError('Failed to submit support ticket. Please try again or contact us directly.');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Deprecated legacy refreshSupportTickets replaced by loadUserSupportTickets
+async function refreshSupportTickets() {
+    loadUserSupportTickets(true);
+}
+
+// ========== USER SUPPORT TICKETS INTEGRATION (ENHANCED) ==========
+// New implementation overriding placeholder to integrate unified support view
+async function loadUserSupportTickets(force = false) {
+    const container = document.getElementById('user-support-tickets-list');
+    if (!container) return; // container should exist in support tab markup
+    const token = getValidToken();
+    if (!token) {
+        container.innerHTML = '<div class="support-empty">Please log in to view your support tickets.</div>';
+        return;
+    }
+    if (!force && container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
+    container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading tickets...</div>';
+    try {
+        const res = await fetch(`${BASE_URL}/api/support/tickets/my`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Failed to load tickets');
+        renderUserSupportTickets(data.tickets || []);
+    } catch (e) {
+        console.error('Load user tickets error:', e);
+        container.innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> ${e.message}</div>`;
+    } finally {
+        container.dataset.loading = 'false';
+    }
+}
+
+function renderUserSupportTickets(tickets) {
+    const container = document.getElementById('user-support-tickets-list');
+    if (!container) return;
+    if (!tickets.length) {
+        container.innerHTML = `<div class="support-empty-state"><i class="fas fa-inbox"></i><p>No support tickets yet.</p></div>`;
+        return;
+    }
+    const statusBadge = (status) => {
+        const map = { 'open':'status-open', 'replied':'status-replied', 'in-progress':'status-progress', 'resolved':'status-resolved', 'closed':'status-closed' };
+        return `<span class="ticket-status-badge ${map[status]||'status-open'}">${status.replace('-', ' ')}</span>`;
+    };
+    const priorityBadge = (p) => {
+        const map = { low:'priority-low', medium:'priority-medium', high:'priority-high', urgent:'priority-urgent' };
+        return `<span class="ticket-priority-badge ${map[p]||'priority-medium'}">${p}</span>`;
+    };
+    container.innerHTML = tickets.map(t => `
+        <div class="user-ticket-card" data-ticket-id="${t.ticketId}">
+            <div class="user-ticket-top">
+                <div class="ticket-id">#${t.ticketId}</div>
+                <div class="ticket-meta">${statusBadge(t.status)} ${priorityBadge(t.priority)}</div>
+            </div>
+            <div class="ticket-subject">${escapeHTML(t.subject || 'No subject')}</div>
+            <div class="ticket-body-preview">${escapeHTML((t.message || '').substring(0,120))}${(t.message||'').length>120?'...':''}</div>
+            <div class="ticket-footer">
+                <span class="ticket-category"><i class="fas fa-tag"></i> ${getCategoryLabel(t.category)}</span>
+                <span class="ticket-time"><i class="fas fa-clock"></i> ${getTimeAgo(t.createdAt)}</span>
+                <button class="ticket-view-btn" data-ticket-id="${t.ticketId}"><i class="fas fa-eye"></i> View</button>
+            </div>
+        </div>`).join('');
+    // Attach listeners
+    container.querySelectorAll('.ticket-view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => openUserTicketModal(e.currentTarget.dataset.ticketId));
     });
 }
 
-function calculateRemainingDays(endDate) {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = end - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
+async function openUserTicketModal(ticketId) {
+    const token = getValidToken();
+    if (!token) return;
+    showModal('Ticket Details', '<div class="modal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    try {
+        const res = await fetch(`${BASE_URL}/api/support/tickets/my`); // fallback fetch list to locate ticket details client-side
+        const listData = await res.json();
+        const ticket = (listData.tickets || []).find(t => t.ticketId === ticketId);
+        if (!ticket) throw new Error('Ticket not found');
+        // We only have summary; attempt to fetch full details if endpoint exists (admin endpoint is protected). For user, reuse summary for now.
+        const conversationHTML = `<div class="ticket-convo"><p><strong>Subject:</strong> ${escapeHTML(ticket.subject)}</p><p>${escapeHTML(ticket.message)}</p><div id="user-ticket-messages"></div></div>`;
+        const replyForm = ticket.status === 'closed' ? '<div class="ticket-closed-note">This ticket is closed. You cannot reply.</div>' : `
+            <div class="user-ticket-reply-form">
+                <textarea id="userTicketReplyMessage" rows="4" placeholder="Type your reply..."></textarea>
+                <div class="reply-actions-inline">
+                    <button class="action-btn secondary" onclick="closeModal()">Close</button>
+                    <button class="action-btn primary" id="sendUserTicketReplyBtn"><i class="fas fa-paper-plane"></i> Send Reply</button>
+                </div>
+            </div>`;
+        document.querySelector('.modal-body').innerHTML = `<div class="user-ticket-details">${conversationHTML}${replyForm}</div>`;
+        if (ticket.status !== 'closed') {
+            document.getElementById('sendUserTicketReplyBtn').addEventListener('click', () => sendUserTicketReply(ticket.ticketId));
+        }
+    } catch (e) {
+        document.querySelector('.modal-body').innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> ${e.message}</div>`;
+    }
+}
+
+async function sendUserTicketReply(ticketId) {
+    const token = getValidToken();
+    const messageEl = document.getElementById('userTicketReplyMessage');
+    if (!token || !messageEl) return;
+    const content = messageEl.value.trim();
+    if (!content) { showError('Please enter a reply message'); return; }
+    const btn = document.getElementById('sendUserTicketReplyBtn');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    btn.disabled = true;
+    try {
+        // User reply route currently not exposed; for now show info message
+        showError('User reply endpoint not yet implemented.');
+    } catch (e) {
+        showError(e.message || 'Failed to send reply');
+    } finally {
+        btn.innerHTML = original;
+        btn.disabled = false;
+    }
+}
+
+// Escape HTML utility to avoid injection in ticket fields
+function escapeHTML(str='') {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+
+// Periodic refresh (every 2 minutes) when support tab active
+setInterval(() => {
+    const supportTabBtn = document.querySelector('.settings-tab-btn[data-tab="support"]');
+    const supportTabContent = document.getElementById('support-tab');
+    if (supportTabBtn && supportTabContent && supportTabContent.classList.contains('active')) {
+        loadUserSupportTickets();
+    }
+}, 120000);
+
+// Hook into existing initializeSupportTab if present
+if (typeof initializeSupportTab === 'function') {
+    const originalInitSupport = initializeSupportTab;
+    window.initializeSupportTab = function() {
+        originalInitSupport();
+        loadUserSupportTickets();
+    }
+} else {
+    // Fallback: load on DOM ready if support tab exists
+    if (document.getElementById('user-support-tickets-list')) {
+        loadUserSupportTickets();
+    }
 }
 
 // Modal functions
@@ -1314,6 +1682,25 @@ function showError(message) {
     }, 4000);
 }
 
+// Success dialog like contact page
+function showSuccessDialog(message, additionalData = {}) {
+    showModal('Success!', `
+        <div style="text-align: center; color: var(--success-color);">
+            <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+            <h3 style="color: var(--success-color); margin-bottom: 1rem;">${message}</h3>
+            ${additionalData.ticketId ? `<p><strong>Ticket ID:</strong> #${additionalData.ticketId}</p>` : ''}
+            ${additionalData.message ? `<p style="margin-top: 1rem;">${additionalData.message}</p>` : ''}
+        </div>
+    `, `
+        <button class="action-btn primary" onclick="closeModal()">OK</button>
+    `);
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        closeModal();
+    }, 10000);
+}
+
 // Logout function
 function logout() {
     localStorage.removeItem('token');
@@ -1327,4 +1714,363 @@ function refreshTrialLimits() {
         console.log('Manually refreshing trial limits...');
         loadTrialBookingsAndLimits(token);
     }
+}
+
+// ========== HELP & SUPPORT FUNCTIONS ==========
+
+// Open Quick Report Modal
+function openQuickReport(category) {
+    console.log('Opening quick report for category:', category);
+    const modal = document.getElementById('quick-report-modal');
+    const title = document.getElementById('quick-report-title');
+    const categoryInput = document.getElementById('report-category');
+    
+    if (!modal || !title || !categoryInput) {
+        console.error('Modal elements not found:', { modal, title, categoryInput });
+        return;
+    }
+    
+    const categoryTitles = {
+        'technical': 'Report Technical Issue',
+        'billing': 'Report Billing Issue', 
+        'membership': 'Membership Help Request',
+        'general': 'General Inquiry'
+    };
+    
+    title.textContent = categoryTitles[category] || 'Report Issue';
+    categoryInput.value = category;
+    
+    // Reset form
+    document.getElementById('quick-report-form').reset();
+    document.getElementById('report-category').value = category;
+    updateCharCount();
+    
+    modal.classList.add('active');
+}
+
+// Close Quick Report Modal
+function closeQuickReportModal() {
+    document.getElementById('quick-report-modal').classList.remove('active');
+}
+
+// Update character count for message
+function updateCharCount() {
+    const textarea = document.getElementById('report-message');
+    const counter = document.querySelector('.char-count');
+    if (textarea && counter) {
+        const count = textarea.value.length;
+        counter.textContent = `${count}/1000 characters`;
+        if (count > 900) {
+            counter.style.color = '#ef4444';
+        } else if (count > 800) {
+            counter.style.color = '#f59e0b';
+        } else {
+            counter.style.color = '#6b7280';
+        }
+    }
+}
+
+// Submit Quick Report
+async function submitQuickReport() {
+    const form = document.getElementById('quick-report-form');
+    const submitBtn = document.getElementById('submit-report-btn');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const token = getValidToken();
+    console.log('Submit report - Using validated token');
+    
+    if (!token) {
+        console.error('No valid token for submit report');
+        showError('Please log in to submit a support ticket.');
+        return;
+    }
+    
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitBtn.disabled = true;
+    
+    try {
+        const formData = {
+            category: document.getElementById('report-category').value,
+            subject: document.getElementById('report-subject').value,
+            message: document.getElementById('report-message').value,
+            priority: document.getElementById('report-priority').value,
+            emailUpdates: document.getElementById('report-email-updates').checked
+        };
+        
+        const response = await fetch(`${BASE_URL}/api/support/tickets`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                showError('Your session has expired. Please log in again.');
+                return;
+            }
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message like contact page
+            showSuccessDialog(`Support ticket #${result.ticketId} created successfully!`, {
+                ticketId: result.ticketId,
+                message: "We'll get back to you soon. You can track your ticket status in the support section."
+            });
+            closeQuickReportModal();
+            refreshSupportTickets();
+        } else {
+            throw new Error(result.message || 'Failed to submit ticket');
+        }
+        
+    } catch (error) {
+        console.error('Error submitting ticket:', error);
+        showError('Failed to submit support ticket. Please try again or contact us directly.');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Refresh Support Tickets
+async function refreshSupportTickets() {
+    console.log('=== Refreshing support tickets ===');
+    const container = document.getElementById('user-support-tickets');
+    container.innerHTML = '<div class="loading-placeholder">Loading your support tickets...</div>';
+    
+    const token = getValidToken();
+    console.log('Refresh support tickets - Using validated token');
+    
+    if (!token) {
+        console.error('No valid token for support tickets');
+        container.innerHTML = '<div class="empty-state">Please log in to view your support tickets. <a href="/frontend/public/login.html">Login here</a></div>';
+        return;
+    }
+    
+    try {
+        console.log('Making support tickets request...');
+        console.log('Request URL:', `${BASE_URL}/api/support/tickets/my`);
+        console.log('Request headers:', {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token.substring(0, 20)}...`
+        });
+        console.log('BASE_URL value:', BASE_URL);
+        
+        // First test the auth middleware on support routes
+        console.log('Testing auth middleware on support routes...');
+        try {
+            const testResponse = await fetch(`${BASE_URL}/api/support/test-auth`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            console.log('Test auth response status:', testResponse.status);
+            if (testResponse.ok) {
+                const testResult = await testResponse.json();
+                console.log('Test auth result:', testResult);
+            } else {
+                console.log('Test auth failed:', await testResponse.text());
+            }
+        } catch (testError) {
+            console.error('Test auth error:', testError);
+        }
+        
+        const response = await fetch(`${BASE_URL}/api/support/tickets/my`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        console.log('Support tickets response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token is invalid or expired - clear it and redirect to login
+                localStorage.removeItem('token');
+                container.innerHTML = '<div class="auth-required">Your session has expired. Please <a href="register.html">log in</a> again to view your support tickets.</div>';
+                return;
+            }
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Support tickets result:', result);
+        
+        if (result.success && result.tickets) {
+            console.log('Successfully loaded tickets:', result.tickets.length);
+            displaySupportTickets(result.tickets);
+        } else {
+            throw new Error(result.message || 'Failed to load tickets');
+        }
+        
+    } catch (error) {
+        console.error('Error loading support tickets:', error);
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+            localStorage.removeItem('token');
+            container.innerHTML = '<div class="auth-required">Authentication failed. Please <a href="register.html">log in</a> again to view your support tickets.</div>';
+        } else {
+            container.innerHTML = '<div class="error-state">Failed to load support tickets. <button onclick="refreshSupportTickets()">Try Again</button></div>';
+        }
+    }
+}
+
+// ========== USER SUPPORT TICKETS INTEGRATION (ENHANCED) ==========
+async function loadUserSupportTickets(force = false) {
+    const container = document.getElementById('user-support-tickets-list');
+    if (!container) return;
+    const token = getValidToken();
+    if (!token) {
+        container.innerHTML = '<div class="support-empty">Please log in to view your support tickets.</div>';
+        return;
+    }
+    if (!force && container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
+    container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading tickets...</div>';
+    try {
+        const res = await fetch(`${BASE_URL}/api/support/tickets/my`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Failed to load tickets');
+        renderUserSupportTickets(data.tickets || []);
+    } catch (e) {
+        console.error('Load user tickets error:', e);
+        container.innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> ${e.message}</div>`;
+    } finally {
+        container.dataset.loading = 'false';
+    }
+}
+
+function renderUserSupportTickets(tickets) {
+    const container = document.getElementById('user-support-tickets-list');
+    if (!container) return;
+    if (!tickets.length) {
+        container.innerHTML = `<div class="support-empty-state"><i class="fas fa-inbox"></i><p>No support tickets yet.</p></div>`;
+        return;
+    }
+    const statusBadge = (status) => {
+        const map = { 'open':'status-open', 'replied':'status-replied', 'in-progress':'status-progress', 'resolved':'status-resolved', 'closed':'status-closed' };
+        return `<span class="ticket-status-badge ${map[status]||'status-open'}">${status.replace('-', ' ')}</span>`;
+    };
+    const priorityBadge = (p) => {
+        const map = { low:'priority-low', medium:'priority-medium', high:'priority-high', urgent:'priority-urgent' };
+        return `<span class="ticket-priority-badge ${map[p]||'priority-medium'}">${p}</span>`;
+    };
+    container.innerHTML = tickets.map(t => `
+        <div class="user-ticket-card" data-ticket-id="${t.ticketId}">
+            <div class="user-ticket-top">
+                <div class="ticket-id">#${t.ticketId}</div>
+                <div class="ticket-meta">${statusBadge(t.status)} ${priorityBadge(t.priority)}</div>
+            </div>
+            <div class="ticket-subject">${escapeHTML(t.subject || 'No subject')}</div>
+            <div class="ticket-body-preview">${escapeHTML((t.message || '').substring(0,120))}${(t.message||'').length>120?'...':''}</div>
+            <div class="ticket-footer">
+                <span class="ticket-category"><i class="fas fa-tag"></i> ${getCategoryLabel(t.category)}</span>
+                <span class="ticket-time"><i class="fas fa-clock"></i> ${getTimeAgo(t.createdAt)}</span>
+                <button class="ticket-view-btn" data-ticket-id="${t.ticketId}"><i class="fas fa-eye"></i> View</button>
+            </div>
+        </div>`).join('');
+    container.querySelectorAll('.ticket-view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => openUserTicketModal(e.currentTarget.dataset.ticketId));
+    });
+}
+
+async function openUserTicketModal(ticketId) {
+    const token = getValidToken();
+    if (!token) return;
+    showModal('Ticket Details', '<div class="modal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    try {
+        const res = await fetch(`${BASE_URL}/api/support/tickets/my`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const listData = await res.json();
+        const ticket = (listData.tickets || []).find(t => t.ticketId === ticketId);
+        if (!ticket) throw new Error('Ticket not found');
+        const conversationHTML = `<div class="ticket-convo"><p><strong>Subject:</strong> ${escapeHTML(ticket.subject)}</p><p>${escapeHTML(ticket.message)}</p><div id="user-ticket-messages"></div></div>`;
+        const replyForm = ticket.status === 'closed' ? '<div class="ticket-closed-note">This ticket is closed. You cannot reply.</div>' : `
+            <div class="user-ticket-reply-form">
+                <textarea id="userTicketReplyMessage" rows="4" placeholder="Type your reply..."></textarea>
+                <div class="reply-actions-inline">
+                    <button class="action-btn secondary" onclick="closeModal()">Close</button>
+                    <button class="action-btn primary" id="sendUserTicketReplyBtn"><i class="fas fa-paper-plane"></i> Send Reply</button>
+                </div>
+            </div>`;
+        document.querySelector('.modal-body').innerHTML = `<div class="user-ticket-details">${conversationHTML}${replyForm}</div>`;
+        if (ticket.status !== 'closed') {
+            document.getElementById('sendUserTicketReplyBtn').addEventListener('click', () => sendUserTicketReply(ticket.ticketId));
+        }
+    } catch (e) {
+        document.querySelector('.modal-body').innerHTML = `<div class="error-state"><i class="fas fa-exclamation-circle"></i> ${e.message}</div>`;
+    }
+}
+
+async function sendUserTicketReply(ticketId) {
+    const token = getValidToken();
+    const messageEl = document.getElementById('userTicketReplyMessage');
+    if (!token || !messageEl) return;
+    const content = messageEl.value.trim();
+    if (!content) { showError('Please enter a reply message'); return; }
+    const btn = document.getElementById('sendUserTicketReplyBtn');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${BASE_URL}/api/support/tickets/${ticketId}/reply-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ message: content })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to send reply');
+        // Optimistic: append message area if exists
+        const messagesContainer = document.getElementById('user-ticket-messages');
+        if (messagesContainer) {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'user-message-row user-sent';
+            msgEl.innerHTML = `<div class="msg-bubble">${escapeHTML(content)}<span class="msg-time">just now</span></div>`;
+            messagesContainer.appendChild(msgEl);
+        }
+        messageEl.value = '';
+        showSuccess('Reply sent successfully');
+        // Refresh list to update status if reopened
+        loadUserSupportTickets(true);
+    } catch (e) {
+        showError(e.message || 'Failed to send reply');
+    } finally {
+        btn.innerHTML = original;
+        btn.disabled = false;
+    }
+}
+
+function escapeHTML(str='') {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+
+setInterval(() => {
+    const supportTabContent = document.getElementById('support-tab');
+    if (supportTabContent && supportTabContent.classList.contains('active')) {
+        loadUserSupportTickets();
+    }
+}, 120000);
+
+if (typeof initializeSupportTab === 'function') {
+    const originalInitSupport = initializeSupportTab;
+    window.initializeSupportTab = function() {
+        originalInitSupport();
+        loadUserSupportTickets();
+    }
+} else if (document.getElementById('user-support-tickets-list')) {
+    loadUserSupportTickets();
 }

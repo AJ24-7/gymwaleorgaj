@@ -589,6 +589,14 @@ function buildGymFilter({ city, pincode, activities }) {
 async function aggregateGymsByPrice(filter, price) {
   return Gym.aggregate([
     { $match: filter },
+    {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'gym',
+        as: 'reviews'
+      }
+    },
     { $addFields: {
         minPlanPrice: {
           $let: {
@@ -632,7 +640,7 @@ async function aggregateGymsByPrice(filter, price) {
 
 router.get('/search', async (req, res) => {
   try {
-    const { city, pincode, maxPrice } = req.query;
+    const { city, pincode, maxPrice, limit } = req.query;
     const activities = normalizeActivities(req.query.activities);
 
     console.log('Received activities from query:', req.query.activities);
@@ -644,7 +652,25 @@ router.get('/search', async (req, res) => {
     if (maxPrice && !isNaN(Number(maxPrice))) {
       gyms = await aggregateGymsByPrice(filter, Number(maxPrice));
     } else {
-      gyms = await Gym.find(filter);
+      // Build aggregation pipeline to include reviews
+      const aggregationPipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'gym',
+            as: 'reviews'
+          }
+        }
+      ];
+
+      // Apply limit if specified
+      if (limit && !isNaN(Number(limit))) {
+        aggregationPipeline.push({ $limit: Number(limit) });
+      }
+
+      gyms = await Gym.aggregate(aggregationPipeline);
     }
 
     console.log(`✅ Found gyms: ${gyms.length}`);

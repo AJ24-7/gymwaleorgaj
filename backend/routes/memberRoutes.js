@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { addMember, getMembers, updateMember, removeMembersByIds, removeExpiredMembers, renewMembership, updateMemberPaymentStatus, getMembersWithPendingPayments, getExpiringMembers, grantSevenDayAllowance, markPaymentAsPaid, registerCashPayment, registerMemberViaQR, addMembershipPlan } = require('../controllers/memberController');
+const { addMember, getMembers, updateMember, removeMembersByIds, removeExpiredMembers, renewMembership, updateMemberPaymentStatus, getMembersWithPendingPayments, getExpiringMembers, grantSevenDayAllowance, markPaymentAsPaid, addMembershipPlan } = require('../controllers/memberController');
+const { registerOnlineMember } = require('../controllers/onlineMembershipController');
+const { registerMemberViaQR } = require('../controllers/qrRegistrationController');
 const gymadminAuth = require('../middleware/gymadminAuth');
 const memberImageUpload = require('../middleware/memberImageUpload');
 const Member = require('../models/Member');
@@ -31,6 +33,12 @@ router.post('/remove-expired', gymadminAuth, async (req, res) => {
 
 // Add a new member (protected route, with image upload)
 router.post('/', gymadminAuth, memberImageUpload.single('profileImage'), addMember);
+
+// Add member via user authentication (for online membership purchases)
+router.post('/add', require('../middleware/authMiddleware'), addMember);
+
+// Register member after successful online payment
+router.post('/register-online', require('../middleware/authMiddleware'), registerOnlineMember);
 
 // Renew membership for existing member
 router.put('/renew/:memberId', gymadminAuth, renewMembership);
@@ -376,11 +384,11 @@ router.get('/:id', gymadminAuth, async (req, res) => {
   }
 });
 
-// Register member through cash payment validation
-router.post('/register-cash-payment', gymadminAuth, registerCashPayment);
+// Register member through cash payment validation - DISABLED (using new cash validation system)
+// router.post('/register-cash-payment', gymadminAuth, registerCashPayment);
 
-// Add membership plan to existing member (for duplicate member handling)
-router.post('/add-membership-plan', gymadminAuth, require('../controllers/memberController').addMembershipPlan);
+// Add membership plan to existing member (for duplicate member handling) - TEMPORARILY DISABLED
+// router.post('/add-membership-plan', gymadminAuth, require('../controllers/memberController').addMembershipPlan);
 
 // Register member via QR code (public endpoint)
 router.post('/register-via-qr', registerMemberViaQR);

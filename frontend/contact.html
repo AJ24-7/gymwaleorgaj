@@ -107,57 +107,182 @@
 
                 <div class="contact-form slide-up">
                     <h3>Send Us a Message</h3>
-                    <div class="success-message" id="successMessage">
-                        Thank you for your message! We'll get back to you soon.
+                    
+                    <!-- Quick Messages Section -->
+                    <div class="quick-messages-section">
+                        <h4>Quick Message Options</h4>
+                        <p>Select a common inquiry or write your custom message below:</p>
+                        <div class="quick-messages-grid" id="quickMessagesGrid">
+                            <!-- Quick message buttons will be loaded here -->
+                        </div>
                     </div>
+
+                    <!-- Success Modal Dialog -->
+                    <div class="success-modal" id="successModal">
+                        <div class="modal-backdrop"></div>
+                        <div class="modal-container">
+                            <div class="modal-header">
+                                <div class="success-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <h3>Message Sent Successfully!</h3>
+                                <button class="modal-close" id="closeSuccessModal">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p id="successModalMessage">Thank you for contacting us! Your message has been received and we'll get back to you within 24 hours.</p>
+                                <div class="success-details">
+                                    <div class="detail-item">
+                                        <i class="fas fa-ticket-alt"></i>
+                                        <span>Ticket ID: <strong id="ticketIdDisplay">#-</strong></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>Confirmation sent to: <strong id="emailDisplay">-</strong></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Expected response time: <strong>Within 24 hours</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-primary" id="okSuccessModal">
+                                    <i class="fas fa-thumbs-up"></i> Got it, Thanks!
+                                </button>
+                                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                                    <i class="fas fa-home"></i> Return to Home
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Modal Dialog -->
+                    <div class="error-modal" id="errorModal">
+                        <div class="modal-backdrop"></div>
+                        <div class="modal-container">
+                            <div class="modal-header error">
+                                <div class="error-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <h3>Oops! Something went wrong</h3>
+                                <button class="modal-close" id="closeErrorModal">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p id="errorModalMessage">We encountered an issue while sending your message. Please try again.</p>
+                                <div class="error-help">
+                                    <h4>What you can do:</h4>
+                                    <ul>
+                                        <li>Check your internet connection</li>
+                                        <li>Verify all required fields are filled</li>
+                                        <li>Try refreshing the page and submitting again</li>
+                                        <li>Contact us directly at support@fit-verse.com</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-danger" id="retryErrorModal">
+                                    <i class="fas fa-redo"></i> Try Again
+                                </button>
+                                <button class="btn btn-secondary" id="okErrorModal">
+                                    <i class="fas fa-times"></i> Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legacy messages (hidden) -->
+                    <div class="success-message" id="successMessage" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Thank you for your message! We'll get back to you soon.</span>
+                    </div>
+                    
+                    <div class="error-message" id="errorMessage" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="errorText">Something went wrong. Please try again.</span>
+                    </div>
+
                     <form id="contactForm">
-                        <div class="form-group">
-                            <label for="name">Your Name</label>
-                            <input type="text" id="name" class="form-control" required>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="name">Your Name <span class="required">*</span></label>
+                                <input type="text" id="name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Your Email <span class="required">*</span></label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="email">Your Email</label>
-                            <input type="email" id="email" class="form-control" required>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="category">Category <span class="required">*</span></label>
+                                <select id="category" class="form-control" required>
+                                    <option value="">Select category</option>
+                                    <option value="membership">Membership Inquiry</option>
+                                    <option value="technical">Technical Support</option>
+                                    <option value="general">General Question</option>
+                                    <option value="service">Service Information</option>
+                                    <option value="facilities">Facilities & Equipment</option>
+                                    <option value="partnership">Partnership</option>
+                                    <option value="complaint">Complaint/Feedback</option>
+                                </select>
+                            </div>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="phone">Phone Number</label>
-                            <input type="tel" id="phone" class="form-control">
+                            <label for="subject">Subject <span class="required">*</span></label>
+                            <input type="text" id="subject" class="form-control" required>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="subject">Subject</label>
-                            <select id="subject" class="form-control" required>
-                                <option value="">Select a subject</option>
-                                <option value="membership">Membership Inquiry</option>
-                                <option value="feedback">Feedback/Suggestions</option>
-                                <option value="complaint">Complaint</option>
-                                <option value="partnership">Partnership Opportunity</option>
-                                <option value="other">Other</option>
-                            </select>
+                            <label for="message">Your Message <span class="required">*</span></label>
+                            <textarea id="message" class="form-control" rows="5" required placeholder="Describe your inquiry or concern in detail..."></textarea>
                         </div>
-                        <div class="form-group">
-                            <label for="message">Your Message</label>
-                            <textarea id="message" class="form-control" required></textarea>
-                        </div>
-                        <div class="form-group">
+                        
+                        <div class="form-group activities-section" id="activitiesSection" style="display: none;">
                             <label>Interested Activities (Optional)</label>
-                            <div class="activity-checkbox">
-                                <input type="checkbox" id="cardio" name="activities" value="cardio">
-                                <label for="cardio">Cardio</label>
-                            </div>
-                            <div class="activity-checkbox">
-                                <input type="checkbox" id="strength" name="activities" value="strength" checked>
-                                <label for="strength">Strength</label>
-                            </div>
-                            <div class="activity-checkbox">
-                                <input type="checkbox" id="zumba" name="activities" value="zumba">
-                                <label for="zumba">Zumba</label>
-                            </div>
-                            <div class="activity-checkbox">
-                                <input type="checkbox" id="yoga" name="activities" value="yoga">
-                                <label for="yoga">Yoga</label>
+                            <div class="activities-grid">
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="cardio" name="activities" value="cardio">
+                                    <label for="cardio"><i class="fas fa-heartbeat"></i> Cardio</label>
+                                </div>
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="strength" name="activities" value="strength">
+                                    <label for="strength"><i class="fas fa-dumbbell"></i> Strength</label>
+                                </div>
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="zumba" name="activities" value="zumba">
+                                    <label for="zumba"><i class="fas fa-music"></i> Zumba</label>
+                                </div>
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="yoga" name="activities" value="yoga">
+                                    <label for="yoga"><i class="fas fa-leaf"></i> Yoga</label>
+                                </div>
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="crossfit" name="activities" value="crossfit">
+                                    <label for="crossfit"><i class="fas fa-fire"></i> CrossFit</label>
+                                </div>
+                                <div class="activity-checkbox">
+                                    <input type="checkbox" id="swimming" name="activities" value="swimming">
+                                    <label for="swimming"><i class="fas fa-swimmer"></i> Swimming</label>
+                                </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn">Send Message</button>
+                        
+                        <button type="submit" class="btn submit-btn" id="submitBtn">
+                            <span class="btn-text">Send Message</span>
+                            <div class="btn-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Sending...
+                            </div>
+                        </button>
                     </form>
                 </div>
             </div>

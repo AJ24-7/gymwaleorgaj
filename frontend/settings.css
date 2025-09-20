@@ -1368,3 +1368,652 @@ header {
         justify-content: center;
     }
 }
+
+/* ===============================================
+   HELP & SUPPORT STYLES
+   =============================================== */
+
+/* Support Quick Actions */
+.support-quick-actions {
+    margin-bottom: 2rem;
+}
+
+.support-quick-actions h3 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.quick-action-card {
+    background: linear-gradient(135deg, var(--light-color), #f1f3f4);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.quick-action-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-medium);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+.quick-action-card .action-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: var(--transition);
+}
+
+.quick-action-card:hover .action-icon {
+    background: white;
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.quick-action-card h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    transition: var(--transition);
+}
+
+.quick-action-card:hover h4 {
+    color: white;
+}
+
+.quick-action-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    transition: var(--transition);
+}
+
+.quick-action-card:hover p {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Support Tickets Section */
+.support-tickets-section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    color: var(--dark-color);
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.refresh-tickets-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.refresh-tickets-btn:hover {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+}
+
+.support-tickets-list {
+    background: var(--light-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    min-height: 200px;
+    padding: 1rem;
+}
+
+.support-ticket-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.support-ticket-card:last-child {
+    margin-bottom: 0;
+}
+
+.support-ticket-card:hover {
+    box-shadow: var(--shadow-light);
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+}
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.ticket-id {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.ticket-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.status-badge,
+.priority-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.status-open {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.status-badge.status-replied {
+    background: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+}
+
+.status-badge.status-progress {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.status-badge.status-resolved {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+.status-badge.status-closed {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.priority-badge.priority-low {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+.priority-badge.priority-medium {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.priority-badge.priority-high {
+    background: rgba(255, 108, 38, 0.1);
+    color: #ff6c26;
+}
+
+.priority-badge.priority-urgent {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.ticket-content {
+    margin-bottom: 0.8rem;
+}
+
+.ticket-subject {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0 0 0.5rem 0;
+}
+
+.ticket-preview {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+    margin: 0 0 0.8rem 0;
+}
+
+.ticket-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.ticket-category,
+.ticket-time {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.ticket-actions {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.support-ticket-card:hover .ticket-actions {
+    opacity: 1;
+}
+
+.ticket-actions i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.empty-state h4 {
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+/* Contact Methods */
+.contact-options {
+    margin-bottom: 2rem;
+}
+
+.contact-options h3 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.contact-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.contact-method {
+    background: var(--light-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.contact-method:hover {
+    box-shadow: var(--shadow-light);
+    transform: translateY(-2px);
+}
+
+.contact-method .method-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin: 0 auto 0.8rem;
+}
+
+.contact-method h4 {
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.contact-method p {
+    color: #666;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.contact-method .action-btn {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+}
+
+/* FAQ Section */
+.faq-section {
+    margin-bottom: 2rem;
+}
+
+.faq-section h3 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.faq-list {
+    background: var(--light-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.faq-item {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-item.active {
+    background: white;
+}
+
+.faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    transition: var(--transition);
+}
+
+.faq-question:hover {
+    background: rgba(42, 157, 143, 0.05);
+}
+
+.faq-question i {
+    color: var(--primary-color);
+    transition: transform 0.3s ease;
+}
+
+.faq-answer {
+    padding: 0 1.5rem 1rem;
+    display: none;
+    color: #666;
+    line-height: 1.6;
+}
+
+.faq-answer p {
+    margin: 0 0 0.8rem 0;
+}
+
+.faq-answer p:last-child {
+    margin-bottom: 0;
+}
+
+/* App Information */
+.app-info {
+    background: var(--light-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+}
+
+.app-info h3 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.app-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.app-detail-item {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.app-detail-item label {
+    display: block;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.app-detail-item span {
+    color: var(--dark-color);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Quick Report Modal */
+.quick-report-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+.quick-report-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    color: var(--dark-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.char-count {
+    display: block;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.3rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: normal;
+    color: #666;
+}
+
+/* Error and Loading States */
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--danger-color);
+}
+
+.error-state button {
+    margin-top: 1rem;
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.error-state button:hover {
+    background: #d63447;
+}
+
+/* Mobile Responsive for Support */
+@media (max-width: 768px) {
+    .quick-actions-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+    }
+    
+    .quick-action-card {
+        padding: 1rem;
+    }
+    
+    .quick-action-card .action-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .ticket-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .ticket-badges {
+        flex-wrap: wrap;
+    }
+    
+    .ticket-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .contact-methods {
+        grid-template-columns: 1fr;
+    }
+    
+    .app-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-report-modal {
+        width: 95%;
+        margin: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .support-tickets-list {
+        padding: 0.5rem;
+    }
+    
+    .support-ticket-card {
+        padding: 0.8rem;
+    }
+    
+    .ticket-actions {
+        position: static;
+        opacity: 1;
+        transform: none;
+        margin-top: 0.5rem;
+    }
+}

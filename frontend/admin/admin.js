@@ -13,26 +13,27 @@ document.addEventListener('DOMContentLoaded', function () {
         const contentArea = document.querySelector('.content-area');
         
         if (sidebar && navbar && mainContent) {
-            // Force consistent positioning immediately
             const sidebarWidth = 280;
-            
-            // Apply styles with !important to override any conflicts
-            navbar.style.setProperty('left', sidebarWidth + 'px', 'important');
+            function applyDesktopLayout() {
+                navbar.style.setProperty('left', sidebarWidth + 'px', 'important');
+                mainContent.style.setProperty('margin-left', sidebarWidth + 'px', 'important');
+            }
+            function applyMobileLayout() {
+                navbar.style.setProperty('left', '0', 'important');
+                mainContent.style.setProperty('margin-left', '0', 'important');
+            }
+            // Always fixed / structural values
             navbar.style.setProperty('position', 'fixed', 'important');
             navbar.style.setProperty('top', '0', 'important');
             navbar.style.setProperty('right', '0', 'important');
             navbar.style.setProperty('height', '75px', 'important');
             navbar.style.setProperty('z-index', '1050', 'important');
-            
-            mainContent.style.setProperty('margin-left', sidebarWidth + 'px', 'important');
             mainContent.style.setProperty('padding-top', '75px', 'important');
-            
-            // Add resize listener to maintain consistency
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768) {
-                    navbar.style.setProperty('left', sidebarWidth + 'px', 'important');
-                    mainContent.style.setProperty('margin-left', sidebarWidth + 'px', 'important');
-                }
+
+            (window.innerWidth > 900 ? applyDesktopLayout : applyMobileLayout)();
+
+            window.addEventListener('resize', () => {
+                (window.innerWidth > 900 ? applyDesktopLayout : applyMobileLayout)();
             });
         }
         
@@ -172,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
             
             if (!navbar) return;
             
-            if (window.innerWidth <= 768) {
+            if (window.innerWidth <= 900) {
                 navbar.style.left = '0';
                 navbar.style.paddingLeft = '75px';
                 navbar.style.borderRadius = '0';
@@ -198,12 +199,251 @@ document.addEventListener('DOMContentLoaded', function () {
         updateNavbarLayout();
     }
     
+    // Load navbar admin profile data
+    async function loadNavbarAdminProfile() {
+        try {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                console.log('[NAVBAR] No admin token found');
+                return;
+            }
+
+            const response = await fetch(`${BASE_URL}/api/admin/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to load admin profile');
+            }
+
+            // Update navbar admin avatar
+            const navbarAdminAvatar = document.getElementById('navbarAdminAvatar');
+            if (navbarAdminAvatar) {
+                if (data.admin.profilePicture) {
+                    navbarAdminAvatar.src = `${BASE_URL}${data.admin.profilePicture}`;
+                } else {
+                    // Keep the default fallback
+                    navbarAdminAvatar.src = '/assets/admin-avatar.png';
+                }
+            }
+
+            // Update navbar admin name
+            const navbarAdminName = document.getElementById('navbarAdminName');
+            if (navbarAdminName) {
+                navbarAdminName.textContent = data.admin.name || 'Admin User';
+            }
+
+            console.log('[NAVBAR] Admin profile loaded successfully:', data.admin.name);
+
+        } catch (error) {
+            console.error('[NAVBAR] Error loading admin profile:', error);
+            // Don't show error notifications for navbar loading failures
+        }
+    }
+    
     // Initialize all navbar enhancements
     initializeLayout();
     initScrollProgress();
     initNavbarEnhancements();
     initSidebarConnection();
     initResponsiveNavbar();
+    loadNavbarAdminProfile();
+    
+    // ========== Mobile Menu Functionality ========== //
+    function initMobileMenu() {
+        const hamburger = document.getElementById('hamburgerMenu');
+        const sidebar = document.getElementById('sidebarMenu');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        
+        if (!hamburger || !sidebar || !mobileOverlay) {
+            console.warn('[MOBILE] Mobile menu elements not found');
+            return;
+        }
+        
+        let isMenuOpen = false;
+        
+        function toggleMobileMenu() {
+            isMenuOpen = !isMenuOpen;
+            
+            if (isMenuOpen) {
+                // Open menu
+                hamburger.classList.add('active');
+                sidebar.classList.add('mobile-open');
+                mobileOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scroll
+                
+                // Add pulse effect for first-time users
+                if (!localStorage.getItem('mobile-menu-used')) {
+                    hamburger.classList.remove('pulse');
+                    localStorage.setItem('mobile-menu-used', 'true');
+                }
+            } else {
+                // Close menu
+                hamburger.classList.remove('active');
+                sidebar.classList.remove('mobile-open');
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            console.log('[MOBILE] Menu toggled:', isMenuOpen ? 'open' : 'closed');
+        }
+        
+        function closeMobileMenu() {
+            if (isMenuOpen) {
+                toggleMobileMenu();
+            }
+        }
+        
+        // Hamburger click handler
+        hamburger.addEventListener('click', toggleMobileMenu);
+        
+        // Overlay click handler
+        mobileOverlay.addEventListener('click', closeMobileMenu);
+        
+        // Close menu when clicking sidebar links
+        const sidebarLinks = sidebar.querySelectorAll('.sidebar-menu a');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                setTimeout(closeMobileMenu, 150); // Small delay for better UX
+            });
+        });
+        
+        // Keyboard support
+        hamburger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleMobileMenu();
+            }
+        });
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isMenuOpen) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && isMenuOpen) {
+                closeMobileMenu();
+            }
+            
+            // Re-run table enhancements on resize
+            setTimeout(() => {
+                enhanceTableResponsiveness();
+            }, 100);
+        });
+        
+        // Add pulse effect for new users
+        if (!localStorage.getItem('mobile-menu-used') && window.innerWidth <= 768) {
+            setTimeout(() => {
+                hamburger.classList.add('pulse');
+            }, 2000);
+        }
+        
+        console.log('[MOBILE] Mobile menu initialized successfully');
+    }
+    
+    // Initialize mobile menu
+    initMobileMenu();
+    // ========== End Mobile Menu Functionality ========== //
+    
+    // ========== Table Responsiveness Enhancement ========== //
+    function enhanceTableResponsiveness() {
+        const tableContainers = document.querySelectorAll('.table-container');
+        
+        tableContainers.forEach(container => {
+            const table = container.querySelector('table');
+            if (table && !table.parentNode.classList.contains('table-wrapper')) {
+                // Wrap table in responsive wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-wrapper';
+                
+                // Move table to wrapper
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+                
+                console.log('[TABLE] Enhanced table responsiveness for:', table);
+            }
+        });
+        
+        // Add scroll indicators for mobile
+        const tableWrappers = document.querySelectorAll('.table-wrapper');
+        tableWrappers.forEach(wrapper => {
+            // Remove existing scroll listeners to avoid duplicates
+            wrapper.removeEventListener('scroll', wrapper._scrollHandler);
+            
+            wrapper._scrollHandler = function() {
+                const scrollLeft = this.scrollLeft;
+                const maxScroll = this.scrollWidth - this.clientWidth;
+                
+                // Add/remove classes based on scroll position
+                const container = this.closest('.table-container');
+                if (container) {
+                    if (scrollLeft > 0) {
+                        container.classList.add('scrolled-left');
+                    } else {
+                        container.classList.remove('scrolled-left');
+                    }
+                    
+                    if (scrollLeft < maxScroll - 5) {
+                        container.classList.add('can-scroll-right');
+                    } else {
+                        container.classList.remove('can-scroll-right');
+                    }
+                }
+            };
+            
+            wrapper.addEventListener('scroll', wrapper._scrollHandler);
+            
+            // Initial check
+            wrapper.dispatchEvent(new Event('scroll'));
+        });
+        
+        console.log('[TABLE] Enhanced', tableContainers.length, 'table containers for responsiveness');
+    }
+    
+    // Initialize table responsiveness
+    enhanceTableResponsiveness();
+    
+    // Re-run table enhancements when new content is dynamically loaded
+    const tableObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList?.contains('table-container') || 
+                            node.querySelector?.('.table-container')) {
+                            setTimeout(() => {
+                                enhanceTableResponsiveness();
+                            }, 50);
+                        }
+                    }
+                });
+            }
+        });
+    });
+    
+    // Observe the main content area for new tables
+    const mainContentArea = document.getElementById('mainContent');
+    if (mainContentArea) {
+        tableObserver.observe(mainContentArea, {
+            childList: true,
+            subtree: true
+        });
+    }
+    // ========== End Table Responsiveness Enhancement ========== //
     
     // Enhanced navbar state management
     let lastScrollTop = 0;
@@ -509,30 +749,32 @@ document.addEventListener('DOMContentLoaded', function () {
               loadTabData(activeGymTab.getAttribute('data-tab'));
             }
           } else if (targetTabId === 'support-content') {
-            // Initialize support system when support tab is clicked
-            if (window.supportSystem) {
-              window.supportSystem.loadSupportStats();
-              window.supportSystem.loadSupportTickets();
+            // Initialize unified communication system when support tab is clicked
+            if (window.unifiedComm) {
+              window.unifiedComm.loadSupportStats();
+              window.unifiedComm.loadSupportTickets();
             }
           }
         }
       });
     });
-    const gymTabs = document.querySelectorAll('.gym-tab');
-    gymTabs.forEach(tab => {
-      tab.addEventListener('click', function() {
-        gymTabs.forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        const gymTabContents = document.querySelectorAll('.gym-tab-content');
-        gymTabContents.forEach(content => content.classList.remove('active'));
-        const tabId = this.getAttribute('data-tab');
-        const targetTabContent = document.getElementById(tabId);
-        if (targetTabContent) {
-          targetTabContent.classList.add('active');
-          loadTabData(tabId);
-        }
-      });
-    });
+        // IMPORTANT: Limit gym management tab listeners to gym section only to avoid
+        // interfering with trainer tabs that reuse the 'gym-tab' class.
+        const gymTabs = document.querySelectorAll('#gym-content .gym-tab');
+        gymTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                gymTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                const gymTabContents = document.querySelectorAll('#gym-content .gym-tab-content');
+                gymTabContents.forEach(content => content.classList.remove('active'));
+                const tabId = this.getAttribute('data-tab');
+                const targetTabContent = document.getElementById(tabId);
+                if (targetTabContent) {
+                    targetTabContent.classList.add('active');
+                    loadTabData(tabId);
+                }
+            });
+        });
   }
   setupTabSwitching();
   
@@ -585,8 +827,8 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           break;
         case 'support':
-          if (typeof loadSupportData === 'function') {
-            loadSupportData();
+          if (window.unifiedComm) {
+            window.unifiedComm.loadSupportData();
           }
           break;
       }
@@ -594,6 +836,293 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log(`[TAB] Switched to ${tabId} tab`);
     }
   };
+
+        // ========== Trainer Tabs (Real Data Integration) ==========
+        (function initTrainerTabs(){
+            const container = document.getElementById('trainerTabs');
+            if (!container) return;
+                                // Inject responsive styles for trainer action cells & table scroll preservation
+                                if (!document.getElementById('trainer-actions-style')) {
+                                        const styleEl = document.createElement('style');
+                                        styleEl.id = 'trainer-actions-style';
+                                        styleEl.textContent = `
+                                            .trainer-actions-cell button{padding:4px 6px;border:1px solid #d1d5db;background:#fff;border-radius:4px;cursor:pointer;transition:background .15s,transform .15s;}
+                                            .trainer-actions-cell button.approve{border-color:#16a34a;color:#166534;}
+                                            .trainer-actions-cell button.approve:hover{background:#dcfce7;}
+                                            .trainer-actions-cell button.reject{border-color:#dc2626;color:#991b1b;}
+                                            .trainer-actions-cell button.reject:hover{background:#fee2e2;}
+                                            .trainer-actions-cell button.view{border-color:#3b82f6;color:#1d4ed8;}
+                                            .trainer-actions-cell button.view:hover{background:#dbeafe;}
+                                            .trainer-actions-cell button:hover{transform:translateY(-2px);} 
+                                            .trainer-actions-cell{position:relative;} 
+                                            @media (max-width: 960px){
+                                                #independentTrainersTable,#gymBasedTrainersTable,#trainerRequestsTable{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+                                                #independentTrainersTable thead,#gymBasedTrainersTable thead,#trainerRequestsTable thead{position:sticky;top:0;background:#fff;z-index:2;}
+                                                .trainer-actions-cell{min-width:190px;}
+                                            }
+                                        `;
+                                        document.head.appendChild(styleEl);
+                                }
+            const tabButtons = container.querySelectorAll('.gym-tab');
+            const panels = ['independent-trainers','gym-based-trainers','trainer-requests'].map(id=>document.getElementById(id)).filter(Boolean);
+
+            let independent = [];
+            let gymBased = [];
+            let pending = [];
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', ()=>{
+                    tabButtons.forEach(b=>b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const target = btn.getAttribute('data-tab');
+                    panels.forEach(p=>p.classList.remove('active'));
+                    const panel = document.getElementById(target); if (panel) panel.classList.add('active');
+                });
+            });
+
+            function fallbackImgBase64(){
+                return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iI2YzZjRmNiIvPjxzaXJjbGUgY3g9IjIwIiBjeT0iMTQiIHI9IjgiIGZpbGw9IiM5Y2EzYWYiLz48cGF0aCBkPSJNMjAgMjJDMTQuNDc3MSAyMiAxMCAyNi40NzcxIDEwIDMySDEzLjAxNzFDMTMuMDE3MSAyNy42NTE0IDE2Ljg2NDQgMjQgMjEgMjRDMjUuMTM1NiAyNCAyOC45ODM5IDI3LjY1MTQgMjguOTgzOSAzMkgzMUMzMSAyNi40NzcxIDI2LjUyMjkgMjIgMjAgMjJaIiBmaWxsPSIjOWNhM2FmIi8+PC9zdmc+';
+            }
+
+            function buildImgCell(tr){
+                const fullName = `${tr.firstName||''} ${tr.lastName||''}`.trim() || 'N/A';
+                // Consolidate possible image fields & log once if none works
+                const candidateFields = ['image','photo','profileImage','profile_image','profilePic','imageUrl'];
+                let rawPhoto = '';
+                for (const f of candidateFields){
+                    if (tr[f]) { rawPhoto = tr[f]; break; }
+                }
+                if (!rawPhoto && tr.photoFileName) rawPhoto = tr.photoFileName; // extra legacy
+                // Some APIs might return full object for image
+                if (rawPhoto && typeof rawPhoto === 'object') {
+                    rawPhoto = rawPhoto.url || rawPhoto.path || rawPhoto.filename || '';
+                }
+                const base = (typeof BASE_URL!=='undefined' && BASE_URL) ? BASE_URL : '';
+                const originallyHad = rawPhoto;
+                if (rawPhoto && !/^https?:\/\//i.test(rawPhoto)) {
+                    // Accept already prefixed directories (/uploads/trainers|/uploads/profile-pics|/uploads/users etc)
+                    if (!rawPhoto.startsWith('/uploads')) {
+                        // Heuristic: if it includes typical image extension, treat as filename and prefix trainers dir
+                        rawPhoto = `/uploads/trainers/${rawPhoto}`;
+                    }
+                }
+                let src = rawPhoto ? (rawPhoto.startsWith('http') ? rawPhoto : `${base}${rawPhoto}`) : '';
+                if (!src) {
+                    console.warn('[TRAINERS][IMG] No valid image for trainer', tr._id, 'candidates', candidateFields.map(f=>tr[f]).filter(Boolean));
+                    src = fallbackImgBase64();
+                } else {
+                    // Cache busting
+                    if (src.startsWith(base+'/uploads')) {
+                        const ts = (tr.updatedAt || tr.lastActiveAt || Date.now());
+                        src += (src.includes('?')? '&':'?') + 'v=' + new Date(ts).getTime();
+                    }
+                    if (!originallyHad) {
+                        console.debug('[TRAINERS][IMG] Using derived src', src, 'for trainer', tr._id);
+                    }
+                }
+                return `<div style="display:flex;align-items:center;gap:12px;max-width:260px;">
+                    <img src="${src}" alt="${fullName}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;background:#f3f4f6;flex-shrink:0;" onerror="this.onerror=null;this.src='${fallbackImgBase64()}';" />
+                    <div style="min-width:0;">
+                        <div style="font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fullName}</div>
+                        <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tr.email||''}</div>
+                    </div>
+                </div>`;
+            }
+
+            function renderIndependent(){
+                const body = document.getElementById('independentTrainersBody');
+                if (!body) return; body.innerHTML='';
+                if (!independent.length){ body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No independent trainers yet</td></tr>'; return; }
+                independent.forEach(tr => {
+                    const isPending = (tr.status||'').toLowerCase()==='pending';
+                    const actions = isPending
+                      ? `<button class=\"btn-action approve\" data-action=\"approve-trainer\" data-id=\"${tr._id}\"><i class=\"fas fa-check\"></i></button>
+                         <button class=\"btn-action reject\" data-action=\"reject-trainer\" data-id=\"${tr._id}\"><i class=\"fas fa-times\"></i></button>
+                         <button class=\"btn-action view\" data-action=\"view-trainer\" data-id=\"${tr._id}\"><i class=\"fas fa-eye\"></i></button>`
+                      : `<button class=\"btn-action view\" data-action=\"view-trainer\" data-id=\"${tr._id}\"><i class=\"fas fa-eye\"></i></button>`;
+                    body.insertAdjacentHTML('beforeend', `<tr>
+                        <td>${buildImgCell(tr)}</td>
+                        <td>${tr.email||'--'}</td>
+                        <td>${tr.specialty||'--'}</td>
+                        <td>${tr.experience!=null? tr.experience+' yr':'--'}</td>
+                        <td><span class="status-badge status-${(tr.status||'pending').toLowerCase()}">${(tr.status||'PENDING').toUpperCase()}</span></td>
+                        <td class="trainer-actions-cell" style="white-space:nowrap;display:flex;gap:6px;align-items:center;justify-content:flex-start;min-width:150px;">${actions}</td>
+                    </tr>`);
+                });
+            }
+
+            function renderGymBased(){
+                const body = document.getElementById('gymBasedTrainersBody');
+                if (!body) return; body.innerHTML='';
+                if (!gymBased.length){ body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No gym based trainers yet</td></tr>'; return; }
+                gymBased.forEach(tr => {
+                    const gymName = (tr.gym && tr.gym.gymName) || '—';
+                    body.insertAdjacentHTML('beforeend', `<tr>
+                        <td>${buildImgCell(tr)}</td>
+                        <td>${tr.email||'--'}</td>
+                        <td>${gymName}</td>
+                        <td>${tr.specialty||'--'}</td>
+                        <td><span class="status-badge status-${(tr.status||'pending').toLowerCase()}">${(tr.status||'PENDING').toUpperCase()}</span></td>
+                        <td class="trainer-actions-cell" style="white-space:nowrap;display:flex;gap:6px;align-items:center;min-width:120px;">
+                            <button class="btn-action view" data-action="view-trainer" data-id="${tr._id}"><i class="fas fa-eye"></i></button>
+                        </td>
+                    </tr>`);
+                });
+            }
+
+            function renderRequests(){
+                const body = document.getElementById('trainerRequestsBody');
+                if (!body) return; body.innerHTML='';
+                if (!pending.length){ body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No trainer requests</td></tr>'; return; }
+                pending.forEach(tr => {
+                    const isIndependent = (tr.trainerType||'').toLowerCase()==='independent' || tr.isIndependent || (!tr.trainerType && !tr.gym);
+                    const typeLabel = isIndependent ? 'Independent' : 'Gym Based';
+                    const actionCells = isIndependent
+                        ? `<button class="btn-action approve" data-action="approve-trainer" data-id="${tr._id}"><i class="fas fa-check"></i></button>
+                           <button class="btn-action reject" data-action="reject-trainer" data-id="${tr._id}"><i class="fas fa-times"></i></button>
+                           <button class="btn-action view" data-action="view-trainer" data-id="${tr._id}"><i class="fas fa-eye"></i></button>`
+                        : `<span style="font-size:12px;color:#64748b;display:inline-flex;align-items:center;gap:4px;">Pending Gym Approval <i class="fas fa-hourglass-half"></i></span>`;
+                    body.insertAdjacentHTML('beforeend', `<tr>
+                        <td>${buildImgCell(tr)}</td>
+                        <td>${tr.email||'--'}</td>
+                        <td>${typeLabel}</td>
+                        <td>${new Date(tr.createdAt||tr.updatedAt||Date.now()).toLocaleDateString()}</td>
+                        <td><span class="status-badge status-pending">PENDING</span></td>
+                        <td class="trainer-actions-cell" style="white-space:nowrap;display:flex;gap:6px;align-items:center;min-width:170px;">${actionCells}</td>
+                    </tr>`);
+                });
+            }
+
+            function updateCounts(){
+                const indepSpan = document.getElementById('count-independent-trainers');
+                const gymSpan = document.getElementById('count-gym-based-trainers');
+                const reqSpan = document.getElementById('count-trainer-requests');
+                if (indepSpan) indepSpan.textContent = `(${independent.length})`;
+                if (gymSpan) gymSpan.textContent = `(${gymBased.length})`;
+                if (reqSpan) reqSpan.textContent = `(${pending.length})`;
+            }
+
+            async function fetchTrainers(){
+                        const bodies = ['independentTrainersBody','gymBasedTrainersBody','trainerRequestsBody'];
+                        // show loading state
+                        bodies.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<tr><td colspan="6" style="text-align:center;padding:18px;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Loading trainers...</td></tr>'; });
+                        const base = (typeof BASE_URL !== 'undefined' && BASE_URL) ? BASE_URL : '';
+                        try {
+                            const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+                            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                            console.log('[TRAINERS] Fetching trainers from', `${base}/api/trainers/all`);
+                            const res = await fetch(`${base}/api/trainers/all`, { headers });
+                            let list = [];
+                            if (!res.ok){
+                                console.warn('[TRAINERS] Primary fetch failed status', res.status, 'attempting fallback /api/trainers/all?status=all');
+                                const fallback = await fetch(`${base}/api/trainers/all?status=all`, { headers });
+                                if (!fallback.ok){
+                                    throw new Error('Both primary and fallback trainer fetch failed: '+res.status+' / '+fallback.status);
+                                }
+                                list = await fallback.json();
+                            } else {
+                                list = await res.json();
+                            }
+                            // Flexible parsing: some APIs may wrap trainers
+                            if (!Array.isArray(list)) {
+                                if (Array.isArray(list.trainers)) list = list.trainers; else
+                                if (Array.isArray(list.data)) list = list.data; else
+                                if (Array.isArray(list.results)) list = list.results; else
+                                if (list.trainers && Array.isArray(list.trainers.items)) list = list.trainers.items;
+                            }
+                            if (!Array.isArray(list)){
+                                console.error('[TRAINERS] Unexpected response (not array):', list);
+                                throw new Error('Invalid trainers payload');
+                            }
+                            console.log('[TRAINERS] Received', list.length, 'trainers');
+                            if (list.length){
+                                const sample = { ...list[0] };
+                                // Avoid logging huge arrays; show keys only
+                                console.log('[TRAINERS] Sample keys:', Object.keys(sample));
+                                console.log('[TRAINERS] Sample record:', {
+                                    id: sample._id || sample.id,
+                                    firstName: sample.firstName,
+                                    lastName: sample.lastName,
+                                    email: sample.email,
+                                    status: sample.status,
+                                    hasGym: !!sample.gym,
+                                    gymType: typeof sample.gym
+                                });
+                            }
+                            // Ensure tbody elements exist (if HTML was stripped / not rendered yet)
+                            bodies.forEach(id => {
+                                if (!document.getElementById(id)) {
+                                    console.warn('[TRAINERS] Missing tbody', id, 'injecting fallback container');
+                                    const targetPanelId = id === 'independentTrainersBody' ? 'independent-trainers' : id === 'gymBasedTrainersBody' ? 'gym-based-trainers' : 'trainer-requests';
+                                    const panel = document.getElementById(targetPanelId);
+                                    if (panel) {
+                                        const div = document.createElement('div');
+                                        div.innerHTML = `<div class="table-container auto-injected"><table><tbody id="${id}"></tbody></table></div>`;
+                                        panel.appendChild(div.firstChild);
+                                    }
+                                }
+                            });
+                            // Normalize gym field: could be array of names, array of gym objects, single gym object, or null
+                            const normalizeHasGym = (t) => {
+                                if (!t) return false;
+                                if (t.trainerType === 'gym') return true;
+                                const g = t.gym;
+                                if (!g) return false;
+                                if (Array.isArray(g)) return g.length > 0; // array of names or objects
+                                if (typeof g === 'object') return true; // populated gym object
+                                if (typeof g === 'string') return g.trim().length > 0; // id reference
+                                return false;
+                            };
+                            independent = list.filter(t => (t.trainerType === 'independent') || !normalizeHasGym(t));
+                            gymBased = list.filter(t => (t.trainerType === 'gym') || normalizeHasGym(t));
+                            pending = list.filter(t => ((t.status||'').toLowerCase()==='pending'));
+                            console.log('[TRAINERS] Classification counts', {
+                                total: list.length,
+                                independent: independent.length,
+                                gymBased: gymBased.length,
+                                pending: pending.length
+                            });
+                            updateCounts();
+                            renderIndependent();
+                            renderGymBased();
+                            renderRequests();
+                        } catch(err){
+                            console.error('[TRAINERS] Load error', err);
+                            bodies.forEach(id=>{
+                                const el = document.getElementById(id); if (el) el.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#dc2626;">Failed to load trainers. ${err.message}</td></tr>`;
+                            });
+                            showNotification && showNotification('Failed to load trainer data','error');
+                        }
+            }
+
+            // Approve / Reject actions delegate (real endpoints assumed)
+            document.addEventListener('click', async (e)=>{
+                const approve = e.target.closest('.btn-action.approve');
+                const reject = e.target.closest('.btn-action.reject');
+                if (!approve && !reject) return;
+                const id = (approve||reject).dataset.id;
+                if (!id) return;
+                try {
+                    const token = localStorage.getItem('adminToken');
+                    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type':'application/json' };
+                    const method = 'PATCH';
+                    const endpoint = approve ? `${BASE_URL}/api/trainers/${id}/approve` : `${BASE_URL}/api/trainers/${id}/reject`;
+                    const r = await fetch(endpoint, { method, headers });
+                    if (!r.ok) throw new Error('Action failed');
+                    showNotification(approve? 'Trainer approved':'Trainer rejected', approve? 'success':'warning');
+                    fetchTrainers();
+                } catch(actionErr){
+                    console.error('Trainer action error', actionErr);
+                    showNotification('Failed to update trainer','error');
+                }
+            });
+            console.log('[TRAINERS] Trainer tab module initialized; performing initial fetch');
+            window.refreshTrainers = function(){
+                console.log('[TRAINERS] window.refreshTrainers invoked');
+                fetchTrainers();
+            };
+            fetchTrainers();
+        })();
 
     // ========== Enhanced Real-time Dashboard Integration ==========
     
@@ -633,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 showNotification('Authentication failed - please login again', 'error');
                 // Redirect to login if token is invalid
                 setTimeout(() => {
-                    window.location.href = '/frontend/admin/login.html';
+                    window.location.href = '/frontend/admin/admin-login.html';
                 }, 2000);
             } else if (error.message.includes('500')) {
                 showNotification('Server error - please try again later', 'error');
@@ -2054,6 +2583,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadTabData(tabId) {
         console.log('[DEBUG] loadTabData called with:', tabId);
+        if (['independent-trainers','gym-based-trainers','trainer-requests'].includes(tabId)) {
+            console.log('[DEBUG] loadTabData early exit for trainer tab (handled separately):', tabId);
+            return;
+        }
         const tabContent = document.querySelector(`.gym-tab-content[id="${tabId}"]`);
         const tbody = tabContent ? tabContent.querySelector('tbody') : null;
         // Find the count span for this tab
@@ -2281,216 +2814,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Placeholder if you add notifications logic
     }
 
-    // ========== Trainer Management Dynamic ========== //
-    const trainerMgmtGrid = document.getElementById('trainerMgmtGrid');
-    const trainerMgmtTabSections = document.querySelectorAll('.trainer-mgmt-tab-section');
-    let allTrainers = [];
-    let currentTrainerTab = 'All';
-
-    // Fetch trainers from API
-    async function fetchTrainers() {
-        try {
-            if (trainerMgmtGrid) trainerMgmtGrid.innerHTML = `<div class="loading-animation"><div class="spinner"></div><p>Loading trainers...</p></div>`;
-            const token = localStorage.getItem('adminToken');
-            // Fetch all trainers for admin, grouped by status
-            const response = await fetch(`${BASE_URL}/api/trainers/all`, {
-                headers: {
-                    'Authorization': `Bearer ${token || ''}`
-                }
-            });
-            if (!response.ok) throw new Error('Failed to fetch trainers');
-            const trainers = await response.json();
-            // Normalize status to lower-case for filtering
-            allTrainers = trainers.map(tr => ({ ...tr, status: (tr.status || '').toLowerCase() }));
-            renderTrainerCards(currentTrainerTab);
-        } catch (err) {
-            console.error('[TrainerMgmt] Error fetching trainers:', err);
-            if (trainerMgmtGrid) trainerMgmtGrid.innerHTML = `<div class="error-message"><p>Failed to load trainers. Please try again later.</p></div>`;
-        }
-    }
-
-    // Render trainer cards by tab/status
-    function renderTrainerCards(tab) {
-        if (!trainerMgmtGrid) return;
-        trainerMgmtGrid.innerHTML = '';
-        let trainers = allTrainers;
-        if (tab !== 'All') {
-            trainers = allTrainers.filter(tr => (tr.status || '') === tab.toLowerCase());
-        }
-        if (!trainers.length) {
-            trainerMgmtGrid.innerHTML = `<div style="padding:32px; color:#888; text-align:center; width:100%;">No trainers found for <b>${tab.charAt(0).toUpperCase() + tab.slice(1)}</b>.</div>`;
-            return;
-        }
-        trainers.forEach(trainer => {
-            trainerMgmtGrid.innerHTML += generateTrainerCard(trainer);
-        });
-        addTrainerActionListeners();
-    }
-
-    // Generate HTML for a trainer card
-    function generateTrainerCard(trainer) {
-        const statusClass = `trainer-mgmt-${(trainer.status || 'pending')}`;
-        const imgSrc = trainer.image ? (trainer.image.startsWith('http') ? trainer.image : `${BASE_URL}${trainer.image}`) : 'https://via.placeholder.com/100';
-        const gyms = Array.isArray(trainer.gym) ? trainer.gym : (trainer.gym ? [trainer.gym] : []);
-        const certifications = Array.isArray(trainer.certifications) && trainer.certifications.length ? trainer.certifications : [];
-        return `
-        <div class="trainer-mgmt-card redesigned" data-id="${trainer._id}">
-            <div class="trainer-mgmt-card-header">
-                <div class="trainer-mgmt-avatar-section">
-                    <img src="${imgSrc}" alt="Trainer" class="trainer-mgmt-profile-img">
-                    <span class="trainer-mgmt-status-badge ${statusClass}" title="Status">
-                        <i class="fas fa-circle"></i> ${capitalize(trainer.status)}
-                    </span>
-                </div>
-                <div class="trainer-mgmt-main-info">
-                    <h3 class="trainer-mgmt-name">${trainer.firstName || ''} ${trainer.lastName || ''}</h3>
-                    <div class="trainer-mgmt-contact-row">
-                        <span class="trainer-mgmt-contact" title="Email"><i class="fas fa-envelope"></i> ${trainer.email || '-'}</span>
-                        <span class="trainer-mgmt-contact" title="Phone"><i class="fas fa-phone"></i> ${trainer.phone || '-'}</span>
-                    </div>
-                    <div class="trainer-mgmt-specialty-exp">
-                        <span class="trainer-mgmt-specialty" title="Specialty"><i class="fas fa-dumbbell"></i> ${trainer.specialty || '-'}</span>
-                        <span class="trainer-mgmt-experience" title="Experience"><i class="fas fa-briefcase"></i> ${trainer.experience || 0} yrs</span>
-                        <span class="trainer-mgmt-availability" title="Availability"><i class="fas fa-clock"></i> ${trainer.availability || '-'}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="trainer-mgmt-card-body">
-                <div class="trainer-mgmt-gyms-list">
-                    <span class="trainer-mgmt-gyms-title"><i class="fas fa-building"></i> ${trainer.status === 'rejected' ? 'Previously Worked At:' : 'Currently Working At:'}</span>
-                    <div class="trainer-mgmt-gyms-container">
-                        ${gyms.map(g => `<span class="trainer-mgmt-gym-badge"><i class='fas fa-map-marker-alt'></i> ${g}</span>`).join('')}
-                    </div>
-                </div>
-                <div class="trainer-mgmt-cert-bio-row">
-                    <button class="trainer-mgmt-action-btn trainer-mgmt-toggle-btn" data-action="toggle-details">
-                        <i class="fas fa-info-circle"></i> ${trainer.bio || certifications.length ? 'Show Details' : 'No More Info'}
-                    </button>
-                    <div class="trainer-mgmt-more-details" style="display:none;">
-                        ${trainer.bio ? `<div class="trainer-mgmt-bio"><i class='fas fa-user'></i> <strong>Bio:</strong> <span>${trainer.bio}</span></div>` : ''}
-                        ${certifications.length ? `<div class="trainer-mgmt-certs"><i class='fas fa-certificate'></i> <strong>Certifications:</strong> <ul>${certifications.map(c => `<li>${c}</li>`).join('')}</ul></div>` : ''}
-                    </div>
-                </div>
-            </div>
-            <div class="trainer-mgmt-action-buttons">
-                ${trainer.status !== 'approved' ? `<button class="trainer-mgmt-action-btn trainer-mgmt-approve-btn" data-action="approve" title="Approve"><i class="fas fa-check"></i></button>` : ''}
-                ${trainer.status !== 'rejected' ? `<button class="trainer-mgmt-action-btn trainer-mgmt-reject-btn" data-action="reject" title="Reject"><i class="fas fa-times"></i></button>` : ''}
-                <button class="trainer-mgmt-action-btn trainer-mgmt-delete-btn" data-action="delete" title="Delete"><i class="fas fa-trash"></i></button>
-            </div>
-        </div>
-        `;
-    }
-
-    function capitalize(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    // Add event listeners for approve/reject/delete
-    function addTrainerActionListeners() {
-        if (!trainerMgmtGrid) return;
-
-        // Toggle details
-        trainerMgmtGrid.querySelectorAll('.trainer-mgmt-toggle-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const moreDetails = btn.parentElement.querySelector('.trainer-mgmt-more-details');
-                if (moreDetails) {
-                    moreDetails.style.display = moreDetails.style.display === 'none' || !moreDetails.style.display ? 'block' : 'none';
-                    btn.innerHTML = `<i class="fas fa-info-circle"></i> ${moreDetails.style.display === 'block' ? 'Hide Details' : 'Show Details'}`;
-                }
-            });
-        });
-
-        // Action buttons (approve/reject/delete)
-        trainerMgmtGrid.querySelectorAll('.trainer-mgmt-action-btn').forEach(btn => {
-            btn.addEventListener('click', async function (e) {
-                e.stopPropagation();
-                const action = btn.getAttribute('data-action');
-                const card = btn.closest('.trainer-mgmt-card');
-                const trainerId = card ? card.getAttribute('data-id') : null;
-                if (!trainerId || !action) return;
-
-                // Use /api/trainers/:id for all actions (approve, reject, delete)
-                if (action === 'approve') {
-                    try {
-                        const token = localStorage.getItem('adminToken');
-                        const res = await fetch(`${BASE_URL}/api/trainers/${trainerId}/approve`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        if (!res.ok) throw new Error('Failed to approve trainer');
-                        showNotification('Trainer approved!', 'success');
-                        await fetchTrainers();
-                        renderTrainerCards(currentTrainerTab);
-                    } catch (err) {
-                        showNotification('Error approving trainer', 'error');
-                    }
-                } else if (action === 'reject') {
-                    try {
-                        const token = localStorage.getItem('adminToken');
-                        const res = await fetch(`${BASE_URL}/api/trainers/${trainerId}/reject`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        if (!res.ok) throw new Error('Failed to reject trainer');
-                        showNotification('Trainer rejected!', 'success');
-                        await fetchTrainers();
-                        renderTrainerCards(currentTrainerTab);
-                    } catch (err) {
-                        showNotification('Error rejecting trainer', 'error');
-                    }
-                } else if (action === 'delete') {
-                    showDialog({
-                        title: 'Delete Trainer',
-                        message: 'Are you sure you want to delete this trainer? This action cannot be undone.',
-                        confirmText: 'Delete',
-                        cancelText: 'Cancel',
-                        onConfirm: async () => {
-                            try {
-                                const token = localStorage.getItem('adminToken');
-                                const res = await fetch(`${BASE_URL}/api/trainers/${trainerId}`, {
-                                    method: 'DELETE',
-                                    headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'Content-Type': 'application/json'
-                                    }
-                                });
-                                if (!res.ok) throw new Error('Failed to delete trainer');
-                                showNotification('Trainer deleted!', 'success');
-                                await fetchTrainers();
-                                renderTrainerCards(currentTrainerTab);
-                            } catch (err) {
-                                showNotification('Error deleting trainer', 'error');
-                            }
-                        }
-                    });
-                }
-            });
-        });
-    }
-
-    // Tab switching for trainer management
-    if (trainerMgmtTabSections && trainerMgmtTabSections.length) {
-        trainerMgmtTabSections.forEach(tabSection => {
-            tabSection.addEventListener('click', function () {
-                if (tabSection.classList.contains('active')) return;
-                document.querySelectorAll('.trainer-mgmt-tab-section.active').forEach(el => el.classList.remove('active'));
-                tabSection.classList.add('active');
-                currentTrainerTab = tabSection.getAttribute('data-tab');
-                renderTrainerCards(currentTrainerTab);
-            });
-        });
-    }
-
-    // Initial load
-    if (trainerMgmtGrid) fetchTrainers();
-    // ========== End Trainer Management Dynamic ==========
+    // (Legacy Enhanced Dual Trainer Flow removed - replaced by real data trainer tabs at top)
 
   // Hamburger menu logic
   const hamburger = document.getElementById('hamburgerMenu');
@@ -3135,19 +3459,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const navbar = document.querySelector('.top-navbar');
         const mainContentEl = document.querySelector('.main-content');
         if (navbar && mainContentEl) {
-            // Use setProperty with important to override any conflicting styles
-            navbar.style.setProperty('left', '280px', 'important');
+            // Only apply left offset on desktop; mobile is handled via CSS overrides
+            if (window.innerWidth > 900) {
+                navbar.style.setProperty('left', '280px', 'important');
+                mainContentEl.style.setProperty('margin-left', '280px', 'important');
+            } else {
+                navbar.style.setProperty('left', '0', 'important');
+                mainContentEl.style.setProperty('margin-left', '0', 'important');
+            }
             navbar.style.setProperty('position', 'fixed', 'important');
             navbar.style.setProperty('top', '0', 'important');
-            navbar.style.setProperty('background', 'rgba(255, 255, 255, 0.98)', 'important');
-            navbar.style.setProperty('color', '#334155', 'important');
-            
-            mainContentEl.style.setProperty('margin-left', '280px', 'important');
             mainContentEl.style.setProperty('padding-top', '75px', 'important');
-            
-            // Trigger a reflow to ensure styles are applied
-            navbar.offsetHeight;
-            mainContentEl.offsetHeight;
+            navbar.offsetHeight; mainContentEl.offsetHeight; // reflow
         }
         
         console.log('[DEBUG] Final initialization completed with forced positioning');
@@ -3157,7 +3480,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const navbarEl = document.querySelector('.top-navbar');
     const mainContentEl = document.querySelector('.main-content');
     if (navbarEl && mainContentEl) {
-        navbarEl.style.setProperty('left', '280px', 'important');
-        mainContentEl.style.setProperty('margin-left', '280px', 'important');
+        if (window.innerWidth > 900) {
+            navbarEl.style.setProperty('left', '280px', 'important');
+            mainContentEl.style.setProperty('margin-left', '280px', 'important');
+        } else {
+            navbarEl.style.setProperty('left', '0', 'important');
+            mainContentEl.style.setProperty('margin-left', '0', 'important');
+        }
     }
 });

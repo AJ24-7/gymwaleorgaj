@@ -70,7 +70,8 @@ const supportTicketSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['open', 'in-progress', 'resolved', 'closed'],
+    // Added 'replied' to support intermediate state after an admin response
+    enum: ['open', 'replied', 'in-progress', 'resolved', 'closed'],
     default: 'open'
   },
   subject: {
@@ -128,6 +129,21 @@ const supportTicketSchema = new mongoose.Schema({
       type: String,
       enum: ['web', 'mobile', 'email', 'phone', 'notification', 'admin'],
       default: 'web'
+    },
+    contactFormSubmission: {
+      type: Boolean,
+      default: false
+    },
+    quickMessage: String,
+    interestedActivities: [String],
+    contactMethod: {
+      type: String,
+      enum: ['phone', 'email'],
+      default: 'email'
+    },
+    isGuestUser: {
+      type: Boolean,
+      default: false
     }
   }
 }, {

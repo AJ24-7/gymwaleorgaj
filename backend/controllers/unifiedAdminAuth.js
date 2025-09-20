@@ -323,9 +323,10 @@ class UnifiedAdminAuth {
                 await admin.addTrustedDevice(deviceFingerprint, req.get('User-Agent'));
             }
 
-            // Update last login info
+            // Update last login info and increment login count
             admin.lastLogin = new Date();
             admin.lastLoginIP = req.ip;
+            admin.loginCount = (admin.loginCount || 0) + 1;
             await admin.save();
 
             await this.securityLogger.log('login_success', {

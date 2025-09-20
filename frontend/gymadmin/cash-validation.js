@@ -211,7 +211,7 @@ class CashValidationSystem {
 
     async loadPendingValidations() {
         try {
-            const response = await fetch('/api/payments/pending-cash-validations', {
+            const response = await fetch('/api/payments/pending-validations', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
                     'Content-Type': 'application/json'
@@ -516,7 +516,7 @@ class CashValidationSystem {
 
     async checkForNewValidations() {
         try {
-            const response = await fetch('/api/payments/pending-cash-validations', {
+            const response = await fetch('/api/payments/pending-validations', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
                     'Content-Type': 'application/json'

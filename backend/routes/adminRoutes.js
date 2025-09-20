@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const adminAuth = require('../middleware/adminAuth');
 const adminController = require('../controllers/adminController');
 const unifiedAdminAuth = require('../controllers/unifiedAdminAuth');
@@ -8,6 +11,42 @@ const communicationController = require('../controllers/communicationController'
 const sendEmail = require('../utils/sendEmail');
 const Notification = require('../models/Notification'); // Import Notification model
 const Admin = require('../models/admin'); // Import Admin model
+
+// Multer configuration for profile picture uploads
+const adminProfileStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '../../uploads/admin-profiles');
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const extension = path.extname(file.originalname);
+    cb(null, `admin-${req.admin.id}-${uniqueSuffix}${extension}`);
+  }
+});
+
+// File filter for profile pictures
+const profilePictureFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'), false);
+  }
+};
+
+const adminProfileUpload = multer({
+  storage: adminProfileStorage,
+  fileFilter: profilePictureFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Authentication Routes (Public) - Using Unified Admin Auth Controller
 router.post('/auth/login', unifiedAdminAuth.createRateLimiter(), unifiedAdminAuth.login.bind(unifiedAdminAuth));
@@ -241,6 +280,7 @@ router.get('/profile', adminAuth, async (req, res) => {
         name: admin.name,
         email: admin.email,
         phone: admin.phone,
+        profilePicture: admin.profilePicture,
         role: admin.role,
         permissions: admin.permissions,
         status: admin.status,
@@ -291,6 +331,7 @@ router.put('/profile', adminAuth, async (req, res) => {
         name: admin.name,
         email: admin.email,
         phone: admin.phone,
+        profilePicture: admin.profilePicture,
         role: admin.role,
         permissions: admin.permissions,
         status: admin.status,
@@ -298,7 +339,8 @@ router.put('/profile', adminAuth, async (req, res) => {
         lastLogin: admin.lastLogin,
         lastLoginIP: admin.lastLoginIP,
         createdAt: admin.createdAt,
-        passwordChangedAt: admin.passwordChangedAt
+        passwordChangedAt: admin.passwordChangedAt,
+        loginCount: admin.loginCount || 0
       }
     });
   } catch (error) {
@@ -310,51 +352,204 @@ router.put('/profile', adminAuth, async (req, res) => {
   }
 });
 
-router.put('/change-password', adminAuth, async (req, res) => {
+// Profile Picture Upload Route
+router.post('/profile/upload-picture', adminAuth, adminProfileUpload.single('profilePicture'), async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const adminId = req.admin.id;
-
-    if (!currentPassword || !newPassword) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Current password and new password are required'
+        message: 'No file uploaded'
       });
     }
 
+    const adminId = req.admin.id;
+    
+    // Get the old profile picture path for cleanup
     const admin = await Admin.findById(adminId);
-    if (!admin) {
+    const oldProfilePicture = admin.profilePicture;
+
+    // Create URL for the uploaded file
+    const profilePictureUrl = `/uploads/admin-profiles/${req.file.filename}`;
+
+    // Update admin with new profile picture
+    const updatedAdmin = await Admin.findByIdAndUpdate(
+      adminId,
+      { profilePicture: profilePictureUrl },
+      { new: true, select: '-password -refreshTokens' }
+    );
+
+    if (!updatedAdmin) {
       return res.status(404).json({
         success: false,
         message: 'Admin not found'
       });
     }
 
-    // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, admin.password);
-    if (!isValidPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current password is incorrect'
-      });
+    // Delete old profile picture if it exists
+    if (oldProfilePicture && oldProfilePicture !== profilePictureUrl) {
+      try {
+        const oldFilePath = path.join(__dirname, '../../', oldProfilePicture);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting old profile picture:', deleteError);
+        // Don't fail the request if old file deletion fails
+      }
     }
-
-    // Update password
-    admin.password = newPassword; // Will be hashed by pre-save middleware
-    admin.passwordChangedAt = new Date();
-    await admin.save();
 
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Profile picture updated successfully',
+      profilePicture: profilePictureUrl,
+      admin: {
+        id: updatedAdmin._id,
+        name: updatedAdmin.name,
+        email: updatedAdmin.email,
+        phone: updatedAdmin.phone,
+        profilePicture: updatedAdmin.profilePicture,
+        role: updatedAdmin.role,
+        permissions: updatedAdmin.permissions,
+        status: updatedAdmin.status,
+        twoFactorEnabled: updatedAdmin.twoFactorEnabled,
+        lastLogin: updatedAdmin.lastLogin,
+        lastLoginIP: updatedAdmin.lastLoginIP,
+        createdAt: updatedAdmin.createdAt,
+        passwordChangedAt: updatedAdmin.passwordChangedAt,
+        loginCount: updatedAdmin.loginCount || 0
+      }
     });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('Profile picture upload error:', error);
+    
+    // Delete uploaded file if there was an error
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (deleteError) {
+        console.error('Error deleting uploaded file after error:', deleteError);
+      }
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Error changing password'
+      message: error.message || 'Error uploading profile picture'
     });
+  }
+});
+
+router.put('/change-password', adminAuth, async (req, res) => {
+  try {
+    let { currentPassword, newPassword } = req.body || {};
+    const adminId = req.admin.id;
+
+    // Simple in-memory rate limit per admin (reset every 10 minutes)
+    if (!global.__adminPwdChangeAttempts) global.__adminPwdChangeAttempts = new Map();
+    const attemptInfo = global.__adminPwdChangeAttempts.get(adminId) || { count: 0, first: Date.now() };
+    if (Date.now() - attemptInfo.first > 10 * 60 * 1000) {
+      attemptInfo.count = 0; attemptInfo.first = Date.now();
+    }
+    attemptInfo.count += 1;
+    global.__adminPwdChangeAttempts.set(adminId, attemptInfo);
+    if (attemptInfo.count > 5) {
+      return res.status(429).json({ success: false, message: 'Too many password change attempts. Please wait a few minutes.' });
+    }
+
+  // Keep originals for legacy/trailing-space scenarios
+  const originalCurrent = (currentPassword || '').toString();
+  const originalNew = (newPassword || '').toString();
+  currentPassword = originalCurrent.trim();
+  newPassword = originalNew.trim();
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+    }
+
+    // MUST fetch password hash explicitly if any upstream code ever excluded it
+    const admin = await Admin.findById(adminId); // password included by default in this schema
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
+  const storedHash = admin.password;
+    const isBcrypt = typeof storedHash === 'string' && storedHash.startsWith('$2');
+
+    // First verify current password (supports legacy clear-text storage migration if any)
+    let currentValid = false;
+    if (isBcrypt) {
+      // Try trimmed first, then original (to cover cases where original had intentional spaces)
+      currentValid = await admin.comparePassword(currentPassword) || (originalCurrent !== currentPassword && await admin.comparePassword(originalCurrent));
+    } else if (storedHash === currentPassword || storedHash === originalCurrent) {
+      currentValid = true;
+    }
+
+    if (!currentValid) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[CHANGE-PASSWORD][MISMATCH-DETAIL]', {
+          adminId,
+          receivedCurrentPreview: originalCurrent.slice(0,3) + '...' + originalCurrent.slice(-2),
+          receivedLength: originalCurrent.length,
+          trimmedChanged: originalCurrent.length !== currentPassword.length,
+          isBcrypt,
+          attemptCount: attemptInfo.count
+        });
+      }
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password is incorrect',
+        code: 'INVALID_CURRENT',
+        ...(process.env.NODE_ENV !== 'production' ? {
+          debug: {
+            isBcrypt,
+            receivedLength: originalCurrent.length,
+            trimmedChanged: originalCurrent.length !== currentPassword.length,
+            attemptCount: attemptInfo.count
+          }
+        } : {})
+      });
+    }
+
+    // Prevent same password reuse (compare depending on legacy or bcrypt)
+    let sameAsOld = false;
+    if (isBcrypt) {
+      sameAsOld = await admin.comparePassword(newPassword) || (originalNew !== newPassword && await admin.comparePassword(originalNew));
+    } else if (storedHash === newPassword || storedHash === originalNew) {
+      sameAsOld = true;
+    }
+    if (sameAsOld) {
+      return res.status(400).json({ success: false, message: 'New password must be different from current password' });
+    }
+
+    // Update password (will hash via pre-save if we just assign plain)
+    admin.password = newPassword;
+    admin.passwordChangedAt = new Date();
+    await admin.save();
+
+    // If legacy plaintext migrated, note it
+    const migrated = !isBcrypt;
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[CHANGE-PASSWORD][DEBUG]', {
+        adminId,
+        isBcrypt,
+        migrated,
+        attemptCount: attemptInfo.count
+      });
+    }
+
+    return res.json({ success: true, message: 'Password changed successfully', migrated });
+  } catch (error) {
+    console.error('Change password error:', error);
+    // Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: 'Error changing password' });
   }
 });
 
@@ -801,6 +996,139 @@ router.post('/notifications/broadcast', adminAuth, async (req, res) => {
   } catch (error) {
     console.error('Error creating broadcast notification:', error);
     res.status(500).json({ success: false, message: 'Error sending broadcast' });
+  }
+});
+
+// Session Management Routes
+router.get('/sessions', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('refreshTokens');
+    const activeSessions = admin.refreshTokens || [];
+    
+    const sessionsWithMetadata = activeSessions.map((token, index) => ({
+      id: index,
+      device: 'Unknown Device',
+      location: 'Unknown Location',
+      lastActivity: new Date(),
+      current: index === 0, // Assume first token is current session
+      ipAddress: 'Unknown IP'
+    }));
+    
+    res.json({ 
+      success: true, 
+      sessions: sessionsWithMetadata,
+      totalSessions: sessionsWithMetadata.length 
+    });
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ success: false, message: 'Error fetching sessions' });
+  }
+});
+
+router.delete('/sessions/:sessionId', adminAuth, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const admin = await Admin.findById(req.admin.id);
+    
+    if (admin.refreshTokens && admin.refreshTokens.length > parseInt(sessionId)) {
+      admin.refreshTokens.splice(parseInt(sessionId), 1);
+      await admin.save();
+      
+      res.json({ success: true, message: 'Session terminated successfully' });
+    } else {
+      res.status(404).json({ success: false, message: 'Session not found' });
+    }
+  } catch (error) {
+    console.error('Error terminating session:', error);
+    res.status(500).json({ success: false, message: 'Error terminating session' });
+  }
+});
+
+router.delete('/sessions/all', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    admin.refreshTokens = []; // Clear all refresh tokens
+    await admin.save();
+    
+    res.json({ success: true, message: 'All sessions terminated successfully' });
+  } catch (error) {
+    console.error('Error terminating all sessions:', error);
+    res.status(500).json({ success: false, message: 'Error terminating all sessions' });
+  }
+});
+
+// Data Export Routes
+router.get('/export/profile', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password -refreshTokens -twoFactorSecret');
+    
+    const exportData = {
+      profile: admin,
+      exportDate: new Date(),
+      exportType: 'profile_data'
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="admin-profile-export.json"');
+    res.json(exportData);
+  } catch (error) {
+    console.error('Error exporting profile:', error);
+    res.status(500).json({ success: false, message: 'Error exporting profile data' });
+  }
+});
+
+router.get('/export/activity', adminAuth, async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const SecurityLogger = require('../utils/securityLogger');
+    const logger = new SecurityLogger();
+    
+    const logs = await logger.getRecentLogs(parseInt(days) * 24, []);
+    
+    const exportData = {
+      activityLogs: logs,
+      exportDate: new Date(),
+      exportType: 'activity_data',
+      timeRange: `${days} days`
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="admin-activity-export.json"');
+    res.json(exportData);
+  } catch (error) {
+    console.error('Error exporting activity:', error);
+    res.status(500).json({ success: false, message: 'Error exporting activity data' });
+  }
+});
+
+router.get('/export/full', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password -refreshTokens -twoFactorSecret');
+    
+    // Get activity logs
+    const SecurityLogger = require('../utils/securityLogger');
+    const logger = new SecurityLogger();
+    const logs = await logger.getRecentLogs(30 * 24, []);
+    
+    // Get notifications
+    const notifications = await Notification.find({ adminId: req.admin.id })
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    const exportData = {
+      profile: admin,
+      activityLogs: logs,
+      notifications: notifications,
+      exportDate: new Date(),
+      exportType: 'full_data'
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="admin-full-export.json"');
+    res.json(exportData);
+  } catch (error) {
+    console.error('Error exporting full data:', error);
+    res.status(500).json({ success: false, message: 'Error exporting full data' });
   }
 });
 

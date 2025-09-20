@@ -22,6 +22,19 @@ const adminSchema = new mongoose.Schema({
     required: true,
     minlength: 8
   },
+  phone: {
+    type: String,
+    trim: true,
+    sparse: true // Allows multiple null values
+  },
+  profilePicture: {
+    type: String, // URL to the uploaded image
+    default: null
+  },
+  loginCount: {
+    type: Number,
+    default: 0
+  },
   role: { 
     type: String, 
     default: 'super_admin',

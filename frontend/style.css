@@ -492,6 +492,7 @@ header {
     overflow: hidden;
     display: flex;
     align-items: center;
+    padding: 2rem 0;
 }
 
 @keyframes gradientShift {
@@ -695,12 +696,15 @@ header {
     z-index: 10;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 2rem;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-    align-items: center;
+    grid-template-columns: 1fr 450px;
+    gap: 3rem;
+    align-items: start;
     width: 100%;
+    min-height: calc(100vh - 8rem);
+    padding-top: 1rem;
+    padding-bottom: 3rem;
 }
 
 .hero-content {
@@ -711,6 +715,10 @@ header {
     padding: 2rem;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+    align-self: start;
+    position: sticky;
+    top: 1rem;
 }
 
 .hero-badge {
@@ -897,14 +905,17 @@ header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    padding: 1.8rem;
+    padding: 2rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.2);
     animation: slideInRight 0.8s ease-out;
     position: relative;
     z-index: 10;
-    max-width: 420px;
+    max-width: 450px;
     width: 100%;
+    margin-left: auto;
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
 }
 
 .search-card-header {
@@ -1046,59 +1057,98 @@ header {
 .activities-title {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 1rem;
+    gap: 0.6rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--dark-color);
-    margin-bottom: 0.8rem;
+    margin-bottom: 1rem;
 }
 
 .activities-title i {
-    color: rgba(255, 248, 220, 0.8);
-    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-size: 1rem;
 }
 
 .activities-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
 }
 
 .activity-chip {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.7rem 0.5rem;
-    background: rgba(255, 248, 220, 0.1);
-    border: 1.5px solid rgba(255, 248, 220, 0.3);
-    border-radius: 10px;
+    gap: 0.4rem;
+    padding: 1rem 0.8rem;
+    background: rgba(42, 157, 143, 0.05);
+    border: 2px solid rgba(42, 157, 143, 0.2);
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.activity-chip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(42, 157, 143, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.activity-chip:hover::before {
+    left: 100%;
 }
 
 .activity-chip:hover {
-    background: rgba(255, 248, 220, 0.2);
-    color: var(--dark-color);
-    transform: translateY(-1px);
-    border-color: rgba(255, 248, 220, 0.6);
+    background: rgba(42, 157, 143, 0.1);
+    color: var(--primary-color);
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(42, 157, 143, 0.4);
+    box-shadow: 0 5px 15px rgba(42, 157, 143, 0.2);
 }
 
 .activity-chip.active {
-    background: rgba(255, 248, 220, 0.3);
-    color: var(--dark-color);
-    border-color: rgba(255, 248, 220, 0.8);
+    background: linear-gradient(135deg, var(--primary-color), rgba(42, 157, 143, 0.9));
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 6px 20px rgba(42, 157, 143, 0.3);
+    transform: translateY(-2px) scale(1.05);
+}
+
+.activity-chip.active i {
+    color: var(--accent-color) !important;
+    transform: scale(1.2);
+}
+
+.activity-chip.active span {
+    font-weight: 600;
+    color: white !important;
 }
 
 .activity-chip i {
-    font-size: 1.1rem;
-    color: rgba(255, 248, 220, 0.8);
+    font-size: 1.3rem;
+    color: var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.activity-chip:hover i {
+    color: var(--primary-color);
+    transform: scale(1.15);
 }
 
 .activity-chip span {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 500;
+    color: var(--dark-color);
+    transition: all 0.3s ease;
 }
 
 .search-actions {
@@ -1523,6 +1573,19 @@ header {
         grid-template-columns: 1fr;
         gap: 3rem;
         text-align: center;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+    }
+    
+    .hero-content {
+        position: static;
+        align-self: auto;
+        margin-top: 0;
+    }
+    
+    .hero-search-card {
+        margin: 1rem auto 2rem auto;
+        max-width: 500px;
     }
     
     .hero-title {
@@ -1532,12 +1595,61 @@ header {
     .hero-stats {
         justify-content: center;
     }
+    
+    .hero-content {
+        margin-top: 1rem;
+        align-self: flex-start;
+    }
 }
 
 @media (max-width: 768px) {
-    .hero-container {
-        padding: 0 1rem;
+    .hero {
+        padding: 1rem 0;
     }
+    
+    .hero-container {
+        padding: 1rem;
+        gap: 2rem;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+        min-height: calc(100vh - 2rem);
+    }
+    
+    .hero-content {
+        position: static;
+        align-self: auto;
+        margin-top: 0;
+        padding: 1.5rem;
+    }
+    
+    .hero-search-card {
+        padding: 1.5rem;
+        max-width: 100%;
+        margin: 1.5rem auto;
+    }
+    
+    .hero-content {
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .activities-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 0.6rem;
+    }
+    
+    .activity-chip {
+        padding: 0.8rem 0.6rem;
+    }
+    
+    .activity-chip i {
+        font-size: 1.1rem;
+    }
+    
+    .activity-chip span {
+        font-size: 0.75rem;
+    }
+
     
     .hero-title {
         font-size: 2.5rem;

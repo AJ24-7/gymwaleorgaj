@@ -212,7 +212,9 @@ async function loadGymsData() {
                 gymName: gyms[0].gymName,
                 gymPhotos: gyms[0].gymPhotos,
                 logoUrl: gyms[0].logoUrl,
-                hasPhotos: gyms[0].gymPhotos?.length > 0
+                reviews: gyms[0].reviews,
+                hasPhotos: gyms[0].gymPhotos?.length > 0,
+                hasReviews: gyms[0].reviews?.length > 0
             });
         }
         
@@ -269,7 +271,20 @@ function applyFilters() {
             gyms = gyms.sort((a, b) => {
                 const ratingA = calculateAverageRating(a.reviews || []);
                 const ratingB = calculateAverageRating(b.reviews || []);
+                const reviewCountA = (a.reviews || []).length;
+                const reviewCountB = (b.reviews || []).length;
+                
+                // Prioritize gyms with more reviews if ratings are equal
+                if (ratingB === ratingA) {
+                    return reviewCountB - reviewCountA;
+                }
                 return ratingB - ratingA;
+            });
+            // Filter to show only highly rated gyms with enough reviews
+            gyms = gyms.filter(gym => {
+                const rating = calculateAverageRating(gym.reviews || []);
+                const reviewCount = (gym.reviews || []).length;
+                return rating >= 3.5 || reviewCount >= 2; // Show gyms with good ratings or at least some reviews
             });
             break;
             
@@ -279,6 +294,11 @@ function applyFilters() {
                 const priceB = getMinPrice(b.membershipPlans || []);
                 return priceA - priceB;
             });
+            // Filter to show only budget-friendly gyms (under ₹1200)
+            gyms = gyms.filter(gym => {
+                const minPrice = getMinPrice(gym.membershipPlans || []);
+                return minPrice !== Infinity && minPrice <= 1200;
+            });
             break;
             
         case 'activities':
@@ -286,6 +306,11 @@ function applyFilters() {
                 const activitiesA = a.activities?.length || 0;
                 const activitiesB = b.activities?.length || 0;
                 return activitiesB - activitiesA;
+            });
+            // Filter to show only gyms with multiple activities (4 or more)
+            gyms = gyms.filter(gym => {
+                const activityCount = gym.activities?.length || 0;
+                return activityCount >= 4;
             });
             break;
             
@@ -296,8 +321,9 @@ function applyFilters() {
             break;
     }
     
-    // Take top 4 gyms for each filter
-    filteredGyms = gyms.slice(0, 4);
+    // Take top results for each filter (more for 'all' filter)
+    const maxResults = currentFilter === 'all' ? 8 : 4;
+    filteredGyms = gyms.slice(0, maxResults);
     
     // Update results count
     resultsCount.textContent = `${filteredGyms.length} gyms found`;
@@ -402,6 +428,8 @@ function createGymCard(gym) {
     console.log('- gymPhotos:', photos);
     console.log('- extracted images:', images);
     console.log('- has images:', images.length > 0);
+    console.log('- rating:', rating, 'from', gym.reviews?.length || 0, 'reviews');
+    console.log('- minPrice:', minPrice);
     
     // Format logo URL
     let logoUrl = 'https://via.placeholder.com/80x80/2a9d8f/ffffff?text=%F0%9F%8F%8B%EF%B8%8F';
@@ -450,10 +478,18 @@ function createGymCard(gym) {
     
     const cardId = `gym-card-${gym._id}`;
     
+    // Determine badges based on actual data
+    let badges = '';
+    if (rating >= 4.0 && gym.reviews && gym.reviews.length >= 3) {
+        badges += `<div class="rating-badge"><i class="fas fa-star"></i> ${rating.toFixed(1)}</div>`;
+    }
+    if (minPrice !== Infinity && minPrice < 1000) {
+        badges += '<div class="budget-badge">Budget Friendly</div>';
+    }
+    
     return `
         <div class="gym-card" id="${cardId}" data-gym-id="${gym._id}" data-images-count="${images.length}" onclick="viewGymDetails('${gym._id}')">
-            ${rating >= 4.0 ? `<div class="rating-badge"><i class="fas fa-star"></i> ${rating.toFixed(1)}</div>` : ''}
-            ${minPrice < 1000 ? '<div class="budget-badge">Budget Friendly</div>' : ''}
+            ${badges}
             
             <div class="gym-image-slider">
                 <div class="gym-images" style="transform: translateX(0%)">
@@ -479,6 +515,7 @@ function createGymCard(gym) {
                     <div class="gym-rating">
                         <i class="fas fa-star"></i>
                         ${rating > 0 ? rating.toFixed(1) : 'New'}
+                        ${gym.reviews && gym.reviews.length > 0 ? `<span class="review-count">(${gym.reviews.length})</span>` : ''}
                     </div>
                 </div>
                 
@@ -491,7 +528,7 @@ function createGymCard(gym) {
                 
                 ${gym.membershipPlans && gym.membershipPlans.length > 0 ? `
                     <div class="popular-plan">
-                        <div class="plan-name">${gym.membershipPlans[0].planName || 'Basic Plan'}</div>
+                        <div class="plan-name">${gym.membershipPlans[0].name || gym.membershipPlans[0].planName || 'Basic Plan'}</div>
                         <div class="plan-price">₹${gym.membershipPlans[0].price || 'N/A'} 
                             <span class="plan-duration">/${gym.membershipPlans[0].duration || 'month'}</span>
                         </div>

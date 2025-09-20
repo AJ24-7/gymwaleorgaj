@@ -200,7 +200,7 @@ function searchGyms() {
   const maxPrice = document.getElementById("priceRange").value;
   
   // Get selected activities
-  const activities = Array.from(document.querySelectorAll(".activity.active"))
+  const activities = Array.from(document.querySelectorAll(".activity-chip.active"))
     .map(div => div.dataset.activity);
 
 
@@ -529,10 +529,10 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 // === MULTI-ACTIVITY FILTER ===
 function setupActivityFilter() {
-  document.querySelectorAll('.activity').forEach(activityDiv => {
+  document.querySelectorAll('.activity-chip').forEach(activityDiv => {
     activityDiv.addEventListener('click', function () {
       this.classList.toggle('active');
-      performSearch(); // Update the gym list based on selected activities
+      console.log('Activity toggled:', this.dataset.activity, 'Active:', this.classList.contains('active'));
     });
   });
 }
