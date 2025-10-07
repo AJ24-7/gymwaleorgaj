@@ -89,13 +89,16 @@ document.addEventListener('DOMContentLoaded', function() {
       const email = resetEmailInput.value.trim();
       if (!email) {
         resetEmailError.textContent = "Please enter your email";
-        resetEmailError.style.display = "block";
+        resetEmailError.classList.add('show');
         return;
       }
-      resetEmailError.style.display = "none";
+      resetEmailError.classList.remove('show');
+      
       // Send OTP
       resetButton.disabled = true;
+      resetButton.classList.add('loading');
       resetButton.textContent = "Sending...";
+      
       try {
         const res = await fetch('http://localhost:5000/api/gyms/forgot-password', {
           method: 'POST',
@@ -103,17 +106,19 @@ document.addEventListener('DOMContentLoaded', function() {
           body: JSON.stringify({ email })
         });
         const data = await res.json();
+        
         if (data.success) {
           resetSuccess.textContent = `OTP sent to ${email}`;
           resetSuccess.style.display = "block";
-          resetSuccess.classList.add('success-message');
-          resetSuccess.classList.remove('error-message');
-          // Hide email input, show OTP input
-          resetEmailInput.parentElement.style.display = "none";
-          otpGroup.style.display = "block";
+          
+          // Hide email input, show OTP input using CSS classes
+          resetEmailInput.parentElement.classList.add('hidden');
+          otpGroup.classList.remove('hidden');
+          otpGroup.classList.add('visible');
           resetButton.style.display = "none";
           submitNewPasswordButton.style.display = "block";
           submitNewPasswordButton.textContent = "Verify OTP";
+          
           // Update instructions
           const otpInstruction = document.getElementById('otp-instruction');
           if (otpInstruction) {
@@ -121,13 +126,14 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         } else {
           resetEmailError.textContent = data.message || "Failed to send OTP";
-          resetEmailError.style.display = "block";
+          resetEmailError.classList.add('show');
         }
       } catch (error) {
         resetEmailError.textContent = "Network error. Please try again.";
-        resetEmailError.style.display = "block";
+        resetEmailError.classList.add('show');
       } finally {
         resetButton.disabled = false;
+        resetButton.classList.remove('loading');
         resetButton.textContent = "Send OTP";
       }
     });
@@ -237,13 +243,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (globalSuccess) {
               globalSuccess.textContent = "Password reset successful! You can now log in with your new password.";
               globalSuccess.style.display = "block";
-              globalSuccess.style.color = "#28a745";
-              globalSuccess.style.fontWeight = "600";
-              globalSuccess.style.marginTop = "20px";
-              globalSuccess.style.padding = "12px";
-              globalSuccess.style.borderRadius = "8px";
-              globalSuccess.style.backgroundColor = "#d4edda";
-              globalSuccess.style.border = "1px solid #c3e6cb";
+              // Remove any inline styles to let CSS classes handle styling
+              globalSuccess.style.color = "";
+              globalSuccess.style.fontWeight = "";
+              globalSuccess.style.marginTop = "";
+              globalSuccess.style.padding = "";
+              globalSuccess.style.borderRadius = "";
+              globalSuccess.style.backgroundColor = "";
+              globalSuccess.style.border = "";
+              
               setTimeout(() => {
                 globalSuccess.style.display = "none";
               }, 5000);
@@ -335,13 +343,16 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (userAgent.indexOf('Chrome') > -1) {
         browser = 'Chrome';
-        browserVersion = userAgent.match(/Chrome\/([0-9.]+)/)?.[1] || 'Unknown';
+        const chromeMatch = /Chrome\/([0-9.]+)/.exec(userAgent);
+        browserVersion = chromeMatch ? chromeMatch[1] : 'Unknown';
       } else if (userAgent.indexOf('Firefox') > -1) {
         browser = 'Firefox';
-        browserVersion = userAgent.match(/Firefox\/([0-9.]+)/)?.[1] || 'Unknown';
+        const firefoxMatch = /Firefox\/([0-9.]+)/.exec(userAgent);
+        browserVersion = firefoxMatch ? firefoxMatch[1] : 'Unknown';
       } else if (userAgent.indexOf('Safari') > -1 && userAgent.indexOf('Chrome') === -1) {
         browser = 'Safari';
-        browserVersion = userAgent.match(/Version\/([0-9.]+)/)?.[1] || 'Unknown';
+        const safariMatch = /Version\/([0-9.]+)/.exec(userAgent);
+        browserVersion = safariMatch ? safariMatch[1] : 'Unknown';
       } else if (userAgent.indexOf('Edge') > -1) {
         browser = 'Edge';
         browserVersion = userAgent.match(/Edge\/([0-9.]+)/)?.[1] || 'Unknown';
@@ -1032,41 +1043,6 @@ document.addEventListener('DOMContentLoaded', function() {
             togglePasswordIcon.classList.add(newIcon);
             togglePassword.setAttribute('aria-label', ariaLabel);
         }
-    }
-    
-    function validateEmail() {
-        if (!emailInput) return false;
-        
-        const email = emailInput.value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        
-        if (!email) {
-            showFieldError(emailInput, 'Email is required');
-            return false;
-        } else if (!emailRegex.test(email)) {
-            showFieldError(emailInput, 'Please enter a valid email address');
-            return false;
-        }
-        
-        clearFieldError(emailInput);
-        return true;
-    }
-    
-    function validatePassword() {
-        if (!passwordInput) return false;
-        
-        const password = passwordInput.value;
-        
-        if (!password) {
-            showFieldError(passwordInput, 'Password is required');
-            return false;
-        } else if (password.length < 8) {
-            showFieldError(passwordInput, 'Password must be at least 8 characters');
-            return false;
-        }
-        
-        clearFieldError(passwordInput);
-        return true;
     }
     
     function showFieldError(field, message) {

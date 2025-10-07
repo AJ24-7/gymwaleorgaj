@@ -422,10 +422,100 @@ button[type="submit"]:active, .login-btn:active, #loginButton:active {
 }
 
 button[type="submit"]:disabled, .login-btn:disabled, #loginButton:disabled {
-  background: #94a3b8;
+  background: linear-gradient(135deg, #94a3b8, #cbd5e1);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
+}
+
+/* Modal Specific Button Styling */
+.modal-content .login-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0 16px 0;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.modal-content .login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+.modal-content .login-btn:active {
+  transform: translateY(0);
+}
+
+.modal-content .login-btn:disabled {
+  background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* OTP and New Password Button States */
+#resetButton, #submitNewPassword {
+  position: relative;
+  overflow: hidden;
+}
+
+#resetButton::before, #submitNewPassword::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+#resetButton:hover::before, #submitNewPassword:hover::before {
+  left: 100%;
+}
+
+/* Form Group Animations */
+.modal-content .form-group {
+  opacity: 0;
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.modal-content .form-group:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.modal-content .form-group:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.modal-content .form-group:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .loading-spinner {
@@ -544,15 +634,234 @@ button[type="submit"]:disabled, .login-btn:disabled, #loginButton:disabled {
   transform: scale(1.1);
 }
 
-/* Success Message */
-.success-message {
+/* Enhanced Modal Form Groups */
+
+
+.modal-content .form-group input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #f1f5f9;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #f8fafc;
+  color: var(--text-color);
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.modal-content .form-group input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background: white;
+}
+
+.modal-content .form-group input::placeholder {
+  color: #94a3b8;
+}
+
+/* OTP Instruction Styling */
+.otp-instruction {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(124, 58, 237, 0.03));
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px !important;
+  position: relative;
+}
+
+.otp-instruction::before {
+  content: '\f1c1';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  color: var(--primary-color);
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+/* Email Instruction Styling */
+#email-instruction {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(79, 70, 229, 0.03));
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px !important;
+  position: relative;
+}
+
+#email-instruction::before {
+  content: '\f0e0';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
   color: var(--success-color);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+/* OTP Input Special Styling */
+#resetOtp {
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 600;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border: 2px solid var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+#resetOtp:focus {
+  letter-spacing: 6px;
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important;
+}
+
+/* Enhanced Error Messages in Modal */
+.modal-content .error-message {
+  display: none;
+  color: var(--error-color);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+}
+
+.modal-content .error-message::before {
+  content: '\f071';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  margin-right: 6px;
+}
+
+.modal-content .error-message.show {
+  display: block;
+  animation: slideInError 0.3s ease-out;
+}
+
+@keyframes slideInError {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Success Messages in Modal */
+.modal-content .success-message {
+  color: var(--success-color);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
   padding: 12px 16px;
   margin: 12px 0;
   font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  animation: slideInSuccess 0.4s ease-out;
+}
+
+.modal-content .success-message::before {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  margin-right: 8px;
+  color: var(--success-color);
+}
+
+@keyframes slideInSuccess {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Enhanced Success Message */
+.success-message {
+  color: var(--success-color);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.success-message::before {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  margin-right: 10px;
+  color: var(--success-color);
+  background: rgba(16, 185, 129, 0.2);
+  padding: 6px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.success-message::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  to {
+    left: 100%;
+  }
+}
+
+/* Global Success Message Positioning */
+#global-success-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  min-width: 300px;
+  max-width: 500px;
+  margin: 0;
+  backdrop-filter: blur(10px);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 #login-feedback {
@@ -562,11 +871,31 @@ button[type="submit"]:disabled, .login-btn:disabled, #loginButton:disabled {
 
 #login-feedback .error-message {
   color: var(--error-color);
-  background: rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin: 12px 0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  position: relative;
+}
+
+#login-feedback .error-message::before {
+  content: '\f071';
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  margin-right: 10px;
+  color: var(--error-color);
+  background: rgba(239, 68, 68, 0.2);
+  padding: 6px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
 }
 
 /* Animated Gym Equipment Icons */
@@ -895,6 +1224,82 @@ button[type="submit"]:disabled, .login-btn:disabled, #loginButton:disabled {
     padding: 24px;
     margin: 20px;
   }
+  
+  .modal-content .form-group input {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+  
+  .otp-instruction, #email-instruction {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+  
+  #resetOtp {
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+  }
+  
+  #resetOtp:focus {
+    letter-spacing: 4px;
+  }
+  
+  .modal-content .login-btn {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+  
+  #global-success-message {
+    min-width: 280px;
+    max-width: 90%;
+    top: 10px;
+  }
+}
+
+/* Enhanced Focus States for Accessibility */
+.modal-content input:focus-visible,
+.modal-content button:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Loading State for Modal Buttons */
+.modal-content .login-btn.loading {
+  color: transparent;
+  pointer-events: none;
+}
+
+.modal-content .login-btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin-left: -10px;
+  margin-top: -10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Smooth Transitions for Form Groups */
+.modal-content .form-group.hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+}
+
+.modal-content .form-group.visible {
+  opacity: 1;
+  transform: translateY(0);
+  height: auto;
+  margin-bottom: 20px;
+  transition: all 0.3s ease-out;
 }
 
 @media (max-width: 480px) {
@@ -944,6 +1349,174 @@ button:focus-visible,
     background: white;
     color: black;
     border: 2px solid white;
+  }
+}
+
+/* Toast Notification Styles */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: 16px;
+  padding: 16px 20px;
+  max-width: 400px;
+  min-width: 300px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  z-index: 10000;
+  transform: translateX(420px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+}
+
+.toast-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-notification.success {
+  border-left: 4px solid var(--success-color);
+}
+
+.toast-notification.error {
+  border-left: 4px solid var(--error-color);
+}
+
+.toast-notification.warning {
+  border-left: 4px solid var(--warning-color);
+}
+
+.toast-notification.info {
+  border-left: 4px solid var(--primary-color);
+}
+
+.toast-notification .toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.toast-notification .toast-title {
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast-notification .toast-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toast-notification .toast-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-color);
+}
+
+.toast-notification .toast-message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Progress Bar for Timed Notifications */
+.toast-notification .toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 0 0 16px 16px;
+  transition: width linear;
+}
+
+.toast-notification.success .toast-progress {
+  background: var(--success-color);
+}
+
+.toast-notification.error .toast-progress {
+  background: var(--error-color);
+}
+
+.toast-notification.warning .toast-progress {
+  background: var(--warning-color);
+}
+
+/* Enhanced Loading States */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.loading-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+
+.loading-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.loading-content .loading-spinner-large {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(79, 70, 229, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+.loading-content .loading-text {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.loading-content .loading-subtext {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Responsive Toast Notifications */
+@media (max-width: 480px) {
+  .toast-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    right: 10px;
+    min-width: auto;
+    max-width: none;
+    transform: translateY(-100px);
+  }
+  
+  .toast-notification.show {
+    transform: translateY(0);
   }
 }
 

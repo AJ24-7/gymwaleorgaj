@@ -1068,12 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('resize', handleResponsiveLayout);
   document.addEventListener('DOMContentLoaded', handleResponsiveLayout);
   
-  // Call after activities are rendered
-  const originalRenderActivitiesList = renderActivitiesList;
-  renderActivitiesList = function() {
-    originalRenderActivitiesList.call(this);
-    setTimeout(handleResponsiveLayout, 100); // Small delay to ensure DOM is updated
-  };
+ 
 
   // Initial render
   window.fetchAndRenderActivities();
@@ -2807,10 +2802,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       console.error('[AddMember] ❌ Modal element not found!');
     }
-  }
-  
-  // Make function globally accessible for universal modal trigger system
-  window.openAddMemberModal = openAddMemberModal;
     
     // Reset form
     if (addMemberForm) addMemberForm.reset();
@@ -3337,11 +3328,6 @@ document.addEventListener('DOMContentLoaded', function() {
   window.openAddMemberModal = openAddMemberModal;
     
 });
-
-// Make openAddMemberModal globally accessible for universal modal trigger system
-window.openAddMemberModal = window.openAddMemberModal || function() {
-  console.log('⚠️ Add Member Modal function will be available after DOM loads');
-};
 
 // --- Renew Membership Modal Logic ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -4306,13 +4292,7 @@ function clearUploadPhotoMsgAndCloseModal() {
 
         if (userProfileToggle && profileDropdownMenu) {
             // Force correct positioning and z-index
-            function ensureDropdownVisibility() {
-                profileDropdownMenu.style.position = 'fixed';
-                profileDropdownMenu.style.zIndex = '2147483647';
-                profileDropdownMenu.style.top = '70px';
-                profileDropdownMenu.style.right = '20px';
-                profileDropdownMenu.style.pointerEvents = 'auto';
-            }
+            
             
             userProfileToggle.addEventListener('click', function(event) {
                 event.stopPropagation(); // Prevent click from closing menu immediately
@@ -5783,24 +5763,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const membersTableBody = document.getElementById('membersTableBody');
   const membersDetailCard = document.getElementById('membersDetailCard');
   const closeMembersDetailCard = document.getElementById('closeMembersDetailCard');
-  const membersDetailLoading = document.getElementById('membersDetailLoading');
-  const membersDetailError = document.getElementById('membersDetailError');
-  const membersDetailContent = document.getElementById('membersDetailContent');
-  const newMembersList = document.getElementById('newMembersList');
-  const existingMembersList = document.getElementById('existingMembersList');
-
-  function openMembersDetailCard() {
-    if (membersDetailCard) {
-      membersDetailCard.style.display = 'flex';
-      if (membersDetailLoading) membersDetailLoading.style.display = 'block';
-      if (membersDetailError) membersDetailError.style.display = 'none';
-      if (membersDetailContent) membersDetailContent.style.display = 'none';
-      fetchAndRenderMembersDetail();
-    }
-  }
-  function closeMembersDetailCardFunc() {
-    if (membersDetailCard) membersDetailCard.style.display = 'none';
-  }
+ 
+ 
+   
+  
   if (membersTableBody) {
     membersTableBody.addEventListener('click', function(e) {
       let tr = e.target;
@@ -5818,81 +5784,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target === membersDetailCard) closeMembersDetailCardFunc();
     });
   }
-  async function fetchAndRenderMembersDetail() {
-    showMembersDetailLoading();
-    clearMembersDetailLists();
-    const token = localStorage.getItem('gymAdminToken');
-    try {
-      const members = await fetchMembers(token);
-      const { newMembers, existingMembers } = splitMembersByJoinDate(members, 30);
-      renderMembersDetailLists(newMembers, existingMembers);
-      showMembersDetailContent();
-    } catch (err) {
-      showMembersDetailError(err);
-    }
-  }
+ 
 
-  function showMembersDetailLoading() {
-    if (membersDetailLoading) membersDetailLoading.style.display = 'block';
-    if (membersDetailError) membersDetailError.style.display = 'none';
-    if (membersDetailContent) membersDetailContent.style.display = 'none';
-  }
+ 
 
-  function clearMembersDetailLists() {
-    if (newMembersList) newMembersList.innerHTML = '';
-    if (existingMembersList) existingMembersList.innerHTML = '';
-  }
+ 
 
-  async function fetchMembers(token) {
-    const res = await fetch('http://localhost:5000/api/members', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-    if (!res.ok || !Array.isArray(data.members)) {
-      throw new Error(data.message || 'Failed to fetch members');
-    }
-    return data.members;
-  }
+ 
 
-  function splitMembersByJoinDate(members, days = 30) {
-    const now = new Date();
-    const newMembers = [];
-    const existingMembers = [];
-    members.forEach(member => {
-      if (!member.joinDate) return existingMembers.push(member);
-      const join = new Date(member.joinDate);
-      const diffDays = (now - join) / (1000 * 60 * 60 * 24);
-      if (diffDays <= days) newMembers.push(member);
-      else existingMembers.push(member);
-    });
-    return { newMembers, existingMembers };
-  }
+ 
+ 
 
-  function renderMembersDetailLists(newMembers, existingMembers) {
-    if (newMembersList) {
-      newMembersList.innerHTML = newMembers.length
-        ? newMembers.map(m => renderMemberListItem(m)).join('')
-        : '<li style="color:#888;">No new members in last 30 days.</li>';
-    }
-    if (existingMembersList) {
-      existingMembersList.innerHTML = existingMembers.length
-        ? existingMembers.map(m => renderMemberListItem(m)).join('')
-        : '<li style="color:#888;">No existing members.</li>';
-    }
-  }
-
-  function showMembersDetailContent() {
-    if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-    if (membersDetailContent) membersDetailContent.style.display = 'block';
-  }
-
-  function showMembersDetailError(err) {
-    if (membersDetailLoading) membersDetailLoading.style.display = 'none';
-    if (membersDetailError) {
-      membersDetailError.textContent = err.message || 'Failed to load members.';
-      membersDetailError.style.display = 'block';
-    }
-  }
+  
   function renderMemberListItem(member) {
     // Show plan as a badge and add member's email if available
     const img = member.profileImageUrl
