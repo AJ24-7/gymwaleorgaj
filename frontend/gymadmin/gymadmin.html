@@ -1,47 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gym-Wale | Admin Dashboard</title>
   
-  <!-- Inline CSS moved to gymadmin.css -->
-  
-  <!-- Core styles - load immediately for fast rendering -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="styles/sidebar-enhancements.css">
-  <link rel="stylesheet" href="styles/gymadmin.css">
-  <link rel="stylesheet" href="styles/modal-fixes.css">
-  
-  <!-- Tab-specific styles - load on demand for better performance -->
-  <link rel="stylesheet" href="styles/attendance.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/membertab.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/payment.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/member-payments.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/equipment.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/settings.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/enhanced-support-styles.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/trainer-list.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="styles/offers.css" media="print" onload="this.media='all'">
-    
-  <!-- Core Application Logic - Optimized Single Entry Point -->
-  <script src="essential-functions.js"></script>
-  <script src="performance-sidebar.js"></script>
-  <script src="optimized-module-loader.js"></script>
-  <script src="gymadmin.js"></script>
-  
-  <!-- Debug scripts removed -->
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym-Wale | Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/gymadmin.css">
+    <link rel="stylesheet" href="styles/attendance.css">
+    <link rel="stylesheet" href="styles/membertab.css">
+    <link rel="stylesheet" href="styles/payment.css">
+    <link rel="stylesheet" href="styles/member-payments.css">
+    <link rel="stylesheet" href="styles/equipment.css">
+    <link rel="stylesheet" href="styles/offers.css">
+    <link rel="stylesheet" href="styles/settings.css">
+    <link rel="stylesheet" href="styles/enhanced-support-styles.css">
+    <link rel="stylesheet" href="styles/trainer-list.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script defer src="gymadmin.js"></script>
+    <script defer src="modules/settings.js"></script>
+    <script defer src="utils/subscription-management.js"></script>
+    <script defer src="modules/gym-profile.js"></script>
+    <script defer src="modules/notification-modal.js"></script>
+    <script defer src="modules/notification-system.js"></script>
+    <script defer src="modules/support-reviews.js"></script>
+    <script defer src="enhanced-support-integration.js"></script>
+    <script defer src="modules/attendance.js"></script>
+    <script defer src="modules/trial-bookings.js"></script>
+    <script defer src="modules/attendance-stats.js"></script>
+    <script defer src="modules/payment.js"></script>
+    <script defer src="modules/equipment.js"></script>
+    <script defer src="modules/offers-manager.js"></script>
+    <script defer src="modules/cash-validation.js"></script>
+    <script defer src="modules/cash-validation-dialog.js"></script>
+    <script defer src="utils/quick-actions-customizer.js"></script>
+  <script defer src="modules/trainer-management.js"></script>
 </head>
 <body>
-<!-- Hamburger Menu Button for Mobile Menu Bar -->
-<button id="hamburgerMenuBtn" class="hamburger-menu" aria-label="Open mobile menu">
+<!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
+<button id="hamburgerMenuBtn" class="hamburger-menu" aria-label="Open menu">
   <span></span>
   <span></span>
   <span></span>
 </button>
-<!-- Backdrop for mobile menu bar -->
-<div id="mobileMenuBackdrop" class="mobile-menu-backdrop"></div>
+<!-- Backdrop for mobile sidebar -->
+<div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
 <div class="dashboard">
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
@@ -52,206 +56,153 @@
             <div class="logo-text" style="font-size:2rem;color:var(--primary);letter-spacing:1px;transition:color .2s;user-select:none;">Gym-Wale</div>
         </div>
         <ul class="menu">
-      <li class="menu-item">
-        <a href="#" class="menu-link active" data-tab="dashboardTab">
-          <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
-          <span class="menu-text" data-translate="dashboard">Dashboard</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="memberDisplayTab">
-          <span class="menu-icon"><i class="fas fa-users"></i></span>
-          <span class="menu-text" data-translate="members">Members</span>
-        </a>
-      </li>
-       <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="trainerTab">
-          <span class="menu-icon"><i class="fas fa-user-tie"></i></span>
-          <span class="menu-text" data-translate="trainers">Trainers</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="attendanceTab">
-          <span class="menu-icon"><i class="fas fa-calendar-check"></i></span>
-          <span class="menu-text" data-translate="attendance">Attendance</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="paymentTab">
-          <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
-          <span class="menu-text" data-translate="payments">Payments</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="equipmentTab">
-          <span class="menu-icon"><i class="fas fa-dumbbell"></i></span>
-          <span class="menu-text" data-translate="equipment">Equipment</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="offersTab">
-          <span class="menu-icon"><i class="fas fa-tags"></i></span>
-          <span class="menu-text" data-translate="Offers & Coupons">Offers & Coupons</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="supportReviewsTab">
-          <span class="menu-icon"><i class="fas fa-headset"></i></span>
-          <span class="menu-text" data-translate="Support & Reviews">Support & Reviews</span>
-        </a>
-      </li>
-      <li class="menu-item">
-        <a href="#" class="menu-link" data-tab="settingsTab">
-          <span class="menu-icon"><i class="fas fa-cog"></i></span>
-          <span class="menu-text" data-translate="Settings">Settings</span>
-        </a>
-      </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link active">
+                    <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-users"></i></span>
+                    <span class="menu-text">Members</span>
+                </a>
+            </li>
+             <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-user-tie"></i></span>
+                    <span class="menu-text">Trainers</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-calendar-check"></i></span>
+                    <span class="menu-text">Attendance</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" data-tab="paymentTab">
+                    <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
+                    <span class="menu-text">Payments</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-dumbbell"></i></span>
+                    <span class="menu-text">Equipment</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-tags"></i></span>
+                    <span class="menu-text">Offers & coupons</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-headset"></i></span>
+                    <span class="menu-text">Support & Reviews</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-cog"></i></span>
+                    <span class="menu-text">Settings</span>
+                </a>
+            </li>
         </ul>
         <div class="toggle-btn" id="toggleBtn">
             <i class="fas fa-chevron-left"></i>
         </div>
         
     </div>
-    <!-- Mobile Menu Bar (only opens on hamburger click) -->
-    <div id="mobileMenuBar" class="mobile-menu-bar">
-      <div class="mobile-menu-header">
-        <div class="mobile-menu-logo">
-          <img src="../gymadmin/public/Gym-Wale.png" alt="Gym-Wale Logo" style="height:32px;width:32px;border-radius:8px;">
-          <span style="font-size:1.5rem;color:var(--primary);font-weight:600;margin-left:12px;">Gym-Wale</span>
-        </div>
-        <button id="closeMobileMenu" aria-label="Close menu" class="mobile-menu-close">
-          <i class="fas fa-times"></i>
-        </button>
+    <!-- Mobile Sidebar Dropdown -->
+    <div id="mobileSidebarDropdown" class="mobile-sidebar-dropdown">
+      <div style="display:flex; justify-content:flex-end; padding:18px;">
+        <button id="closeMobileSidebar" aria-label="Close menu" style="background:none; border:none; font-size:2rem; cursor:pointer;">&times;</button>
       </div>
-      <nav class="mobile-menu-nav">
-        <ul class="mobile-menu-list">
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="dashboardTab">
-              <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
-              <span class="menu-text" data-translate="dashboard">Dashboard</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="memberDisplayTab">
-              <span class="menu-icon"><i class="fas fa-users"></i></span>
-              <span class="menu-text" data-translate="members">Members</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="trainerTab">
-              <span class="menu-icon"><i class="fas fa-user-tie"></i></span>
-              <span class="menu-text" data-translate="trainers">Trainers</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="attendanceTab">
-              <span class="menu-icon"><i class="fas fa-calendar-check"></i></span>
-              <span class="menu-text" data-translate="attendance">Attendance</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="paymentTab">
-              <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
-              <span class="menu-text" data-translate="payments">Payments</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="equipmentTab">
-              <span class="menu-icon"><i class="fas fa-dumbbell"></i></span>
-              <span class="menu-text" data-translate="equipment">Equipment</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="offersTab">
-              <span class="menu-icon"><i class="fas fa-tags"></i></span>
-              <span class="menu-text" data-translate="Offers & Coupons">Offers & Coupons</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="supportReviewsTab">
-              <span class="menu-icon"><i class="fas fa-headset"></i></span>
-              <span class="menu-text" data-translate="Support & Reviews">Support & Reviews</span>
-            </a>
-          </li>
-          <li class="mobile-menu-item">
-            <a href="#" class="menu-link" data-tab="settingsTab">
-              <span class="menu-icon"><i class="fas fa-cog"></i></span>
-              <span class="menu-text" data-translate="settings">Settings</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-
-    <!-- Top Nav - Independent from main content -->
-    <div class="top-nav" id="topNav">
-        <div class="notification-wrapper">
-            <div class="notification-container">
-                <i class="fas fa-bell notification-icon" id="notificationIcon"></i>
-                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
-                <div class="notification-dropdown" id="notificationDropdown">
-                    <div class="notification-header">
-                        <h4 data-i18n="notifications.all">All Notifications</h4>
-                        <button class="mark-all-read" id="markAllRead" data-i18n="notifications.markAllRead">Mark All Read</button>
-                    </div>
-                    <div class="notification-filters">
-                        <button class="notification-filter-btn active" data-filter="all" data-i18n="filter.all">All</button>
-                        <button class="notification-filter-btn" data-filter="system" data-i18n="filter.system">System</button>
-                        <button class="notification-filter-btn" data-filter="admin" data-i18n="filter.admin">Admin</button>
-                        <button class="notification-filter-btn" data-filter="grievance" data-i18n="filter.grievances">Grievances</button>
-                        <button class="notification-filter-btn" data-filter="membership" data-i18n="filter.membership">Membership</button>
-                        <button class="notification-filter-btn" data-filter="unread" data-i18n="filter.unread">Unread</button>
-                    </div>
-                    <div class="notification-list" id="notificationList">
-                        <div class="no-notifications" data-i18n="notifications.none">No new notifications</div>
-                    </div>
-                    <div class="notification-footer">
-                        <button class="view-all-notifications" id="viewAllNotifications" data-i18n="notifications.viewAll">View All</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Interactive animated user box -->
-            <div class="user-profile user-profile-animated" id="userProfileToggle">
-              <div class="user-profile-box">
-                <div class="user-avatar">
-                  <img id="adminAvatar" src="https://via.placeholder.com/40" alt="Admin">
-                </div>
-                <span class="user-name" id="adminName">Admin</span>
-              </div>
-              <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="profile-dropdown-menu" id="profileDropdownMenu">
-              <button class="dropdown-item" id="gymProfileLink" type="button"><i class="fas fa-building"></i> Gym Profile</button>
-              <div class="dropdown-divider"></div>
-              <button class="dropdown-item" id="changePasswordLink" type="button"><i class="fas fa-lock"></i> Change Password</button>
-              <div class="dropdown-divider"></div>
-              <button class="dropdown-item" id="logoutLink" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </div>
-        </div>
+      <ul class="menu" style="padding:0 24px;">
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span> <span class="menu-text">Dashboard</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-users"></i></span> <span class="menu-text">Members</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-calendar-check"></i></span> <span class="menu-text">Attendance</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link" data-tab="paymentTab"><span class="menu-icon"><i class="fas fa-credit-card"></i></span> <span class="menu-text">Payments</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-user-tie"></i></span> <span class="menu-text">Trainers</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-dumbbell"></i></span> <span class="menu-text">Equipment</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-tags"></i></span> <span class="menu-text">Offers & coupons</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-headset"></i></span> <span class="menu-text">Support & Reviews</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-cog"></i></span> <span class="menu-text">Settings</span></a></li>
+      </ul>
     </div>
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
-
-        <!-- Dashboard Tab -->
-        <div id="dashboardTab" class="content tab-content active" style="display: block;">
-            <div class="page-header">
-                <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> <span data-i18n="header.dashboard.title">Dashboard Overview</span></h1>
-                <div class="page-actions">
-                    <button id="openNotificationModalBtn" data-modal="notificationModal">
-                        <i class="fas fa-bell"></i> Send Notification
-                    </button>
-                    <!-- Admin notification system will be inserted here automatically -->
+        <!-- Top Nav -->
+        <div class="top-nav" id="topNav">
+            <div class="user-actions">
+                <!-- Notification Bell -->
+                <div class="notification" id="notificationBell">
+                    <i class="fas fa-bell notification-icon" id="notificationIcon"></i>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h4>All Notifications</h4>
+                            <button class="mark-all-read" id="markAllRead">Mark All Read</button>
+                        </div>
+                        <div class="notification-filters">
+                            <button class="notification-filter-btn active" data-filter="all">All</button>
+                            <button class="notification-filter-btn" data-filter="system">System</button>
+                            <button class="notification-filter-btn" data-filter="admin">Admin</button>
+                            <button class="notification-filter-btn" data-filter="grievance">Grievances</button>
+                            <button class="notification-filter-btn" data-filter="membership">Membership</button>
+                            <button class="notification-filter-btn" data-filter="unread">Unread</button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="no-notifications">No new notifications</div>
+                        </div>
+                        <div class="notification-footer">
+                            <button class="view-all-notifications" id="viewAllNotifications">View All</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Interactive animated user box -->
+                <div class="user-profile user-profile-animated" id="userProfileToggle">
+                  <div class="user-profile-box">
+                    <div class="user-avatar">
+                      <img id="adminAvatar" src="https://via.placeholder.com/40" alt="Admin">
+                    </div>
+                    <span class="user-name" id="adminName">Admin</span>
+                  </div>
+                  <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                  <button class="dropdown-item" id="gymProfileLink" type="button"><i class="fas fa-building"></i> Gym Profile</button>
+                  <div class="dropdown-divider"></div>
+                  <button class="dropdown-item" id="changePasswordLink" type="button"><i class="fas fa-lock"></i> Change Password</button>
+                  <div class="dropdown-divider"></div>
+                  <button class="dropdown-item" id="logoutLink" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-cards">
+            <!-- Dashboard Content -->
+            <div class="content">
+                <div class="page-header">
+                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h1>
+                    <div class="page-actions">
+                        <button id="openNotificationModalBtn">
+                            <i class="fas fa-bell"></i> Send Notification
+                        </button>
+                        <!-- Admin notification system will be inserted here automatically -->
+                    </div>
+                </div>
+
+
+                <!-- Stats Cards -->
+                <div class="stats-cards">
                     <div class="stat-card new-users loading" id="membersStatCard" style="cursor:pointer;">
                         <div class="stat-card-header">
-                            <div class="stat-title" data-i18n="stat.members">Members</div>
-                              <div class="stat-icon-dashboard">
+                            <div class="stat-title">Members</div>
+                            <div class="stat-icon-dashboard">
                                 <i class="fas fa-users"></i>
                             </div>
                         </div>
@@ -272,8 +223,8 @@
 
                     <div class="stat-card payments loading">
                         <div class="stat-card-header">
-                            <div class="stat-title" data-i18n="stat.totalPayments">Total Payments</div>
-                              <div class="stat-icon-dashboard">
+                            <div class="stat-title">Total Payments</div>
+                            <div class="stat-icon-dashboard">
                                 <i class="fas fa-credit-card"></i>
                             </div>
                         </div>
@@ -294,15 +245,15 @@
 
                     <div class="stat-card attendance loading" id="attendanceStatCard" style="cursor:pointer;">
                         <div class="stat-card-header">
-                            <div class="stat-title" data-i18n="stat.attendance">Overall Attendance</div>
-                              <div class="stat-icon-dashboard">
+                            <div class="stat-title">Overall Attendance</div>
+                            <div class="stat-icon-dashboard">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                         </div>
-                        <div class="stat-value" id="overallAttendanceValue" data-i18n="loading.text">Loading...</div>
+                        <div class="stat-value" id="overallAttendanceValue">Loading...</div>
                         <div class="stat-change neutral" id="overallAttendanceChange">
                             <i class="fas fa-clock"></i>
-                            <span data-i18n="calculating.text">Calculating...</span>
+                            Calculating...
                         </div>
                         <div class="stat-card-skeleton">
                             <div class="skeleton-header">
@@ -316,8 +267,8 @@
 
                     <div class="stat-card trainers loading">
                         <div class="stat-card-header">
-                            <div class="stat-title" data-i18n="stat.trainers">Active Trainers</div>
-                              <div class="stat-icon-dashboard">
+                            <div class="stat-title">Active Trainers</div>
+                            <div class="stat-icon-dashboard">
                                 <i class="fas fa-user-tie"></i>
                             </div>
                         </div>
@@ -342,59 +293,59 @@
                   <div class="card quick-action-card">
                     <div class="card-header">
                       <h2 class="card-title">
-             <i class="fas fa-bolt"></i>
-             <span data-i18n="quick.actions.title">Quick Actions</span>
+                        <i class="fas fa-bolt"></i>
+                        Quick Actions
                       </h2>
                       <div class="card-actions">
                         <button id="customizeQuickActionsBtn" type="button" class="secondary customize-btn">
-                          <i class="fas fa-palette"></i> <span data-i18n="quick.actions.customize">Customize</span>
+                          <i class="fas fa-palette"></i> Customize
                         </button>
                       </div>
                     </div>
                     <div class="quick-actions-grid" id="quickActionsGrid">
-                      <div class="quick-action-badge" data-action="add-member" id="addMemberBtn" data-modal="addMemberModal">
+                      <div class="quick-action-badge" data-action="add-member" id="addMemberBtn">
                         <i class="fas fa-user-plus"></i>
-                        <span data-i18n="quick.actions.addMember">Add Member</span>
+                        <span>Add Member</span>
                       </div>
-                      <div class="quick-action-badge" data-action="record-payment" id="recordPaymentBtn" data-modal="addPaymentModal">
+                      <div class="quick-action-badge" data-action="record-payment" id="recordPaymentBtn">
                         <i class="fas fa-money-bill-wave"></i>
-                        <span data-i18n="quick.actions.recordPayment">Record Payment</span>
+                        <span>Record Payment</span>
                       </div>
-                      <div class="quick-action-badge" data-action="add-trainer" id="addTrainerBtn" data-modal="addTrainerModal">
+                      <div class="quick-action-badge" data-action="add-trainer" id="addTrainerBtn">
                         <i class="fas fa-user-tie"></i>
-                        <span data-i18n="quick.actions.addTrainer">Add Trainer</span>
+                        <span>Add Trainer</span>
                       </div>
-                      <div class="quick-action-badge" data-action="add-equipment" id="uploadEquipmentBtn" data-modal="equipmentModal">
+                      <div class="quick-action-badge" data-action="add-equipment" id="uploadEquipmentBtn">
                         <i class="fas fa-dumbbell"></i>
-                        <span data-i18n="quick.actions.addEquipment">Add Equipment</span>
+                        <span>Add Equipment</span>
                       </div>
-                      <div class="quick-action-badge" data-action="generate-qr" id="generateQRCodeBtn" data-modal="qrCodeGeneratorModal">
+                      <div class="quick-action-badge" data-action="generate-qr" id="generateQRCodeBtn">
                         <i class="fas fa-qrcode"></i>
-                        <span data-i18n="quick.actions.generateQR">Generate QR Code</span>
+                        <span>Generate QR Code</span>
                       </div>
-                      <div class="quick-action-badge" data-action="biometric-enroll" id="biometricEnrollBtn" data-modal="biometricEnrollmentModal">
+                      <div class="quick-action-badge" data-action="biometric-enroll" id="biometricEnrollBtn">
                         <i class="fas fa-fingerprint"></i>
-                        <span data-i18n="quick.actions.enrollBiometric">Biometric Enrollment</span>
+                        <span>Biometric Enrollment</span>
                       </div>
-                      <div class="quick-action-badge" data-action="device-setup" id="deviceSetupBtn" data-modal="deviceSetupModal">
+                      <div class="quick-action-badge" data-action="device-setup" id="deviceSetupBtn">
                         <i class="fas fa-cogs"></i>
-                        <span data-i18n="quick.actions.deviceSetup">Setup Devices</span>
+                        <span>Setup Devices</span>
                       </div>
-                      <div class="quick-action-badge" data-action="send-notification" id="sendNotificationQuickBtn" data-modal="notificationModal">
+                      <div class="quick-action-badge" data-action="send-notification" id="sendNotificationQuickBtn">
                         <i class="fas fa-bell"></i>
-                        <span data-i18n="quick.actions.sendNotification">Send Notification</span>
+                        <span>Send Notification</span>
                       </div>
                     </div>
                   </div>
                   <div class="card activities-offered-card">
                     <div class="card-header">
                       <h2 class="card-title">
-             <i class="fas fa-heart"></i>
-             <span data-i18n="activities.offered">Activities Offered</span>
+                        <i class="fas fa-heart"></i>
+                        Activities Offered
                       </h2>
                       <div class="card-actions">
                         <button id="addActivitiesBtn" type="button" class="secondary">
-                          <i class="fas fa-plus-circle"></i> <span data-i18n="activities.add">Add Activities</span>
+                          <i class="fas fa-plus-circle"></i> Add Activities
                         </button>
                       </div>
                     </div>
@@ -407,9 +358,9 @@
                  <!-- Interactive Gym Photos Grid -->
                 <section id="photoGridSection" class="card" style="margin-top: 24px;">
                   <div class="card-header">
-                    <h1 class="card-title"><i class="fas fa-images"></i> <span data-i18n="photos.uploaded">Previously Uploaded Gym Photos</span></h1>
+                    <h1 class="card-title"><i class="fas fa-images"></i> Previously Uploaded Gym Photos</h1>
                     <button class="upload-photo-btn" id="uploadPhotoBtn">
-                            <i class="fas fa-camera"></i> <span data-i18n="photos.upload">Upload Photo</span>
+                            <i class="fas fa-camera"></i> Upload Photo
                         </button>
                   </div>
                   <div class="card-body">
@@ -419,8 +370,8 @@
                  <!-- Membership Plans Section -->
                         <div class="card" id="membershipPlansSection" style="margin-top:18px;">
                           <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-                            <h2 class="card-title"><i class="fas fa-crown" style="color:#ffbe0b;margin-right:8px;"></i><span data-i18n="membership.plans">Membership Plans</span></h2>
-                            <button id="editPlansBtn" class="btn btn-primary" style="font-size:1em;padding:6px 18px;"><i class="fas fa-edit"></i> <span data-i18n="membership.editPlans">Edit Plans</span></button>
+                            <h2 class="card-title"><i class="fas fa-crown" style="color:#ffbe0b;margin-right:8px;"></i>Membership Plans</h2>
+                            <button id="editPlansBtn" class="btn btn-primary" style="font-size:1em;padding:6px 18px;"><i class="fas fa-edit"></i> Edit Plans</button>
                           </div>
 <div class="plans-list" id="plansList"></div>
                         </div>
@@ -428,7 +379,7 @@
                         <div class="modal" id="planEditorModal" style="display:none;z-index:100000;align-items:flex-start;">
                           <div class="modal-content" style="max-width:700px;margin-top:48px;">
                             <div style="display:flex;align-items:center;justify-content:space-between;">
-                              <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-crown" style="color:#ffbe0b;"></i> <span data-i18n="membership.edit">Edit Membership Plans</span></h3>
+                              <h3 style="margin:0;display:flex;align-items:center;gap:10px;"><i class="fas fa-crown" style="color:#ffbe0b;"></i> Edit Membership Plans</h3>
                               <button class="modal-close" id="closePlanEditorModal" style="font-size:1.5rem;">&times;</button>
                             </div>
                             <form id="planEditorForm" style="margin-top:18px;">
@@ -436,8 +387,8 @@
                         
                          
                               <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
-                                  <button type="button" class="btn btn-secondary" id="cancelPlanEditBtn" data-i18n="cancel">Cancel</button>
-                                  <button type="submit" class="btn btn-primary" data-i18n="saveAll">Save All</button>
+                                <button type="button" class="btn btn-secondary" id="cancelPlanEditBtn">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save All</button>
                               </div>
                             </form>
                           </div>
@@ -451,8 +402,8 @@
                         <div class="card" id="newMembersCard">
                             <div class="card-header">
                                 <h2 class="card-title">
-                 <i class="fas fa-users"></i>
-                 <span data-i18n="new.members">New Members</span>
+                                    <i class="fas fa-users"></i>
+                                    New Members
                                 </h2>
                                 <div class="card-actions">
                                     <button id="viewAllMembersBtn">View All</button>
@@ -491,8 +442,8 @@
                         <div class="card" id="trialBookingsCard">
                             <div class="card-header">
                                 <h2 class="card-title">
-                 <i class="fas fa-calendar-plus"></i>
-                 <span data-i18n="trial.bookings">Trial Bookings</span>
+                                    <i class="fas fa-calendar-plus"></i>
+                                    Trial Bookings
                                 </h2>
                                 <div class="card-actions">
                                     <select id="dashboardTrialStatusFilter" class="filter-select">
@@ -537,8 +488,8 @@
                         <div class="card">
                             <div class="card-header">
                                 <h2 class="card-title">
-                 <i class="fas fa-chart-line"></i>
-                 <span data-i18n="attendance.trend">Attendance Trend</span>
+                                    <i class="fas fa-chart-line"></i>
+                                    Attendance Trend
                                 </h2>
                                 <div class="card-actions" style="display:flex;gap:12px;align-items:center;">
                                     <div class="chart-controls">
@@ -581,8 +532,8 @@
                         <div class="card">
                             <div class="card-header">
                                 <h2 class="card-title">
-                 <i class="fas fa-clock"></i>
-                 <span data-i18n="recent.activity">Recent Activity</span>
+                                    <i class="fas fa-clock"></i>
+                                    Recent Activity
                                 </h2>
                                 <div class="card-actions">
                                     <button id="viewAllActivitiesBtn">View All</button>
@@ -615,8 +566,8 @@
                         <div class="card">
                             <div class="card-header">
                                 <h2 class="card-title">
-                 <i class="fas fa-dumbbell"></i>
-                 <span data-i18n="equipment.gallery">Equipment Gallery</span>
+                                    <i class="fas fa-dumbbell"></i>
+                                    Equipment Gallery
                                 </h2>
                                 <div class="card-actions">
                                     <button id="viewAllEquipmentBtn">View All</button>
@@ -656,13 +607,12 @@
                         </div>
                     </div>
                 </div>
-        </div>
+            </div>
 
-        <!-- Payment Tab (Initially Hidden) -->
-        <div id="paymentTab" class="content tab-content" style="display: none;">
-            <div class="payment-tab">
+            <!-- Payment Tab (Initially Hidden) -->
+            <div id="paymentTab" class="payment-tab">
                 <div class="page-header">
-                    <h1 class="page-title"><i class="fas fa-credit-card"></i> <span data-i18n="payment.management">Payment Management</span></h1>
+                    <h1 class="page-title"><i class="fas fa-credit-card"></i> Payment Management</h1>
                     <div class="page-actions">
                         <button id="addPaymentBtn" class="add-payment-btn">
                             <i class="fas fa-plus"></i> Add Payment
@@ -675,7 +625,7 @@
 
                     <div class="payment-stat-card received" id="receivedAmountStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
-                            <div class="payment-stat-title" data-i18n="payment.amountReceived">Amount Received</div>
+                            <div class="payment-stat-title">Amount Received</div>
                             <div class="payment-stat-icon received">
                                 <i class="fas fa-arrow-down"></i>
                             </div>
@@ -701,7 +651,6 @@
                     <div class="payment-stat-card paid" id="paidAmountStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Amount Paid</div>
-                              <div class="payment-stat-title" data-i18n="payment.amountPaid">Amount Paid</div>
                             <div class="payment-stat-icon paid">
                                 <i class="fas fa-arrow-up"></i>
                             </div>
@@ -717,7 +666,7 @@
                     <div class="modal" id="paidAmountsModal" style="display:none;z-index:100000;align-items:flex-start;">
                       <div class="modal-content" style="max-width:520px;margin-top:48px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style.margin:0;color:#ef4444;font-weight:600;"><i class="fas fa-money-bill-wave"></i> Amount Paid Breakdown</h3>
+                          <h3 style="margin:0;color:#ef4444;font-weight:600;"><i class="fas fa-money-bill-wave"></i> Amount Paid Breakdown</h3>
                           <button class="modal-close" id="closePaidAmountsModal" style="font-size:1.5rem;">&times;</button>
                         </div>
                         <div id="paidAmountsDetailsContainer" style="min-height:120px;"></div>
@@ -727,7 +676,6 @@
                     <div class="payment-stat-card pending" id="pendingPaymentsStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Pending Payments</div>
-                              <div class="payment-stat-title" data-i18n="payment.pending">Pending Payments</div>
                             <div class="payment-stat-icon pending">
                                 <i class="fas fa-clock"></i>
                             </div>
@@ -749,7 +697,6 @@
                     <div class="payment-stat-card due" id="duePaymentsStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Due Payments</div>
-                              <div class="payment-stat-title" data-i18n="payment.due">Due Payments</div>
                             <div class="payment-stat-icon due">
                                 <i class="fas fa-calendar-times"></i>
                             </div>
@@ -775,7 +722,6 @@
                     <div class="payment-stat-card profit" id="profitLossStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Profit/Loss</div>
-                              <div class="payment-stat-title" data-i18n="payment.profitLoss">Profit/Loss</div>
                             <div class="payment-stat-icon profit">
                                 <i class="fas fa-chart-line"></i>
                             </div>
@@ -887,6 +833,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Quick Actions Floating Dock -->
 <div id="quickActionsFloatingBar" class="quick-actions-floating-bar" style="display: none;">
@@ -934,7 +885,7 @@
   
   <div class="circular-panel">
     <div class="circular-panel-header">
-  <h3><i class="fas fa-bolt"></i> <span data-i18n="quick.actions.title">Quick Actions</span></h3>
+      <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
       <button class="circular-panel-close" id="circularPanelClose">
         <i class="fas fa-times"></i>
       </button>
@@ -942,7 +893,7 @@
     
     <div class="circular-panel-content">
       <div class="circular-search">
-        <input type="text" id="circularSearch" placeholder="Search actions..." data-i18n-placeholder="search.actions" />
+        <input type="text" id="circularSearch" placeholder="Search actions..." />
         <i class="fas fa-search"></i>
       </div>
       
@@ -1167,7 +1118,7 @@
             <div class="modal-body">
                <!-- Recipient Filter -->
                 <div class="form-group">
-                    <label class="form-label" for="notificationSendTo">
+                    <label class="form-label">
                         <i class="fas fa-filter"></i> Send To
                     </label>
                     <select class="form-control" id="notificationSendTo">
@@ -1187,10 +1138,10 @@
 
                 <!-- Quick Message Templates -->
                 <div class="form-group">
-                    <span class="form-label" id="quickMessageTemplatesLabel">
+                    <label class="form-label">
                         <i class="fas fa-bolt"></i> Quick Message Templates
-                    </span>
-                    <div class="quick-message-grid" aria-labelledby="quickMessageTemplatesLabel">
+                    </label>
+                    <div class="quick-message-grid">
                         <button type="button" class="quick-msg-btn" data-template="membership-expiry">
                             <i class="fas fa-calendar-times"></i> Membership Expiry
                         </button>
@@ -1215,10 +1166,10 @@
                
                 <!-- Custom Selection Area (hidden by default) -->
                 <div class="form-group" id="customSelectionArea" style="display: none;">
-                    <label class="form-label" for="recipientSearch">Select Recipients</label>
+                    <label class="form-label">Select Recipients</label>
                     <div class="custom-selection-container">
                         <div class="selection-search">
-                            <input type="text" id="recipientSearch" name="recipientSearch" placeholder="Search members..." class="form-control" aria-labelledby="recipientSearchLabel">
+                            <input type="text" id="recipientSearch" placeholder="Search members..." class="form-control">
                         </div>
                         <div class="selection-list" id="customRecipientList">
                             <!-- Dynamic content will be populated here -->
@@ -1228,7 +1179,7 @@
 
                 <!-- Notification Channels -->
                 <div class="form-group">
-                    <label class="form-label" for="systemNotification">
+                    <label class="form-label">
                         <i class="fas fa-share-alt"></i> Notification Channels
                     </label>
                     <div class="channel-options">
@@ -1274,7 +1225,7 @@
 
                 <!-- Message Preview -->
                 <div class="form-group">
-                    <label class="form-label" for="messagePreview">
+                    <label class="form-label">
                         <i class="fas fa-eye"></i> Message Preview
                     </label>
                     <div class="message-preview" id="messagePreview">
@@ -1285,7 +1236,7 @@
 
                 <!-- Delivery Options -->
                 <div class="form-group">
-                    <label class="form-label" for="deliveryTimeNow">
+                    <label class="form-label">
                         <i class="fas fa-clock"></i> Delivery Options
                     </label>
                     <div class="delivery-options">
@@ -1732,15 +1683,16 @@
                 </form>
             </div>
         </div>
-  </div>
+    </div>
 
+   >
    <!-- Password Confirmation Dialog -->
 <div id="passwordConfirmDialog" class="modal" style="display:none;">
   <div class="modal-content" style="max-width:350px;">
     <span class="modal-close" id="closePasswordConfirmDialog">&times;</span>
     <form id="passwordConfirmForm">
-      <label for="confirmCurrentPassword">Please enter your current password to confirm changes:</label>
-      <input type="password" id="confirmCurrentPassword" name="currentPassword" required autocomplete="current-password">
+      <label for="currentPassword">Please enter your current password to confirm changes:</label>
+      <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
       <button type="submit" class="btn btn-primary" style="margin-top:1rem;">Confirm</button>
     </form>
   </div>
@@ -1944,7 +1896,7 @@
         </h4>
         
         <div class="form-group" style="margin-bottom:15px;">
-          <label for="qrRegistrationType" style="display:block;font-weight:600;margin-bottom:5px;">Registration Type:</label>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Registration Type:</label>
           <select id="qrRegistrationType" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
             <option value="standard">Standard Registration</option>
             <option value="trial">Trial Membership (3 Days)</option>
@@ -1953,7 +1905,7 @@
         </div>
         
         <div class="form-group" style="margin-bottom:15px;">
-          <label for="qrDefaultPlan" style="display:block;font-weight:600;margin-bottom:5px;">Default Plan:</label>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Default Plan:</label>
           <select id="qrDefaultPlan" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
             <option value="">Let User Choose</option>
             <option value="basic">Basic Plan</option>
@@ -1963,7 +1915,7 @@
         </div>
         
         <div class="form-group" style="margin-bottom:15px;">
-          <label for="qrUsageLimit" style="display:block;font-weight:600;margin-bottom:5px;">Usage Limit:</label>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Usage Limit:</label>
           <select id="qrUsageLimit" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
             <option value="1">One-Time Use</option>
             <option value="5">5 Uses</option>
@@ -1973,12 +1925,12 @@
         </div>
         
         <div class="form-group" style="margin-bottom:15px;">
-          <label for="qrExpiryDate" style="display:block;font-weight:600;margin-bottom:5px;">Expiry Date:</label>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Expiry Date:</label>
           <input type="datetime-local" id="qrExpiryDate" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
         </div>
         
         <div class="form-group" style="margin-bottom:15px;">
-          <label for="qrSpecialOffer" style="display:block;font-weight:600;margin-bottom:5px;">Special Offer/Discount:</label>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Special Offer/Discount:</label>
           <input type="text" id="qrSpecialOffer" placeholder="e.g., 20% off first month" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
         </div>
       </div>
@@ -2176,9 +2128,74 @@
         </div>
       </div>
     </div>
-    
+<!-- Member Display Tab (hidden by default) -->
+<div id="memberDisplayTab" style="display:none;">
+  <div class="page-header">
+    <h1 class="page-title"><i class="fas fa-users"></i> All Members</h1>
+    <div class="member-action-btn-group">
+      <button id="addMemberBtnTab" class="member-action-btn add-member-action-btn">
+        <i class="fas fa-user-plus"></i><span class="btn-text"> Add Member</span>
+      </button>
+      <button id="removeMemberBtnTab" class="member-action-btn remove-member-action-btn">
+        <i class="fas fa-user-minus"></i><span class="btn-text"> Remove Members</span>
+      </button>
+      <!-- Remove Member dropdown and modal will be created and managed by JS only -->
+    </div>
+  </div>
+  <div class="search-bar" style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:#f8f9fa;padding:10px 18px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <span class="search-icon" style="color:var(--primary);font-size:1.2rem;margin-right:6px;"><i class="fas fa-search"></i></span>
+    <input type="text" id="memberSearchInput" placeholder="Search by Name, Email, Phone, Membership ID..." style="flex:1;padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:1rem;outline:none;transition:border 0.2s;">
+    <select id="membershipExpiryFilter" style="padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:1rem;background:#fff;">
+      <option value="">All Members</option>
+      <option value="3days">Expiring in 3 Days</option>
+      <option value="1day">Expiring in 1 Day</option>
+    </select>
+  </div>
+  <div id="membersTableContainer">
+    <table id="membersTable" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Profile</th>
+          <th>Name</th>
+          <th>Membership ID</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Address</th>
+          <th>Plan</th>
+          <th>Monthly</th>
+          <th>Activity</th>
+          <th>Join Date</th>
+          <th>Valid Until</th>
+          <th>Amount Paid</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="membersTableBody">
+        <!-- Members will be loaded here -->
+       
+      </tbody>
+    </table>
+  </div>
+</div>
+<!-- Interactive Members Detail Card (hidden by default) -->
+<div id="membersDetailCard" class="modal">
+  <div class="modal-content member-detail-modal">
+    <div class="member-detail-header" style="position:relative;">
+      <button id="editMemberDetailBtn" title="Edit Member" style="position:absolute;left:18px;top:16px;background:none;border:none;cursor:pointer;font-size:1.25rem;color:#fff;z-index:3;transition:color 0.2s;"><i class="fas fa-edit"></i></button>
+      <h2 class="member-detail-title" style="margin-left:32px;">
+        <i class="fas fa-id-card-alt"></i> Member Details
+      </h2>
+      <button id="closeMembersDetailCard" class="modal-close" title="Close">&times;</button>
+    </div>
+    <div id="memberDetailDynamicContent">
+      <!-- Dynamic content injected by JS -->
+    </div>
+  </div>
+</div>
 <!-- Trainer Tab -->
-<div id="trainerTab" class="content tab-content" style="display:none; padding: 24px;">
+<div id="trainerTab" style="display:none; padding: 24px;">
   <div class="page-header" style="margin-bottom: 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
     <h1 class="page-title" style="display:flex;align-items:center;gap:10px;">
       <i class="fas fa-user-tie"></i> Trainer Management
@@ -2275,7 +2292,7 @@
   </div>
 
   <!-- Detail Drawer / Modal Placeholder -->
-  <div id="trainerDetailDrawer" style="display:none;position:fixed;top:0;right:0;width:420px;max-width:100%;height:100%;background:#fff;box-shadow:-4px 0 24px -6px rgba(0,0,0,0.18);z-index:100000;transform:translateX(100%);transition:transform 0.35s ease;flex-direction:column;">
+  <div id="trainerDetailDrawer" style="position:fixed;top:0;right:0;width:420px;max-width:100%;height:100%;background:#fff;box-shadow:-4px 0 24px -6px rgba(0,0,0,0.18);z-index:100000;transform:translateX(100%);transition:transform 0.35s ease;display:flex;flex-direction:column;">
     <div style="padding:18px 20px;border-bottom:1px solid #e0e6eb;display:flex;align-items:center;justify-content:space-between;">
       <h3 style="margin:0;font-size:1.05rem;display:flex;align-items:center;gap:8px;color:#263238;"><i class="fas fa-id-card"></i> Trainer Details</h3>
       <button id="closeTrainerDetailDrawer" style="background:transparent;border:none;font-size:1.2rem;cursor:pointer;color:#607d8b;" title="Close"><i class="fas fa-times"></i></button>
@@ -2401,7 +2418,7 @@
 
 
 <!-- Support & Reviews Tab -->
-<div id="supportReviewsTab" class="content tab-content" style="display:none;">
+<div id="supportReviewsTab" style="display:none;">
   <!-- Header Section - Consistent with other tabs -->
   <div class="page-header">
     <h1 class="page-title">
@@ -2740,8 +2757,8 @@
       <form id="notificationForm">
         <div class="form-row">
           <div class="form-group">
-            <label for="modalNotificationTitle">Title *</label>
-            <input type="text" id="modalNotificationTitle" placeholder="Notification title" required>
+            <label for="notificationTitle">Title *</label>
+            <input type="text" id="notificationTitle" placeholder="Notification title" required>
           </div>
           <div class="form-group">
             <label for="notificationType">Type *</label>
@@ -2870,7 +2887,7 @@
 </div>
 
 <!-- Equipment Tab -->
-<div id="equipmentTab" class="content tab-content" style="display:none; padding: 24px;">
+<div id="equipmentTab" style="display:none; padding: 24px;">
   <div class="page-header" style="margin-bottom: 30px;">
     <h1 class="page-title">
       <i class="fas fa-dumbbell"></i> Equipment Management
@@ -2994,7 +3011,7 @@
         
         <!-- Equipment Photos -->
         <div class="form-group">
-          <label class="form-label" for="equipmentPhotos">Equipment Photos</label>
+          <label class="form-label">Equipment Photos</label>
           <div class="equipment-photo-upload">
             <div class="photo-upload-area" id="equipmentPhotoUpload">
               <div class="upload-placeholder">
@@ -3122,8 +3139,88 @@
   </div>
 </div>
 
+<!-- Admin Passkey Modal -->
+<div id="adminPasskeyModal" class="admin-passkey-modal">
+  <div class="admin-passkey-content">
+    <div class="admin-passkey-header">
+      <div class="admin-passkey-icon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h2 class="admin-passkey-title modal-title">Admin Security</h2>
+      <p class="admin-passkey-subtitle passkey-instruction">Enter your 4-digit admin passkey to access payment management</p>
+    </div>
+    
+    <form class="admin-passkey-form" id="adminPasskeyForm">
+      <div class="passkey-input-container">
+        <input type="password" class="passkey-digit" maxlength="1" data-index="0" autocomplete="off">
+        <input type="password" class="passkey-digit" maxlength="1" data-index="1" autocomplete="off">
+        <input type="password" class="passkey-digit" maxlength="1" data-index="2" autocomplete="off">
+        <input type="password" class="passkey-digit" maxlength="1" data-index="3" autocomplete="off">
+      </div>
+      
+      <!-- Mobile Keypad -->
+      <div class="passkey-keypad" id="passkeyKeypad">
+        <button type="button" class="keypad-btn" data-digit="1">1</button>
+        <button type="button" class="keypad-btn" data-digit="2">2</button>
+        <button type="button" class="keypad-btn" data-digit="3">3</button>
+        <button type="button" class="keypad-btn" data-digit="4">4</button>
+        <button type="button" class="keypad-btn" data-digit="5">5</button>
+        <button type="button" class="keypad-btn" data-digit="6">6</button>
+        <button type="button" class="keypad-btn" data-digit="7">7</button>
+        <button type="button" class="keypad-btn" data-digit="8">8</button>
+        <button type="button" class="keypad-btn" data-digit="9">9</button>
+        <button type="button" class="keypad-btn clear" data-action="clear">
+          <i class="fas fa-backspace"></i>
+        </button>
+        <button type="button" class="keypad-btn" data-digit="0">0</button>
+        <button type="button" class="keypad-btn clear" data-action="clear-all">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="passkey-error" id="passkeyError">
+        Invalid passkey. Please try again.
+      </div>
+      
+      <div class="passkey-attempts" id="passkeyAttempts" style="display: none;">
+        Attempts remaining: <span id="remainingAttempts">3</span>
+      </div>
+    </form>
+    
+    <div class="passkey-actions">
+      <button type="button" class="passkey-btn secondary" id="cancelPasskey">Cancel</button>
+      <button type="button" class="passkey-btn primary" id="verifyPasskey">Verify</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Payment Confirmation Modal -->
+<div id="deleteConfirmationModal" class="admin-passkey-modal" style="display: none;">
+  <div class="admin-passkey-content">
+    <div class="admin-passkey-header">
+      <i class="fas fa-exclamation-triangle" style="color: #ef4444; font-size: 2rem; margin-bottom: 16px;"></i>
+      <h2 class="admin-passkey-title modal-title">Confirm Deletion</h2>
+    </div>
+    
+    <div style="padding: 20px 0; text-align: center;">
+      <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 24px;">
+        Are you sure you want to delete this payment record?
+      </p>
+      <p style="font-size: 0.95rem; color: #ef4444; margin-bottom: 0;">
+        <i class="fas fa-warning"></i> This action cannot be undone.
+      </p>
+    </div>
+    
+    <div class="passkey-actions">
+      <button type="button" class="passkey-btn secondary" id="cancelDeletePayment">Cancel</button>
+      <button type="button" class="passkey-btn" id="confirmDeletePayment" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
 <!-- Offers & Coupons Tab -->
-<div id="offersTab" class="content tab-content" style="display:none;">
+<div id="offersTab"   style="display:none; padding: 24px;">
   <div class="page-header">
     <h1 class="page-title"><i class="fas fa-tags"></i> <span data-i18n="offers.management">Offers & Coupons Management</span></h1>
     <div class="page-actions">
@@ -3229,7 +3326,7 @@
   </div>
 
   <!-- Offer Templates Tab -->
-  <div id="templatesTab" class="payment-tab-content active">
+  <div id="templatesTab" class="payment-tab-content">
     <div class="section-header">
       <h2><i class="fas fa-layer-group"></i> <span data-i18n="offers.quick.templates">Quick Offer Templates</span></h2>
       <p data-i18n="offers.templates.description">Choose from pre-designed templates or create custom offers for your gym members</p>
@@ -3522,87 +3619,8 @@
     </div>
   </div>
 </div>
-<!-- Admin Passkey Modal -->
-<div id="adminPasskeyModal" class="admin-passkey-modal">
-  <div class="admin-passkey-content">
-    <div class="admin-passkey-header">
-      <div class="admin-passkey-icon">
-        <i class="fas fa-shield-alt"></i>
-      </div>
-  <h2 class="admin-passkey-title modal-title" data-i18n="adminSecurityTitle">Admin Security</h2>
-  <p class="admin-passkey-subtitle passkey-instruction" data-i18n="enterPasskeyInstruction">Enter your 4-digit admin passkey to access payment management</p>
-    </div>
-    
-    <form class="admin-passkey-form" id="adminPasskeyForm">
-      <div class="passkey-input-container">
-        <input type="password" class="passkey-digit" maxlength="1" data-index="0" autocomplete="off">
-        <input type="password" class="passkey-digit" maxlength="1" data-index="1" autocomplete="off">
-        <input type="password" class="passkey-digit" maxlength="1" data-index="2" autocomplete="off">
-        <input type="password" class="passkey-digit" maxlength="1" data-index="3" autocomplete="off">
-      </div>
-      
-      <!-- Mobile Keypad -->
-      <div class="passkey-keypad" id="passkeyKeypad">
-        <button type="button" class="keypad-btn" data-digit="1">1</button>
-        <button type="button" class="keypad-btn" data-digit="2">2</button>
-        <button type="button" class="keypad-btn" data-digit="3">3</button>
-        <button type="button" class="keypad-btn" data-digit="4">4</button>
-        <button type="button" class="keypad-btn" data-digit="5">5</button>
-        <button type="button" class="keypad-btn" data-digit="6">6</button>
-        <button type="button" class="keypad-btn" data-digit="7">7</button>
-        <button type="button" class="keypad-btn" data-digit="8">8</button>
-        <button type="button" class="keypad-btn" data-digit="9">9</button>
-        <button type="button" class="keypad-btn clear" data-action="clear">
-          <i class="fas fa-backspace"></i>
-        </button>
-        <button type="button" class="keypad-btn" data-digit="0">0</button>
-        <button type="button" class="keypad-btn clear" data-action="clear-all">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <div class="passkey-error" id="passkeyError" data-i18n="invalidPasskey">Invalid passkey. Please try again.</div>
-      
-      <div class="passkey-attempts" id="passkeyAttempts" style="display: none;">
-        <span data-i18n="attemptsRemaining">Attempts remaining:</span> <span id="remainingAttempts">3</span>
-      </div>
-    </form>
-    
-    <div class="passkey-actions">
-  <button type="button" class="passkey-btn secondary" id="cancelPasskey" data-i18n="cancel">Cancel</button>
-  <button type="button" class="passkey-btn primary" id="verifyPasskey" data-i18n="verify">Verify</button>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Payment Confirmation Modal -->
-<div id="deleteConfirmationModal" class="admin-passkey-modal" style="display: none;">
-  <div class="admin-passkey-content">
-    <div class="admin-passkey-header">
-      <i class="fas fa-exclamation-triangle" style="color: #ef4444; font-size: 2rem; margin-bottom: 16px;"></i>
-      <h2 class="admin-passkey-title modal-title">Confirm Deletion</h2>
-    </div>
-    
-    <div style="padding: 20px 0; text-align: center;">
-      <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 24px;">
-        Are you sure you want to delete this payment record?
-      </p>
-      <p style="font-size: 0.95rem; color: #ef4444; margin-bottom: 0;">
-        <i class="fas fa-warning"></i> This action cannot be undone.
-      </p>
-    </div>
-    
-    <div class="passkey-actions">
-      <button type="button" class="passkey-btn secondary" id="cancelDeletePayment">Cancel</button>
-      <button type="button" class="passkey-btn" id="confirmDeletePayment" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">
-        <i class="fas fa-trash"></i> Delete
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Settings Tab -->
-<div id="settingsTab" class="content tab-content" style="display:none; padding: 24px;">
+<div id="settingsTab" style="display:none; padding: 24px;">
     <div class="page-header" style="margin-bottom: 30px;">
       <h1 class="page-title">
         <i class="fas fa-cog"></i> Settings
@@ -3614,14 +3632,14 @@
       <!-- Theme Settings -->
       <div class="settings-section">
         <div class="settings-card">
-          <button type="button" class="section-info-icon" onclick="showThemeInfo()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { showThemeInfo(); }" aria-label="Theme & Appearance Information" title="Theme & Appearance Information">
-              <i class="fas fa-info" aria-hidden="true"></i>
-            </button>
-            <div class="settings-header">
-              <h3><i class="fas fa-palette"></i> Theme & Appearance</h3>
-              <p>Customize the look and feel of your dashboard</p>
-            </div>
-            <div class="settings-content">
+          <div class="section-info-icon" onclick="showThemeInfo()" title="Theme & Appearance Information">
+            <i class="fas fa-info"></i>
+          </div>
+          <div class="settings-header">
+            <h3><i class="fas fa-palette"></i> Theme & Appearance</h3>
+            <p>Customize the look and feel of your dashboard</p>
+          </div>
+          <div class="settings-content">
             <div class="theme-selector">
               <div class="theme-option" data-theme="light">
                 <div class="theme-preview light-preview">
@@ -3674,9 +3692,9 @@
       <!-- Enhanced Dashboard Customization Section -->
       <div class="settings-section">
         <div class="enhanced-settings-card enhanced-dashboard-section" id="customizeDashboardSection">
-          <button type="button" class="section-info-icon" onclick="showCustomizeDashboardInfo()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showCustomizeDashboardInfo(); }" ontouchstart="showCustomizeDashboardInfo()" title="Dashboard Customization Information" aria-label="Dashboard Customization Information">
+          <div class="section-info-icon" onclick="showCustomizeDashboardInfo()" title="Dashboard Customization Information">
             <i class="fas fa-info"></i>
-          </button>
+          </div>
           
           <div class="enhanced-settings-header">
             <h3 class="enhanced-settings-title">
@@ -3790,9 +3808,9 @@
       <!-- Enhanced Security & Admin Management Section -->
       <div class="settings-section">
         <div class="enhanced-settings-card" id="securityAdminSection">
-          <button type="button" class="section-info-icon" onclick="showSecurityInfo()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { showSecurityInfo(); event.preventDefault(); }" ontouchstart="showSecurityInfo()" title="Security & Admin Information" aria-label="Security & Admin Information">
-            <i class="fas fa-info" aria-hidden="true"></i>
-          </button>
+          <div class="section-info-icon" onclick="showSecurityInfo()" title="Security & Admin Information">
+            <i class="fas fa-info"></i>
+          </div>
           
           <div class="enhanced-settings-header">
             <h3 class="enhanced-settings-title">
@@ -3839,32 +3857,32 @@
               <div class="enhanced-sub-section">
                 <h5>Update Admin Passkey</h5>
                 <div class="form-section">
-                  <label class="enhanced-form-label" for="passkey-current-0">Current Passkey</label>
+                  <label class="enhanced-form-label">Current Passkey</label>
                   <div class="passkey-input-row">
-                    <input id="passkey-current-0" type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="0">
-                    <input id="passkey-current-1" type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="1">
-                    <input id="passkey-current-2" type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="2">
-                    <input id="passkey-current-3" type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="3">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="0">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="1">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="2">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="current" data-index="3">
                   </div>
                 </div>
                 
                 <div class="form-section">
-                  <label class="enhanced-form-label" for="passkey-new-0">New Passkey</label>
+                  <label class="enhanced-form-label">New Passkey</label>
                   <div class="passkey-input-row">
-                    <input id="passkey-new-0" type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="0" aria-label="New passkey digit 1">
-                    <input id="passkey-new-1" type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="1" aria-label="New passkey digit 2">
-                    <input id="passkey-new-2" type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="2" aria-label="New passkey digit 3">
-                    <input id="passkey-new-3" type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="3" aria-label="New passkey digit 4">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="0">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="1">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="2">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="new" data-index="3">
                   </div>
                 </div>
                 
                 <div class="form-section">
-                  <label id="passkey-confirm-label" class="enhanced-form-label" for="passkey-confirm-0">Confirm New Passkey</label>
-                  <div class="passkey-input-row" role="group" aria-labelledby="passkey-confirm-label">
-                    <input id="passkey-confirm-0" type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="0" aria-label="Confirm passkey digit 1">
-                    <input id="passkey-confirm-1" type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="1" aria-label="Confirm passkey digit 2">
-                    <input id="passkey-confirm-2" type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="2" aria-label="Confirm passkey digit 3">
-                    <input id="passkey-confirm-3" type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="3" aria-label="Confirm passkey digit 4">
+                  <label class="enhanced-form-label">Confirm New Passkey</label>
+                  <div class="passkey-input-row">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="0">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="1">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="2">
+                    <input type="password" class="passkey-input-small" maxlength="1" data-group="confirm" data-index="3">
                   </div>
                 </div>
                 
@@ -4004,33 +4022,6 @@
           </div>
         </div>
       }
-
-      <!-- Language & Region -->
-      <div class="settings-section">
-        <div class="settings-card" id="languageRegionSection">
-          <div class="section-info-icon" onclick="showLanguageInfo && showLanguageInfo()" title="Language & Region Information">
-            <i class="fas fa-info"></i>
-          </div>
-          <div class="settings-header">
-            <h3><i class="fas fa-language"></i> <span data-i18n="settings.language.title">Language & Region</span></h3>
-            <p><span data-i18n="settings.language.subtitle">Choose your preferred language for the dashboard</span></p>
-          </div>
-          <div class="settings-content">
-            <div class="setting-row">
-              <div>
-                <strong><span data-i18n="settings.language.label">Language</span></strong>
-                <p><span data-i18n="settings.language.desc">Switch between English and Hindi. English is the default.</span></p>
-              </div>
-              <div>
-                <select id="languageSelect" class="enhanced-form-select" style="min-width: 180px;">
-                  <option value="en">English</option>
-                  <option value="hi">हिन्दी (Hindi)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
     <!-- Subscription Management Section -->
     <div class="settings-section card" id="subscriptionManagementSection">
@@ -4435,7 +4426,7 @@
           <div class="settings-content">
             <div class="operating-hours-grid">
               <div class="day-hours">
-                <div class="day-label">Monday</div>
+                <label>Monday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
@@ -4448,7 +4439,7 @@
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Tuesday</div>
+                <label>Tuesday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
@@ -4461,7 +4452,7 @@
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Wednesday</div>
+                <label>Wednesday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
@@ -4474,7 +4465,7 @@
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Thursday</div>
+                <label>Thursday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
@@ -4487,32 +4478,33 @@
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Friday</div>
+                <label>Friday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
                   <input type="time" value="22:00">
                   <div class="toggle-switch">
                     <input type="checkbox" id="friClosed">
-                    <label for="friClosed" class="toggle-label"></label>
+                    <label for="friClosed" class="toggle-label">Closed</label>
                   </div>
                   <span>Closed</span>
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Saturday</div>
+                <label>Saturday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
                   <input type="time" value="22:00">
                   <div class="toggle-switch">
-                    <input type="checkbox" id="satClosed" aria-labelledby="satClosedLabel">
-                    <label for="satClosed" id="satClosedLabel" class="toggle-label">Closed</label>
+                    <input type="checkbox" id="satClosed">
+                    <label for="satClosed" class="toggle-label"></label>
                   </div>
+                  <span>Closed</span>
                 </div>
               </div>
               <div class="day-hours">
-                <div class="day-label">Sunday</div>
+                <label>Sunday</label>
                 <div class="hours-input">
                   <input type="time" value="06:00">
                   <span>to</span>
@@ -4581,7 +4573,7 @@
   </div>
 
 <!-- Attendance Tab -->
-<div id="attendanceTab" class="content tab-content" style="display:none;">
+<div id="attendanceTab" style="display:none;">
   <div class="attendance-container">
     <!-- Compact Top Control Panel -->
     <div class="attendance-control-panel">
@@ -4691,83 +4683,6 @@
     </div>
   </div>
 </div>
-
-
-
-
-<!-- Interactive Members Detail Card (moved inside main-content) -->
-<div id="membersDetailCard" class="modal">
-  <div class="modal-content member-detail-modal">
-    <div class="member-detail-header" style="position:relative;">
-      <button id="editMemberDetailBtn" title="Edit Member" style="position:absolute;left:18px;top:16px;background:none;border:none;cursor:pointer;font-size:1.25rem;color:#fff;z-index:3;transition:color 0.2s;"><i class="fas fa-edit"></i></button>
-      <h2 class="member-detail-title" style="margin-left:32px;">
-        <i class="fas fa-id-card-alt"></i> Member Details
-      </h2>
-      <button id="closeMembersDetailCard" class="modal-close" title="Close">&times;</button>
-    </div>
-    <div id="memberDetailDynamicContent">
-      <!-- Dynamic content injected by JS -->
-    </div>
-  </div>
-</div>
-
-        <!-- Member Display Tab -->
-        <div id="memberDisplayTab" class="content tab-content" style="display:none;">
-          <div class="page-header">
-            <h1 class="page-title"><i class="fas fa-users"></i> All Members</h1>
-            <div class="member-action-btn-group">
-              <button id="addMemberBtnTab" class="member-action-btn add-member-action-btn">
-                <i class="fas fa-user-plus"></i><span class="btn-text"> Add Member</span>
-              </button>
-              <button id="removeMemberBtnTab" class="member-action-btn remove-member-action-btn">
-                <i class="fas fa-user-minus"></i><span class="btn-text"> Remove Members</span>
-              </button>
-              <!-- Remove Member dropdown and modal will be created and managed by JS only -->
-            </div>
-          </div>
-          <div class="search-bar" style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:#f8f9fa;padding:10px 18px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-            <span class="search-icon" style="color:var(--primary);font-size:1.2rem;margin-right:6px;"><i class="fas fa-search"></i></span>
-            <input type="text" id="memberSearchInput" placeholder="Search by Name, Email, Phone, Membership ID..." style="flex:1;padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:1rem;outline:none;transition:border 0.2s;">
-            <div style="display:flex;gap:8px;">
-              <select id="memberStatusFilter" style="padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:1rem;background:white;cursor:pointer;">
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-                <option value="expired">Expired</option>
-              </select>
-              <select id="membershipTypeFilter" style="padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:1rem;background:white;cursor:pointer;">
-                <option value="">All Plans</option>
-                <option value="basic">Basic</option>
-                <option value="standard">Standard</option>
-                <option value="premium">Premium</option>
-                <option value="vip">VIP</option>
-              </select>
-            </div>
-          </div>
-          <div class="members-table-container">
-            <table class="members-table" id="membersTable">
-              <thead>
-                <tr>
-                  <th>Photo</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Plan</th>
-                  <th>Status</th>
-                  <th>Join Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="membersTableBody">
-                <!-- Members will be loaded here -->
-               
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-    </div> <!-- End of main-content -->
 
  
  
@@ -5023,8 +4938,8 @@
             </div>
 
             <div class="payment-form-group">
-              <label class="payment-form-label" for="generalPaymentAmount">Amount (₹)</label>
-              <input type="number" class="payment-form-input" id="generalPaymentAmount" name="amount" min="0" step="0.01" required>
+              <label class="payment-form-label" for="paymentAmount">Amount (₹)</label>
+              <input type="number" class="payment-form-input" id="paymentAmount" name="amount" min="0" step="0.01" required>
             </div>
 
             <div class="payment-form-group full-width">
@@ -5113,8 +5028,8 @@
             </div>
 
             <div class="payment-form-group">
-              <label class="payment-form-label" for="paymentPersonName">Person Name (if applicable)</label>
-              <input type="text" class="payment-form-input" id="paymentPersonName" name="memberName" placeholder="Enter person name" style="display: block;">
+              <label class="payment-form-label" for="memberName">Person Name (if applicable)</label>
+              <input type="text" class="payment-form-input" id="memberName" name="memberName" placeholder="Enter person name" style="display: block;">
               <select class="payment-form-input" id="memberSelect" name="memberId" style="display: none;">
                 <option value="">Select Member</option>
               </select>
@@ -5335,8 +5250,8 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label" for="renewalPaymentMethod">Payment Method:</label>
-          <select id="renewalPaymentMethod" class="form-control" required>
+          <label class="form-label" for="paymentMethod">Payment Method:</label>
+          <select id="paymentMethod" class="form-control" required>
             <option value="">Select payment method</option>
             <option value="razorpay">Razorpay (Credit/Debit Card, UPI, Net Banking)</option>
             <option value="bank_transfer">Bank Transfer</option>
@@ -5472,8 +5387,14 @@
   </div>
 </div>
  
-   <!-- All modules are now loaded via optimized-module-loader.js -->
-   <!-- This eliminates conflicts and ensures proper loading order -->
+   <!-- 7-Day Allowance System -->
+   <script src="seven-day-allowance.js"></script>
+   <!-- QR Code Generator System -->
+   <script src="qr-code-generator.js"></script>
+   <!-- Notification integration with enhanced form handler compatibility -->
+   <script src="notification-integration.js"></script>
+   <!-- Notification Configuration -->
+   <script src="notification-config.js"></script>
    
    <!-- Enhanced Security Info Modal Functions -->
    <script>
@@ -5492,8 +5413,8 @@
          <div class="modal-body">
            <form id="changePasswordForm">
              <div class="form-group" style="margin-bottom: 16px;">
-               <label for="modalCurrentPassword" style="display: block; margin-bottom: 4px; font-weight: 500;">Current Password</label>
-               <input type="password" id="modalCurrentPassword" required style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;">
+               <label for="currentPassword" style="display: block; margin-bottom: 4px; font-weight: 500;">Current Password</label>
+               <input type="password" id="currentPassword" required style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;">
              </div>
              <div class="form-group" style="margin-bottom: 16px;">
                <label for="newPassword" style="display: block; margin-bottom: 4px; font-weight: 500;">New Password</label>
@@ -5660,222 +5581,6 @@
      ]);
    }
    </script>
-
-<!-- Offer Creation Modal -->
-<div class="modal" id="offerCreationModal" style="display: none;">
-  <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-    <div class="modal-header-style">
-      <h3 class="modal-title-style"><i class="fas fa-tags"></i> Create New Offer</h3>
-      <button class="modal-close" id="closeOfferModal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="offerCreationForm">
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="offerTitle">Offer Title*</label>
-            <input type="text" id="offerTitle" class="form-control" required placeholder="e.g., Winter Arc Special">
-          </div>
-          <div class="form-group">
-            <label for="offerType">Offer Type*</label>
-            <select id="offerType" class="form-control" required>
-              <option value="">Select Type</option>
-              <option value="percentage">Percentage Discount</option>
-              <option value="fixed">Fixed Amount Off</option>
-              <option value="bogo">Buy One Get One</option>
-              <option value="free_trial">Free Trial Extension</option>
-              <option value="special">Special Package</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="offerValue">Discount Value</label>
-            <input type="number" id="offerValue" class="form-control" placeholder="e.g., 20 for 20% or 500 for ₹500">
-          </div>
-          <div class="form-group">
-            <label for="offerCategory">Category</label>
-            <select id="offerCategory" class="form-control">
-              <option value="membership">Membership Plans</option>
-              <option value="training">Personal Training</option>
-              <option value="trial">Trial Bookings</option>
-              <option value="equipment">Equipment Access</option>
-              <option value="all">All Services</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label for="offerDescription">Description*</label>
-          <textarea id="offerDescription" class="form-control" rows="3" required placeholder="Describe your offer..."></textarea>
-        </div>
-        
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="offerStartDate">Start Date*</label>
-            <input type="datetime-local" id="offerStartDate" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="offerEndDate">End Date*</label>
-            <input type="datetime-local" id="offerEndDate" class="form-control" required>
-          </div>
-        </div>
-        
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="offerMaxUses">Maximum Uses</label>
-            <input type="number" id="offerMaxUses" class="form-control" placeholder="Leave empty for unlimited">
-          </div>
-          <div class="form-group">
-            <label for="offerMinAmount">Minimum Purchase Amount</label>
-            <input type="number" id="offerMinAmount" class="form-control" placeholder="₹0">
-          </div>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label>
-            <input type="checkbox" id="generateCouponCode" checked>
-            Generate Coupon Code for this offer
-          </label>
-        </div>
-        
-        <div id="couponCodeSection" style="margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="couponCode">Coupon Code (auto-generated)</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="couponCode" class="form-control" readonly>
-              <button type="button" id="regenerateCouponBtn" class="btn-secondary">
-                <i class="fas fa-refresh"></i> Regenerate
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-          <button type="button" class="btn-secondary" id="cancelOfferBtn">Cancel</button>
-          <button type="submit" class="btn-primary">
-            <i class="fas fa-save"></i> Create Offer
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Coupon Generation Modal -->
-<div class="modal" id="couponGenerationModal" style="display: none;">
-  <div class="modal-content" style="max-width: 600px;">
-    <div class="modal-header-style">
-      <h3 class="modal-title-style"><i class="fas fa-ticket-alt"></i> Generate Coupon Code</h3>
-      <button class="modal-close" id="closeCouponModal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="couponGenerationForm">
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label for="couponTitle">Coupon Title*</label>
-          <input type="text" id="couponTitle" class="form-control" required placeholder="e.g., New Year Special">
-        </div>
-        
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="couponDiscountType">Discount Type*</label>
-            <select id="couponDiscountType" class="form-control" required>
-              <option value="percentage">Percentage (%)</option>
-              <option value="fixed">Fixed Amount (₹)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="couponDiscountValue">Discount Value*</label>
-            <input type="number" id="couponDiscountValue" class="form-control" required min="1">
-          </div>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label for="couponCodeInput">Coupon Code</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="couponCodeInput" class="form-control" placeholder="AUTO-GENERATED">
-            <button type="button" id="generateRandomCouponBtn" class="btn-secondary">
-              <i class="fas fa-random"></i> Generate
-            </button>
-          </div>
-        </div>
-        
-        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="form-group">
-            <label for="couponExpiryDate">Expiry Date*</label>
-            <input type="datetime-local" id="couponExpiryDate" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="couponUsageLimit">Usage Limit</label>
-            <input type="number" id="couponUsageLimit" class="form-control" min="1" placeholder="Unlimited">
-          </div>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label for="couponMinAmount">Minimum Purchase Amount</label>
-          <input type="number" id="couponMinAmount" class="form-control" min="0" placeholder="₹0">
-        </div>
-        
-        <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-          <button type="button" class="btn-secondary" id="cancelCouponBtn">Cancel</button>
-          <button type="submit" class="btn-primary">
-            <i class="fas fa-save"></i> Generate Coupon
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Offer Template Preview Modal -->
-<div class="modal" id="templatePreviewModal" style="display: none;">
-  <div class="modal-content" style="max-width: 700px;">
-    <div class="modal-header-style">
-      <h3 class="modal-title-style"><i class="fas fa-eye"></i> Offer Preview</h3>
-      <button class="modal-close" id="closeTemplatePreviewModal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="templatePreviewContent">
-        <!-- Template preview will be loaded here -->
-      </div>
-      <div class="template-actions" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
-        <button type="button" class="btn-secondary" id="customizeTemplateBtn">
-          <i class="fas fa-edit"></i> Customize
-        </button>
-        <button type="button" class="btn-primary" id="launchOfferBtn">
-          <i class="fas fa-rocket"></i> Launch Offer
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Coupon Detail Modal -->
-<div class="modal" id="couponDetailModal" style="display: none;">
-  <div class="modal-content" style="max-width: 600px;">
-    <div class="modal-header-style">
-      <h3 class="modal-title-style"><i class="fas fa-ticket-alt"></i> Coupon Details</h3>
-      <button class="modal-close" id="closeCouponDetailModal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="couponDetailContent">
-        <!-- Coupon details will be loaded here -->
-      </div>
-      <div class="coupon-actions" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
-        <button type="button" class="btn-secondary" id="editCouponBtn">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button type="button" class="btn-secondary" id="copyCouponLinkBtn">
-          <i class="fas fa-copy"></i> Copy Link
-        </button>
-        <button type="button" class="btn-danger" id="deactivateCouponBtn">
-          <i class="fas fa-pause"></i> Deactivate
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
        

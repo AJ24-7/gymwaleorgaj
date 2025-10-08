@@ -9,73 +9,42 @@ class OffersManager {
     this.offers = [];
     this.coupons = [];
     this.templates = [];
+    this.initialized = false; // Add a flag to track initialization
     this.init();
   }
 
   async init() {
-    console.log('🎯 Initializing Offers Manager...');
-    
-    // Make offers manager globally available immediately
+    console.log('🎯 Offers Manager: Setting up...');
     window.offersManager = this;
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.safeInitialize());
-    } else {
-      // DOM already ready, initialize immediately
-      this.safeInitialize();
-    }
-    
-    // Ensure proper initialization when offers tab is activated
+    // The main initialization will now be triggered by the tab becoming visible.
     this.watchForTabActivation();
   }
 
   safeInitialize() {
+    // This function will be called once the tab is visible.
+    if (this.initialized) return; // Prevent re-running setup
+    console.log('🚀 Offers tab is visible. Performing one-time initialization...');
+    
     try {
-      // Use requestIdleCallback for better performance, with fallback
-      (window.requestIdleCallback || setTimeout)(() => {
-        this.initializeElements();
-      }, 0);
+      this.initializeElements();
+      this.initialized = true; // Mark as initialized
+      console.log('✅ Offers Manager initialized successfully.');
     } catch (error) {
-      console.error('❌ Error during offers manager initialization:', error);
-      // Fallback initialization
-      setTimeout(() => {
-        this.initializeElements();
-      }, 500);
+      console.error('❌ Error during offers manager one-time initialization:', error);
     }
   }
 
   initializeElements() {
     console.log('🔧 Initializing Offers Manager elements...');
-    
     try {
-      // Ensure offers tab is visible first
-      this.ensureTabVisibility();
-      
-      // Setup all functionality
       this.setupEventListeners();
       this.loadOfferTemplates();
       this.loadOfferStats();
       this.setupTabNavigation();
       this.setupModalClosers();
-      
-      console.log('✅ Offers Manager initialized successfully');
-      
-      // Mark as initialized to prevent duplicate setup
-      this.isInitialized = true;
-      
-      // Test button availability
       this.debugButtonAvailability();
-      
     } catch (error) {
       console.error('❌ Error initializing Offers Manager elements:', error);
-      // Retry after a delay
-      setTimeout(() => {
-        if (!this.isInitialized) {
-          console.log('🔄 Retrying Offers Manager initialization...');
-          this.initializeElements();
-        }
-      }, 1000);
     }
   }
   
@@ -99,61 +68,40 @@ class OffersManager {
   }
   
   watchForTabActivation() {
-    // Watch for offers tab activation
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-          const offersTab = document.getElementById('offersTab');
-          if (offersTab && offersTab.style.display === 'block' && !this.isInitialized) {
-            this.isInitialized = true;
-            this.initializeElements();
-          }
-        }
-      });
-    });
-    
-    const offersTab = document.getElementById('offersTab');
-    if (offersTab) {
-      observer.observe(offersTab, { attributes: true });
-    }
+    // Simplified initialization - just check if tab becomes visible periodically
+    const checkInterval = setInterval(() => {
+      const offersTab = document.getElementById('offersTab');
+      if (offersTab && offersTab.style.display === 'block' && !this.initialized) {
+        console.log('💡 Offers tab detected as visible. Initializing...');
+        this.safeInitialize();
+        clearInterval(checkInterval); // Stop checking after initialization
+      }
+    }, 500); // Check every 500ms
+
+    // Stop checking after 30 seconds to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(checkInterval);
+    }, 30000);
   }
   
   setupModalClosers() {
     // Setup common modal closing functionality
     document.addEventListener('click', (e) => {
+      // Only close if the click is on the modal backdrop itself
       if (e.target.classList.contains('modal')) {
-        e.target.style.display = 'none';
+        e.target.classList.remove('show');
       }
     });
     
     // Setup escape key to close modals
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        const openModals = document.querySelectorAll('.modal[style*="display: flex"], .modal[style*="display: block"]');
-        openModals.forEach(modal => {
-          modal.style.display = 'none';
-        });
+        const openModal = document.querySelector('.modal.show');
+        if (openModal) {
+          openModal.classList.remove('show');
+        }
       }
     });
-  }
-
-  ensureTabVisibility() {
-    const offersTab = document.getElementById('offersTab');
-    const offersTabContent = document.querySelector('#offersTab');
-    
-    if (offersTab && offersTabContent) {
-      // Force visibility using multiple CSS properties
-      offersTabContent.style.display = 'block';
-      offersTabContent.style.opacity = '1';
-      offersTabContent.style.visibility = 'visible';
-      offersTabContent.classList.add('active', 'show');
-    }
-    
-    // Also ensure tab button is properly styled
-    const offersTabButton = document.querySelector('[data-tab="offersTab"]');
-    if (offersTabButton) {
-      offersTabButton.classList.add('active');
-    }
   }
 
   setupEventListeners() {
@@ -307,46 +255,52 @@ class OffersManager {
   }
 
   setupTabNavigation() {
-    const tabButtons = document.querySelectorAll('.payment-tab-btn');
+    const offersTabElement = document.getElementById('offersTab');
+    if (!offersTabElement) return;
+
+    const tabButtons = offersTabElement.querySelectorAll('.payment-tab-btn');
     tabButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const tabName = e.target.dataset.tab;
-        this.switchToTab(tabName);
+        e.stopPropagation(); // Prevent click from affecting other elements
+        this.switchToTab(btn.dataset.tab);
       });
     });
   }
 
   switchToTab(tabName) {
-    // Update active tab button
-    document.querySelectorAll('.payment-tab-btn').forEach(btn => {
+    const offersTabElement = document.getElementById('offersTab');
+    if (!offersTabElement) return;
+
+    // Update active tab button within the offers tab
+    offersTabElement.querySelectorAll('.payment-tab-btn').forEach(btn => {
       btn.classList.remove('active');
     });
-    document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+    const activeButton = offersTabElement.querySelector(`[data-tab="${tabName}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
 
-    // Show corresponding tab content
-    document.querySelectorAll('.payment-tab-content').forEach(content => {
+    // Show corresponding tab content within the offers tab
+    offersTabElement.querySelectorAll('.payment-tab-content').forEach(content => {
       content.style.display = 'none';
+      content.classList.remove('active');
     });
 
-    const targetTab = document.getElementById(`${tabName}Tab`);
+    const targetTab = offersTabElement.querySelector(`#${tabName}Tab`);
     if (targetTab) {
       targetTab.style.display = 'block';
+      targetTab.classList.add('active');
       this.currentTab = tabName;
 
-      // Load tab-specific content
-      switch (tabName) {
-        case 'templates':
-          this.loadOfferTemplates();
-          break;
-        case 'active':
-          this.loadActiveCampaigns();
-          break;
-        case 'coupons':
-          this.loadCoupons();
-          break;
-        case 'analytics':
-          this.loadAnalytics();
-          break;
+      // Load data for the activated tab
+      if (tabName === 'campaigns') {
+        this.loadActiveCampaigns();
+      } else if (tabName === 'coupons') {
+        this.loadCoupons();
+      } else if (tabName === 'templates') {
+        this.loadOfferTemplates();
+      } else if (tabName === 'analytics') {
+        this.loadAnalytics();
       }
     }
   }
