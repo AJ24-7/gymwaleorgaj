@@ -3811,20 +3811,26 @@ tr:last-child td {
   backdrop-filter: blur(5px);
   padding: 20px;
   box-sizing: border-box;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-/* Ensure all modal variants have proper z-index */
+/* Ensure all modal variants have proper z-index and visibility */
 .modal[id*="Modal"], 
 .modal[id*="modal"],
 .admin-passkey-modal,
 .support-modal {
   z-index: 100000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 .modal.show {
-  display: flex ;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 .modal-content {
-  background: white;
+  background: white !important;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 600px;
@@ -3834,6 +3840,10 @@ tr:last-child td {
   animation: modalSlideIn 0.3s ease-out;
   border: none;
   outline: none;
+  position: relative;
+  z-index: 100001 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 @media (max-width: 600px) {
   .modal-content {
@@ -4318,6 +4328,8 @@ html #notificationDropdown.show {
     width: 100% !important;
     height: 100% !important;
     background: rgba(0, 0, 0, 0.6) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .modal.show,
@@ -4325,6 +4337,8 @@ html #notificationDropdown.show {
 .add-payment-modal.active {
     display: flex !important;
     z-index: 999998 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 /* Modal content positioning */
@@ -4337,6 +4351,8 @@ html #notificationDropdown.show {
     border-radius: 12px !important;
     box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
     margin: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 /* Mobile responsive adjustment */
@@ -4417,7 +4433,9 @@ html #notificationDropdown.show {
     height: 60px !important;
     min-height: 60px !important;
     max-height: 60px !important;
-    padding: 0 60px 0 15px;
+    padding: 0 15px;
+    justify-content: space-between;
+    align-items: center;
     transition: left 0.3s, width 0.3s, box-shadow 0.2s;
     top: 0;
   }
@@ -5155,26 +5173,34 @@ body.sidebar-collapsed #supportReviewsTab {
   font-weight: 500;
   margin: 10px 0;
 }
-
+#offerCreationModal .modal {
+  display: block;
+}
 /* Enhanced Hamburger menu button styles */
 .hamburger-menu {
-  display: none;
+  display: none; /* Hidden by default on all screens */
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, #000, #1a1a1a);
   border: 1px solid #333;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   z-index: 1201;
-  position: fixed;
-  top: 12px;
-  left: 15px;
+  position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
+
+/* Only show hamburger menu on mobile screens */
+@media (max-width: 900px) {
+  .hamburger-menu {
+    display: flex !important; /* Show only on mobile */
+  }
+}
+
 .hamburger-menu:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(0, 212, 255, 0.2);
@@ -5182,10 +5208,10 @@ body.sidebar-collapsed #supportReviewsTab {
 }
 .hamburger-menu span {
   display: block;
-  width: 24px;
-  height: 3px;
-  background: linear-gradient(90deg, #00d4ff, #ffffff);
-  margin: 3px 0;
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), #ffffff);
+  margin: 2.5px 0;
   border-radius: 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
@@ -5196,7 +5222,7 @@ body.sidebar-collapsed #supportReviewsTab {
   box-shadow: 0 2px 6px rgba(0, 212, 255, 0.5);
 }
 .hamburger-menu.active span:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
+  transform: translateY(5px) rotate(45deg);
   background: linear-gradient(90deg, #ff4444, #ff6666);
 }
 .hamburger-menu.active span:nth-child(2) {
@@ -5204,7 +5230,7 @@ body.sidebar-collapsed #supportReviewsTab {
   transform: scaleX(0);
 }
 .hamburger-menu.active span:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
+  transform: translateY(-5px) rotate(-45deg);
   background: linear-gradient(90deg, #ff4444, #ff6666);
 }
 
@@ -5331,15 +5357,8 @@ body.sidebar-collapsed #supportReviewsTab {
   font-weight: inherit;
 }
 
-/* Hide sidebar and show hamburger only on mobile */
+/* Hide sidebar and show mobile dropdown only on mobile */
 @media (max-width: 900px) {
-  .hamburger-menu {
-    display: flex;
-    position: fixed;
-    top: 12px;
-    left: 15px;
-    z-index: 1300;
-  }
   .sidebar {
     display: none;
   }
@@ -6985,5 +7004,30 @@ body[data-theme="dark"] .filter-btn {
     right: 10px !important;
     width: calc(100vw - 20px) !important;
   }
+}
+
+/* ========== FINAL MODAL OVERRIDE RULES ========== */
+/* These rules must be at the end to override all other modal styles */
+.modal[style*="display: flex"],
+.modal[style*="display:flex"],
+.modal.show,
+div[id*="Modal"][style*="display: flex"],
+div[id*="modal"][style*="display: flex"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  z-index: 100000 !important;
+}
+
+.modal[style*="display: flex"] .modal-content,
+.modal[style*="display:flex"] .modal-content,
+.modal.show .modal-content,
+div[id*="Modal"][style*="display: flex"] .modal-content,
+div[id*="modal"][style*="display: flex"] .modal-content {
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: white !important;
+  color: #333 !important;
+  z-index: 100001 !important;
 }
 

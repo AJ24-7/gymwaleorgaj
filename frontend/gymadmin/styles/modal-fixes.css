@@ -60,7 +60,9 @@ button:hover,
 }
 
 .modal {
-    z-index: 999999 !important;
+    z-index: 100000 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .sidebar,
@@ -71,12 +73,14 @@ button:hover,
 
 /* Ensure modal backdrop doesn't interfere */
 .modal-backdrop {
-    z-index: 999998 !important;
+    z-index: 99999 !important;
 }
 
 /* Fix for any hidden elements */
 .modal:not([style*="display: none"]) {
     display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 /* Debugging styles - can be removed after testing */

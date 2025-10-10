@@ -18,6 +18,8 @@
     <link rel="stylesheet" href="styles/trainer-list.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+           
+    <script defer src="core/skeleton-loading-manager.js"></script>
     <script defer src="gymadmin.js"></script>
     <script defer src="modules/settings.js"></script>
     <script defer src="utils/subscription-management.js"></script>
@@ -39,11 +41,7 @@
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
-<button id="hamburgerMenuBtn" class="hamburger-menu" aria-label="Open menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
+
 <!-- Backdrop for mobile sidebar -->
 <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
 <div class="dashboard">
@@ -93,7 +91,7 @@
                 </a>
             </li>
             <li class="menu-item">
-                <a href="#" class="menu-link">
+                <a href="#" class="menu-link" data-tab="offersTab">
                     <span class="menu-icon"><i class="fas fa-tags"></i></span>
                     <span class="menu-text">Offers & coupons</span>
                 </a>
@@ -128,7 +126,7 @@
         <li class="menu-item"><a href="#" class="menu-link" data-tab="paymentTab"><span class="menu-icon"><i class="fas fa-credit-card"></i></span> <span class="menu-text">Payments</span></a></li>
         <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-user-tie"></i></span> <span class="menu-text">Trainers</span></a></li>
         <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-dumbbell"></i></span> <span class="menu-text">Equipment</span></a></li>
-        <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-tags"></i></span> <span class="menu-text">Offers & coupons</span></a></li>
+        <li class="menu-item"><a href="#" class="menu-link" data-tab="offersTab"><span class="menu-icon"><i class="fas fa-tags"></i></span> <span class="menu-text">Offers & coupons</span></a></li>
         <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-headset"></i></span> <span class="menu-text">Support & Reviews</span></a></li>
         <li class="menu-item"><a href="#" class="menu-link"><span class="menu-icon"><i class="fas fa-cog"></i></span> <span class="menu-text">Settings</span></a></li>
       </ul>
@@ -138,6 +136,11 @@
     <div class="main-content" id="mainContent">
         <!-- Top Nav -->
         <div class="top-nav" id="topNav">
+          <button id="hamburgerMenuBtn" class="hamburger-menu" aria-label="Open menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
             <div class="user-actions">
                 <!-- Notification Bell -->
                 <div class="notification" id="notificationBell">
@@ -3224,10 +3227,10 @@
   <div class="page-header">
     <h1 class="page-title"><i class="fas fa-tags"></i> <span data-i18n="offers.management">Offers & Coupons Management</span></h1>
     <div class="page-actions">
-      <button id="createCustomOfferBtn" class="add-payment-btn">
+      <button id="createCustomOfferBtn" class="btn-primary">
         <i class="fas fa-plus"></i> <span data-i18n="offers.create.custom">Create Custom Offer</span>
       </button>
-      <button id="viewActiveCouponsBtn" class="view-reports-btn">
+      <button id="viewActiveCouponsBtn" class="btn-primary">
         <i class="fas fa-ticket-alt"></i> <span data-i18n="offers.view.coupons">Active Coupons</span>
       </button>
     </div>
@@ -3435,7 +3438,7 @@
   </div>
 
   <!-- Analytics Tab -->
-  <div id="analyticsTab" class="offers-tab-content" style="display: none;">
+  <div id="analyticsTab" class="payment-tab-content" style="display: none;">
     <div class="analytics-header" style="margin-bottom: 24px;">
       <h2><i class="fas fa-chart-bar"></i> Offers & Coupons Analytics</h2>
       <p>Track performance and engagement metrics for your campaigns</p>
@@ -3462,7 +3465,7 @@
   </div>
 </div>
 <!-- Offer Creation Modal -->
-<div id="offerCreationModal" class="modal">
+<div id="offerCreationModal" class="offers-modal">
   <div class="modal-content">
     <div class="modal-header">
       <h2><i class="fas fa-tags"></i> Create Custom Offer</h2>
@@ -3529,9 +3532,9 @@
 </div>
 
 <!-- Coupon Generation Modal -->
-<div id="couponGenerationModal" class="modal">
+<div id="couponGenerationModal" class="offers-modal">
   <div class="modal-content">
-    <div class="modal-header">
+    <div class="modal-header-style">
       <h2><i class="fas fa-ticket-alt"></i> Generate Coupon</h2>
       <span class="modal-close" id="closeCouponModal">&times;</span>
     </div>
@@ -3587,7 +3590,7 @@
 </div>
 
 <!-- Template Preview Modal -->
-<div id="templatePreviewModal" class="modal">
+<div id="templatePreviewModal" class="offers-modal">
   <div class="modal-content">
     <div class="modal-header">
       <h2><i class="fas fa-eye"></i> Template Preview</h2>
@@ -3608,7 +3611,7 @@
 </div>
 
 <!-- Coupon Detail Modal -->
-<div id="couponDetailModal" class="modal">
+<div id="couponDetailModal" class="offers-modal">
   <div class="modal-content">
     <div class="modal-header">
       <h2><i class="fas fa-ticket-alt"></i> Coupon Details</h2>

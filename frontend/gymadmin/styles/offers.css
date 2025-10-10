@@ -1,9 +1,11 @@
-.offer-tab-content {
+.offer-tab-content,
+.payment-tab-content {
   display: none;
 }
 
-.offer-tab-content.active {
-  display: block;
+.offer-tab-content.active,
+.payment-tab-content.active {
+  display: block !important;
   animation: fadeInSlideUp 0.3s ease-out;
 }
 
@@ -268,16 +270,6 @@
 .payment-tab-btn.active .tab-count {
   background: #dbeafe;
   color: #3b82f6;
-}
-
-/* Tab Content */
-.offer-tab-content {
-  display: none;
-}
-
-.offer-tab-content.active {
-  display: block;
-  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 @keyframes fadeInSlideUp {
@@ -721,154 +713,7 @@
   border-top: 1px solid #e5e7eb;
 }
 
-/* Modal Enhancements */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 10000;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
 
-.modal.show {
-  display: flex;
-  opacity: 1;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
-}
-
-.modal.show .modal-content {
-  transform: scale(1);
-}
-
-.modal-header {
-  padding: 24px 24px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 0;
-  padding-bottom: 16px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modal-header h2 i {
-  color: #3b82f6;
-  font-size: 1.25rem;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 4px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-close:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.modal-body {
-  padding: 24px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  padding: 20px 24px;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.modal-footer .btn-secondary,
-.modal-footer .btn-primary {
-  min-width: 100px;
-}
-
-/* Form styling for modals */
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.input-with-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.input-with-button input {
-  flex: 1;
-}
-
-.input-with-button button {
-  padding: 10px 12px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #374151;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .input-with-button button:hover {
   background: #e5e7eb;
@@ -896,6 +741,123 @@
   background: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+}
+
+/* Offers Modal Styles - Specific to avoid conflicts with payment.css */
+.offers-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000000 !important;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.offers-modal.show,
+.offers-modal[style*="display: flex"],
+.offers-modal[style*="display:flex"] {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.offers-modal .modal-content {
+  background: white !important;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1000001 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.offers-modal.show .modal-content {
+  transform: scale(1);
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.offers-modal .modal-header {
+  padding: 24px 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 0;
+  padding-bottom: 16px;
+}
+
+.offers-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.offers-modal .modal-header h2 i {
+  color: #3b82f6;
+  font-size: 1.25rem;
+}
+
+.offers-modal .modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offers-modal .modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.offers-modal .modal-body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.offers-modal .modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.offers-modal .modal-footer .btn-secondary,
+.offers-modal .modal-footer .btn-primary {
+  min-width: 100px;
 }
 
 /* Charts and Analytics */

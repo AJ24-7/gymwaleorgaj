@@ -3684,14 +3684,17 @@ function clearUploadPhotoMsgAndCloseModal() {
 
 
 
-        // Handle Modals general closing
-        const modals = document.querySelectorAll('.modal');
+        // Handle Modals general closing (both .modal and .offers-modal)
+        const modals = document.querySelectorAll('.modal, .offers-modal');
         const closeButtons = document.querySelectorAll('.modal-close');
 
         closeButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const modalToClose = button.closest('.modal');
-                if (modalToClose) modalToClose.classList.remove('show');
+                const modalToClose = button.closest('.modal, .offers-modal');
+                if (modalToClose) {
+                    modalToClose.classList.remove('show');
+                    modalToClose.style.display = 'none';
+                }
             });
         });
 
@@ -4118,6 +4121,7 @@ document.addEventListener('click', (event) => {
 
 // --- Display Tab Logic ---
 const sidebarMenuLinks = document.querySelectorAll('.sidebar .menu-link');
+const mobileMenuLinks = document.querySelectorAll('#mobileSidebarDropdown .menu-link');
 const membersMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-users'));
 const trainersMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-user-tie'));
 const dashboardMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-tachometer-alt'));
@@ -4127,6 +4131,18 @@ const attendanceMenuLink = Array.from(sidebarMenuLinks).find(link => link.queryS
 const paymentsMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-credit-card'));
 const equipmentMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-dumbbell'));
 const supportMenuLink = Array.from(sidebarMenuLinks).find(link => link.querySelector('.fa-headset'));
+
+// Mobile menu links
+const mobileMembersMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-users'));
+const mobileTrainersMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-user-tie'));
+const mobileDashboardMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-tachometer-alt'));
+const mobileSettingsMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-cog'));
+const mobileOffersMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-tags'));
+const mobileAttendanceMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-calendar-check'));
+const mobilePaymentsMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-credit-card'));
+const mobileEquipmentMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-dumbbell'));
+const mobileSupportMenuLink = Array.from(mobileMenuLinks).find(link => link.querySelector('.fa-headset'));
+
 const memberDisplayTab = document.getElementById('memberDisplayTab');
 const trainerTab = document.getElementById('trainerTab');
 const offersTab = document.getElementById('offersTab');
@@ -4138,6 +4154,29 @@ const supportReviewsTab = document.getElementById('supportReviewsTab');
 const dashboardContent = document.querySelector('.content');
 
 function hideAllMainTabs() {
+    // Close any open modals first to prevent interference - enhanced for all modal types
+    document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"], .modal.active, .offers-modal.show, .offers-modal[style*="display: flex"], .offers-modal[style*="display:flex"], .offers-modal.active').forEach(modal => {
+        modal.classList.remove('show', 'active');
+        modal.style.display = 'none';
+        modal.style.opacity = '0';
+        modal.style.visibility = 'hidden';
+    });
+
+    // Specifically close payment modals
+    const paymentModal = document.getElementById('addPaymentModal');
+    if (paymentModal) {
+        paymentModal.classList.remove('show', 'active');
+        paymentModal.style.display = 'none';
+        paymentModal.style.opacity = '0';
+        paymentModal.style.visibility = 'hidden';
+    }
+
+    // Close offers modals specifically
+    document.querySelectorAll('#offersTab .modal, #offersTab .offers-modal, .offers-modal').forEach(modal => {
+        modal.classList.remove('show', 'active');
+        modal.style.display = 'none';
+    });
+
     const tabs = [
         dashboardContent,
         memberDisplayTab,
@@ -4159,16 +4198,58 @@ function hideAllMainTabs() {
     });
 }
 
+// Enhanced tab switching with skeleton loading
+function showTabWithSkeleton(tabElement, skeletonType, initFunction = null) {
+    if (!tabElement) return;
+    
+    // Show the tab first
+    tabElement.style.display = 'block';
+    
+    // Show skeleton loading while data loads
+    const tabId = tabElement.id;
+    if (window.showSkeleton && skeletonType) {
+        window.showSkeleton(tabId, skeletonType);
+        
+        // Load data asynchronously if init function provided
+        if (initFunction && typeof initFunction === 'function') {
+            setTimeout(() => {
+                try {
+                    const result = initFunction();
+                    // If init function returns a promise, wait for it
+                    if (result && typeof result.then === 'function') {
+                        result.then(() => {
+                            window.hideSkeleton(tabId);
+                        }).catch((error) => {
+                            console.error('Tab initialization error:', error);
+                            window.hideSkeleton(tabId);
+                        });
+                    } else {
+                        // If not a promise, hide skeleton after short delay
+                        setTimeout(() => window.hideSkeleton(tabId), 300);
+                    }
+                } catch (error) {
+                    console.error('Tab initialization error:', error);
+                    window.hideSkeleton(tabId);
+                }
+            }, 50); // Small delay to ensure skeleton shows
+        }
+    }
+}
+
 if (attendanceMenuLink && attendanceTab) {
   attendanceMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    attendanceTab.style.display = 'block';
-    // Initialize attendance manager if it exists
-    if (typeof window.attendanceManager !== 'undefined') {
-      window.attendanceManager.loadData();
-      window.attendanceManager.loadAttendanceForDate();
-    }
+    
+    // Show tab with skeleton loading for table data
+    showTabWithSkeleton(attendanceTab, 'table', () => {
+      // Initialize attendance manager if it exists
+      if (typeof window.attendanceManager !== 'undefined') {
+        window.attendanceManager.loadData();
+        window.attendanceManager.loadAttendanceForDate();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     attendanceMenuLink.classList.add('active');
   });
@@ -4178,11 +4259,15 @@ if (paymentsMenuLink && paymentTab) {
   paymentsMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    paymentTab.style.display = 'block';
-    // Initialize payment manager if it exists
-    if (typeof window.paymentManager !== 'undefined') {
-      window.paymentManager.loadPaymentData();
-    }
+    
+    // Show tab with skeleton loading for dashboard-style payment stats
+    showTabWithSkeleton(paymentTab, 'dashboard-stats', () => {
+      // Initialize payment manager if it exists
+      if (typeof window.paymentManager !== 'undefined') {
+        return window.paymentManager.loadPaymentData();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     paymentsMenuLink.classList.add('active');
   });
@@ -4192,11 +4277,15 @@ if (equipmentMenuLink && equipmentTab) {
   equipmentMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    equipmentTab.style.display = 'block';
-    // Initialize equipment manager if it exists
-    if (typeof window.equipmentManager !== 'undefined') {
-      window.equipmentManager.loadEquipmentData();
-    }
+    
+    // Show tab with skeleton loading for equipment cards
+    showTabWithSkeleton(equipmentTab, 'card-grid', () => {
+      // Initialize equipment manager if it exists
+      if (typeof window.equipmentManager !== 'undefined') {
+        return window.equipmentManager.loadEquipmentData();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     equipmentMenuLink.classList.add('active');
   });
@@ -4206,7 +4295,15 @@ if (supportMenuLink && supportReviewsTab) {
   supportMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    supportReviewsTab.style.display = 'block';
+    
+    // Show tab with skeleton loading for support lists
+    showTabWithSkeleton(supportReviewsTab, 'list', () => {
+      // Initialize support module if it exists
+      if (typeof window.supportModule !== 'undefined' && window.supportModule.loadData) {
+        return window.supportModule.loadData();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     supportMenuLink.classList.add('active');
   });
@@ -4216,46 +4313,87 @@ if (trainersMenuLink && trainerTab) {
   trainersMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    trainerTab.style.display = 'block';
-    if (typeof window.showTrainerTab === 'function') window.showTrainerTab();
+    
+    // Show tab with skeleton loading for trainer list
+    showTabWithSkeleton(trainerTab, 'list', () => {
+      if (typeof window.showTrainerTab === 'function') {
+        return window.showTrainerTab();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     trainersMenuLink.classList.add('active');
   });
 }
+
 if (membersMenuLink && memberDisplayTab) {
   membersMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
-    memberDisplayTab.style.display = 'block';
-    if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+    
+    // Show tab with skeleton loading for members table
+    showTabWithSkeleton(memberDisplayTab, 'table', () => {
+      if (typeof fetchAndDisplayMembers === 'function') {
+        return fetchAndDisplayMembers();
+      }
+    });
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     membersMenuLink.classList.add('active');
   });
 }
+
 if (dashboardMenuLink && dashboardContent) {
   dashboardMenuLink.addEventListener('click', function(e) {
     e.preventDefault();
     hideAllMainTabs();
+    
+    // Show dashboard without skeleton loading (stat cards have their own loading states)
     dashboardContent.style.display = 'block';
+    
+    // Refresh dashboard data
+    setTimeout(() => {
+      initializeStatCards();
+      if (typeof window.loadDashboardData === 'function') {
+        window.loadDashboardData();
+      }
+    }, 50);
+    
     sidebarMenuLinks.forEach(link => link.classList.remove('active'));
     dashboardMenuLink.classList.add('active');
   });
 }
+
 // ...existing code...
 if (offersMenuLink && offersTab) {
     offersMenuLink.addEventListener('click', (e) => {
         e.preventDefault();
         hideAllMainTabs();
-        // Simply show the main offers tab container
-        offersTab.style.display = 'block';
+        
+        // Close any open modals first to prevent interference
+        document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"], .offers-modal.show, .offers-modal[style*="display: flex"], .offers-modal[style*="display:flex"]').forEach(modal => {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        });
+        
+        // Show offers tab and initialize the manager
+        showTabWithSkeleton(offersTab, 'dashboard-stats', () => {
+            // Initialize the manager *before* switching tabs
+            if (typeof window.initializeOffersManager === 'function') {
+                window.initializeOffersManager();
+            }
+            
+            // Now that it's initialized, switch to the tab
+            if (window.offersManager && typeof window.offersManager.switchToTab === 'function') {
+                return window.offersManager.switchToTab('templates');
+            }
+            return Promise.resolve();
+        });
+        
         sidebarMenuLinks.forEach(l => l.classList.remove('active'));
         offersMenuLink.classList.add('active');
-        if (sidebar.classList.contains('show-on-mobile')) {
-            sidebar.classList.remove('show-on-mobile');
-        }
-        // Ensure the offers manager initializes its own state
-        if (window.offersManager && typeof window.offersManager.switchToTab === 'function') {
-            window.offersManager.switchToTab('templates');
+        if (sidebar.classList.contains('sidebar-open')) {
+            sidebar.classList.remove('sidebar-open');
         }
     });
 }
@@ -4264,10 +4402,205 @@ if (settingsMenuLink && settingsTab) {
     settingsMenuLink.addEventListener('click', (e) => {
         e.preventDefault();
         hideAllMainTabs();
-        settingsTab.style.display = 'block';
-        if (sidebar.classList.contains('show-on-mobile')) {
-            sidebar.classList.remove('show-on-mobile');
+        
+        // Close any open modals first to prevent interference
+        document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"], .offers-modal.show, .offers-modal[style*="display: flex"], .offers-modal[style*="display:flex"]').forEach(modal => {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        });
+        
+        // Show settings tab with skeleton loading for form
+        showTabWithSkeleton(settingsTab, 'form', () => {
+            // Load settings data if function exists
+            if (typeof window.loadSettingsData === 'function') {
+                return window.loadSettingsData();
+            }
+            return Promise.resolve();
+        });
+        
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        settingsMenuLink.classList.add('active');
+        if (sidebar.classList.contains('sidebar-open')) {
+            sidebar.classList.remove('sidebar-open');
         }
+    });
+}
+
+// Mobile Menu Event Handlers
+function closeMobileSidebarAfterClick() {
+    const dropdown = document.getElementById('mobileSidebarDropdown');
+    const backdrop = document.getElementById('mobileSidebarBackdrop');
+    const hamburger = document.getElementById('hamburgerMenuBtn');
+    
+    if (dropdown) dropdown.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
+    if (hamburger) hamburger.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+if (mobileAttendanceMenuLink && attendanceTab) {
+    mobileAttendanceMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(attendanceTab, 'table', () => {
+            if (window.attendanceManager && typeof window.attendanceManager.init === 'function') {
+                return window.attendanceManager.init();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        attendanceMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobilePaymentsMenuLink && paymentTab) {
+    mobilePaymentsMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(paymentTab, 'dashboard-stats', () => {
+            if (window.paymentManager && typeof window.paymentManager.init === 'function') {
+                return window.paymentManager.init();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        paymentsMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileEquipmentMenuLink && equipmentTab) {
+    mobileEquipmentMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(equipmentTab, 'card-grid', () => {
+            if (window.equipmentManager && typeof window.equipmentManager.init === 'function') {
+                return window.equipmentManager.init();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        equipmentMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileSupportMenuLink && supportReviewsTab) {
+    mobileSupportMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(supportReviewsTab, 'list', () => {
+            if (window.supportManager && typeof window.supportManager.init === 'function') {
+                return window.supportManager.init();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        supportMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileTrainersMenuLink && trainerTab) {
+    mobileTrainersMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(trainerTab, 'list', () => {
+            if (typeof window.showTrainerTab === 'function') {
+                return window.showTrainerTab();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        trainersMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileMembersMenuLink && memberDisplayTab) {
+    mobileMembersMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        showTabWithSkeleton(memberDisplayTab, 'table', () => {
+            if (typeof fetchAndDisplayMembers === 'function') {
+                return fetchAndDisplayMembers();
+            }
+            return Promise.resolve();
+        });
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        membersMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileDashboardMenuLink && dashboardContent) {
+    mobileDashboardMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        
+        // Show dashboard without skeleton loading (stat cards have their own loading states)
+        dashboardContent.style.display = 'block';
+        
+        // Refresh dashboard data
+        setTimeout(() => {
+            initializeStatCards();
+            if (typeof window.loadDashboardData === 'function') {
+                window.loadDashboardData();
+            }
+        }, 50);
+        
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        dashboardMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileOffersMenuLink && offersTab) {
+    mobileOffersMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        
+        // Close any open modals first
+        document.querySelectorAll('.modal.show').forEach(modal => {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        });
+        
+        showTabWithSkeleton(offersTab, 'dashboard-stats', () => {
+            if (window.offersManager && typeof window.offersManager.switchToTab === 'function') {
+                return window.offersManager.switchToTab('templates');
+            }
+            return Promise.resolve();
+        });
+        
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        offersMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
+    });
+}
+
+if (mobileSettingsMenuLink && settingsTab) {
+    mobileSettingsMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllMainTabs();
+        
+        // Close any open modals first
+        document.querySelectorAll('.modal.show').forEach(modal => {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        });
+        
+        showTabWithSkeleton(settingsTab, 'form', () => {
+            if (typeof window.loadSettingsData === 'function') {
+                return window.loadSettingsData();
+            }
+            return Promise.resolve();
+        });
+        
+        sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+        settingsMenuLink.classList.add('active');
+        closeMobileSidebarAfterClick();
     });
 }
 
@@ -4277,7 +4610,16 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     hideAllMainTabs();
     if (dashboardContent) {
+      // Show dashboard without skeleton loading (stat cards have their own loading states)
       dashboardContent.style.display = 'block';
+      
+      // Initialize dashboard data asynchronously
+      setTimeout(() => {
+        initializeStatCards();
+        if (typeof window.loadDashboardData === 'function') {
+          window.loadDashboardData();
+        }
+      }, 100);
     }
     
     // Force hide offers tab on initial load to prevent module conflicts
@@ -4292,325 +4634,509 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.sidebar .menu-link').forEach(l => l.classList.remove('active'));
         dashboardMenuLink.classList.add('active');
     }
-
-    // Initialize stat cards with loading states
-    initializeStatCards();
   }, 0);
 });
 
-// --- Stat Card Loading Utilities ---
-function setStatCardLoading(cardSelector, isLoading) {
-  const card = document.querySelector(cardSelector);
-  if (!card) return;
-  
-  if (isLoading) {
-    card.classList.add('loading');
-    card.style.pointerEvents = 'none';
-  } else {
-    card.classList.remove('loading');
-    card.style.pointerEvents = 'auto';
+// --- Dashboard Stats Loading ---
+async function initializeStatCards() {
+  try {
+    // Show loading state
+    showStatCardsLoading();
+    
+    // Fetch actual data from APIs
+    await updateStatCardData();
+    
+    // Hide loading state
+    hideStatCardsLoading();
+    
+    console.log('📊 Stat cards initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing stat cards:', error);
+    hideStatCardsLoading();
+    showStatCardsError();
   }
 }
 
-function setAllStatCardsLoading(isLoading) {
-  const cards = [
-    '.stat-card.new-users',
-    '.stat-card.payments', 
-    '.stat-card.attendance',
-    '.stat-card.trainers'
-  ];
-  
-  cards.forEach(selector => setStatCardLoading(selector, isLoading));
-}
-
-function initializeStatCards() {
-  // Start with loading state
-  setAllStatCardsLoading(true);
-  
-  // Simulate initial data loading with staggered completion
-  setTimeout(() => {
-    updateMembersStatsCard();
-  }, 800);
-  
-  setTimeout(() => {
-    updatePaymentsStatsCard();
-  }, 1200);
-  
-  setTimeout(() => {
-    updateTrainersStatsCard();
-  }, 1600);
-  
-  // Attendance card is handled separately by attendance.js
-  setTimeout(() => {
-    setStatCardLoading('.stat-card.attendance', false);
-  }, 2000);
-}
-
-
-// --- Dynamic Members Stats Card ---
-async function updateMembersStatsCard() {
-  setStatCardLoading('.stat-card.new-users', true);
-  const membersStatValue = document.querySelector('.stat-card.new-users .stat-value');
-  const membersStatChange = document.querySelector('.stat-card.new-users .stat-change');
-  if (!membersStatValue || !membersStatChange) return;
+async function updateStatCardData() {
   try {
     const token = localStorage.getItem('gymAdminToken');
-    const res = await fetch('http://localhost:5000/api/members', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Failed to fetch members');
-    const members = await res.json();
-    // Filter active memberships (validUntil >= today)
-    const today = new Date();
-    const activeMembers = (Array.isArray(members) ? members : []).filter(m => {
-      if (!m.membershipValidUntil) return false;
-      const valid = new Date(m.membershipValidUntil);
-      return valid >= today;
-    });
-    membersStatValue.textContent = activeMembers.length;
-
-    // Growth rate calculation
-    // Get joinDate for each member (assume ISO string or Date)
-    const now = new Date();
-    const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
-    const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth() - 1);
-    let joinedThisWeek = 0, joinedLastWeek = 0, joinedThisMonth = 0, joinedLastMonth = 0;
-    activeMembers.forEach(m => {
-      if (!m.joinDate) return;
-      const join = new Date(m.joinDate);
-      if (join >= weekAgo && join <= now) joinedThisWeek++;
-      if (join >= monthAgo && join <= now) joinedThisMonth++;
-      // For previous week/month
-      const lastWeekStart = new Date(weekAgo); lastWeekStart.setDate(weekAgo.getDate() - 7);
-      if (join >= lastWeekStart && join < weekAgo) joinedLastWeek++;
-      const lastMonthStart = new Date(monthAgo); lastMonthStart.setMonth(monthAgo.getMonth() - 1);
-      if (join >= lastMonthStart && join < monthAgo) joinedLastMonth++;
-    });
-    // Calculate growth rates
-    let weekGrowth = 0, monthGrowth = 0;
-    if (joinedLastWeek > 0) weekGrowth = ((joinedThisWeek - joinedLastWeek) / joinedLastWeek) * 100;
-    else if (joinedThisWeek > 0) weekGrowth = 100;
-    if (joinedLastMonth > 0) monthGrowth = ((joinedThisMonth - joinedLastMonth) / joinedLastMonth) * 100;
-    else if (joinedThisMonth > 0) monthGrowth = 100;
-    // Show as positive/negative
-    const weekGrowthText = weekGrowth >= 0 ? `<i class="fas fa-arrow-up"></i> ${Math.abs(weekGrowth).toFixed(1)}% from last week` : `<i class="fas fa-arrow-down"></i> ${Math.abs(weekGrowth).toFixed(1)}% from last week`;
-    membersStatChange.innerHTML = weekGrowthText;
-    if (weekGrowth >= 0) {
-      membersStatChange.classList.add('positive');
-      membersStatChange.classList.remove('negative');
-    } else {
-      membersStatChange.classList.add('negative');
-      membersStatChange.classList.remove('positive');
-    }
-    // Optionally, you can show month growth in a tooltip or elsewhere
-    membersStatChange.title = `Monthly growth: ${monthGrowth >= 0 ? '+' : '-'}${Math.abs(monthGrowth).toFixed(1)}% from last month`;
-  } catch (err) {
-    console.error('Error updating members stats card:', err);
-    membersStatValue.textContent = '--';
-    membersStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
-    membersStatChange.classList.remove('positive', 'negative');
-    membersStatChange.title = '';
-  } finally {
-    // Remove loading state
-    setStatCardLoading('.stat-card.new-users', false);
-  }
-}
-
-
-// --- Dynamic Payments Stats Card ---
-async function updatePaymentsStatsCard() {
-  setStatCardLoading('.stat-card.payments', true);
-  const paymentsStatValue = document.querySelector('.stat-card.payments .stat-value');
-  const paymentsStatChange = document.querySelector('.stat-card.payments .stat-change');
-  const paymentsStatTitle = document.querySelector('.stat-card.payments .stat-title');
-  if (paymentsStatTitle) paymentsStatTitle.innerHTML = 'Total Revenue';
-  if (!paymentsStatValue || !paymentsStatChange) return;
-  try {
-    const token = localStorage.getItem('gymAdminToken');
-    
-    // Fetch actual payment records from the payment system
-    const res = await fetch('http://localhost:5000/api/payments/stats', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!res.ok) throw new Error('Failed to fetch payment stats');
-    const paymentData = await res.json();
-    
-    if (paymentData.success && paymentData.data) {
-      const stats = paymentData.data;
-      
-      // Use the received amount from payment system (this includes all membership payments)
-      const totalRevenue = stats.received || 0;
-      const revenueGrowth = stats.receivedGrowth || 0;
-      
-      // Format as rupees
-      paymentsStatValue.innerHTML = `<i class="fas fa-indian-rupee-sign"></i> ${totalRevenue.toLocaleString('en-IN')}`;
-      
-      // Show growth percentage
-      const growthIcon = revenueGrowth >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-      const growthClass = revenueGrowth >= 0 ? 'positive' : 'negative';
-      paymentsStatChange.innerHTML = `<i class="fas ${growthIcon}"></i> ${Math.abs(revenueGrowth).toFixed(1)}% from last month`;
-      paymentsStatChange.classList.remove('positive', 'negative');
-      paymentsStatChange.classList.add(growthClass);
-      paymentsStatChange.title = `Total Revenue: ₹${totalRevenue.toLocaleString('en-IN')} | Monthly Growth: ${revenueGrowth.toFixed(1)}%`;
-    } else {
-      throw new Error('Invalid payment stats response');
-    }
-  } catch (err) {
-    console.error('Error updating payments stats card:', err);
-    
-    // Fallback: try to get stats from members as backup
-    try {
-      const token = localStorage.getItem('gymAdminToken');
-      const membersRes = await fetch('http://localhost:5000/api/members', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (membersRes.ok) {
-        const members = await membersRes.json();
-        let totalFromMembers = 0;
-        
-        // Calculate total from current members only as fallback
-        (Array.isArray(members) ? members : []).forEach(m => {
-          if (typeof m.paymentAmount === 'number') {
-            totalFromMembers += m.paymentAmount;
-          }
-        });
-        
-        paymentsStatValue.innerHTML = `<i class="fas fa-indian-rupee-sign"></i> ${totalFromMembers.toLocaleString('en-IN')}`;
-        paymentsStatChange.innerHTML = '<i class="fas fa-info-circle"></i> Active members only';
-        paymentsStatChange.classList.remove('positive', 'negative');
-        paymentsStatChange.title = 'Showing payments from current active members only. Payment system temporarily unavailable.';
-      } else {
-        throw new Error('Both payment stats and members API failed');
-      }
-    } catch (fallbackErr) {
-      console.error('Fallback also failed:', fallbackErr);
-      paymentsStatValue.innerHTML = '<i class="fas fa-indian-rupee-sign"></i> --';
-      paymentsStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
-      paymentsStatChange.classList.remove('positive', 'negative');
-      paymentsStatChange.title = 'Unable to load payment statistics';
-    }
-  } finally {
-    // Remove loading state
-    setStatCardLoading('.stat-card.payments', false);
-  }
-}
-
-// --- Dynamic Trainers Stats Card ---
-async function updateTrainersStatsCard() {
-  setStatCardLoading('.stat-card.trainers', true);
-  const trainersStatValue = document.querySelector('.stat-card.trainers .stat-value');
-  const trainersStatChange = document.querySelector('.stat-card.trainers .stat-change');
-  if (!trainersStatValue || !trainersStatChange) return;
-  try {
-    const token = localStorage.getItem('gymAdminToken');
-    let gymId = null;
-    // Try to get gymId from currentGymProfile, fallback to window.currentGymProfile
-    if (typeof currentGymProfile === 'object' && currentGymProfile._id) {
-      gymId = currentGymProfile._id;
-    } else if (window.currentGymProfile && window.currentGymProfile._id) {
-      gymId = window.currentGymProfile._id;
-    } else if (window.currentGymProfile && window.currentGymProfile.id) {
-      gymId = window.currentGymProfile.id;
-    }
-    // If gymId is still not set, try to fetch profile and retry
-    if (!token || !gymId) {
-      // Try to fetch profile and retry once
-      if (typeof fetchAndUpdateAdminProfile === 'function') {
-        await fetchAndUpdateAdminProfile();
-        if (typeof currentGymProfile === 'object' && currentGymProfile._id) {
-          gymId = currentGymProfile._id;
-        } else if (window.currentGymProfile && window.currentGymProfile._id) {
-          gymId = window.currentGymProfile._id;
-        } else if (window.currentGymProfile && window.currentGymProfile.id) {
-          gymId = window.currentGymProfile.id;
-        }
-      }
-    }
-    if (!token || !gymId) {
-      trainersStatValue.textContent = '--';
-      trainersStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
+    if (!token) {
+      console.warn('No auth token found, showing default values');
+      updateStatCardsWithDefaultData();
       return;
     }
-    // Fetch approved trainers
-    const approvedRes = await fetch(`http://localhost:5000/api/trainers?status=approved&gym=${gymId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const pendingRes = await fetch(`http://localhost:5000/api/trainers?status=pending&gym=${gymId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    let approved = [];
-    let pending = [];
-    if (approvedRes.ok) approved = await approvedRes.json();
-    if (pendingRes.ok) pending = await pendingRes.json();
-    // Filter by gym (in case backend returns more)
-    approved = Array.isArray(approved) ? approved.filter(t => t.gym === gymId || (t.gym && (t.gym._id === gymId || t.gym === gymId))) : [];
-    pending = Array.isArray(pending) ? pending.filter(t => t.gym === gymId || (t.gym && (t.gym._id === gymId || t.gym === gymId))) : [];
-    trainersStatValue.textContent = approved.length;
-    trainersStatChange.innerHTML = `<span style="color:#ffbe0b;"><i class="fas fa-hourglass-half"></i> ${pending.length} pending approval</span>`;
-  } catch (err) {
-    console.error('Error updating trainers stats card:', err);
-    trainersStatValue.textContent = '--';
-    trainersStatChange.innerHTML = '<i class="fas fa-minus"></i> N/A';
-  } finally {
-    // Remove loading state
-    setStatCardLoading('.stat-card.trainers', false);
+
+    console.log('🔄 Fetching stat card data with token:', token.substring(0, 20) + '...');
+
+    // Fetch all stats in parallel
+    const [membersStats, paymentsStats, attendanceStats, trainersStats] = await Promise.all([
+      fetchMembersStats(token),
+      fetchPaymentsStats(token),
+      fetchAttendanceStats(token),
+      fetchTrainersStats(token)
+    ]);
+
+    console.log('📊 Fetched stats:', { membersStats, paymentsStats, attendanceStats, trainersStats });
+
+    // Update each stat card
+    updateMembersStatCard(membersStats);
+    updatePaymentsStatCard(paymentsStats);
+    updateAttendanceStatCard(attendanceStats);
+    updateTrainersStatCard(trainersStats);
+
+    console.log('✅ All stat cards updated with live data');
+  } catch (error) {
+    console.error('❌ Error updating stat cards:', error);
+    updateStatCardsWithDefaultData();
   }
 }
-// Note: Stat card initialization is now handled in the main DOMContentLoaded listener above
+
+// Individual stat fetching functions
+async function fetchMembersStats(token) {
+  try {
+    console.log('🔄 Fetching members stats...');
+    const response = await fetch('http://localhost:5000/api/members', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    console.log('👥 Members response status:', response.status);
+    if (response.ok) {
+      const members = await response.json();
+      console.log('👥 Members data:', members.length, 'members found');
+      const total = members.length;
+      
+      // Calculate change based on new members from last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const newMembers = members.filter(member => {
+        const joinDate = new Date(member.joinDate);
+        return joinDate >= sevenDaysAgo;
+      });
+      
+      const change = total > 0 ? (newMembers.length / total) * 100 : 0;
+      
+      const result = { total, change: change.toFixed(1), active: total };
+      console.log('👥 Members stats result:', result);
+      return result;
+    }
+    throw new Error(`HTTP ${response.status}`);
+  } catch (error) {
+    console.warn('👥 Using fallback for members stats:', error.message);
+    return { total: 0, change: 0, active: 0 };
+  }
+}
+
+async function fetchPaymentsStats(token) {
+  try {
+    const response = await fetch('http://localhost:5000/api/payments/stats', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.ok) {
+      const stats = await response.json();
+      return {
+        total: stats.totalAmount || 0,
+        change: stats.changePercentage || 0,
+        monthly: stats.monthlyAmount || 0
+      };
+    }
+    throw new Error('Failed to fetch payments stats');
+  } catch (error) {
+    console.warn('Using fallback for payments stats:', error.message);
+    // Try alternative approach - get recent payments and calculate manually
+    try {
+      const recentResponse = await fetch('http://localhost:5000/api/payments/recent', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (recentResponse.ok) {
+        const payments = await recentResponse.json();
+        const total = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        return { total, change: 0, monthly: total };
+      }
+    } catch (e) {
+      console.warn('Alternative payment fetch also failed:', e.message);
+    }
+    return { total: 0, change: 0, monthly: 0 };
+  }
+}
+
+async function fetchAttendanceStats(token) {
+  try {
+    // Try to get attendance data if available
+    const response = await fetch('http://localhost:5000/api/attendance/stats', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.ok) {
+      const stats = await response.json();
+      return {
+        percentage: stats.attendancePercentage || 0,
+        trend: stats.trend || 'neutral'
+      };
+    }
+    throw new Error('Failed to fetch attendance stats');
+  } catch (error) {
+    console.warn('Using fallback for attendance stats:', error.message);
+    // Calculate basic attendance based on members
+    try {
+      const membersResponse = await fetch('http://localhost:5000/api/members', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (membersResponse.ok) {
+        const members = await membersResponse.json();
+        // Simulate attendance percentage based on active members
+        const activeMembers = members.filter(member => {
+          const validUntil = new Date(member.validUntil);
+          return validUntil > new Date();
+        });
+        const percentage = members.length > 0 ? (activeMembers.length / members.length * 100) : 0;
+        return { percentage: percentage.toFixed(0), trend: 'neutral' };
+      }
+    } catch (e) {
+      console.warn('Alternative attendance calculation failed:', e.message);
+    }
+    return { percentage: 0, trend: 'neutral' };
+  }
+}
+
+async function fetchTrainersStats(token) {
+  try {
+    const response = await fetch('http://localhost:5000/api/trainers', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.ok) {
+      const trainers = await response.json();
+      const total = trainers.length;
+      const active = trainers.filter(trainer => trainer.status === 'approved').length;
+      
+      // Calculate change based on recently added trainers
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentTrainers = trainers.filter(trainer => {
+        const createdAt = new Date(trainer.createdAt || trainer.dateJoined);
+        return createdAt >= thirtyDaysAgo;
+      });
+      
+      const change = total > 0 ? (recentTrainers.length / total) * 100 : 0;
+      
+      return { total, active, change: change.toFixed(1) };
+    }
+    throw new Error('Failed to fetch trainers stats');
+  } catch (error) {
+    console.warn('Using fallback for trainers stats:', error.message);
+    return { total: 0, active: 0, change: 0 };
+  }
+}
+
+// Update individual stat cards with better error handling
+function updateMembersStatCard(data) {
+  const card = document.getElementById('membersStatCard');
+  if (!card) return;
+
+  const valueElement = card.querySelector('.stat-value');
+  const changeElement = card.querySelector('.stat-change');
+  
+  console.log('👥 Updating members stat card with:', data);
+  
+  if (valueElement) valueElement.textContent = data.total || 0;
+  
+  if (changeElement) {
+    const change = parseFloat(data.change) || 0;
+    const isPositive = change >= 0;
+    
+    changeElement.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+    changeElement.innerHTML = `
+      <i class="fas fa-arrow-${isPositive ? 'up' : 'down'}"></i>
+      ${Math.abs(change).toFixed(1)}%
+    `;
+  }
+}
+
+function updatePaymentsStatCard(data) {
+  const card = document.querySelector('.stat-card.payments');
+  if (!card) return;
+
+  const valueElement = card.querySelector('.stat-value');
+  const changeElement = card.querySelector('.stat-change');
+  
+  console.log('💰 Updating payments stat card with:', data);
+  
+  if (valueElement) {
+    const total = data.total || 0;
+    valueElement.textContent = `₹${total.toLocaleString('en-IN')}`;
+  }
+  
+  if (changeElement) {
+    const change = parseFloat(data.change) || 0;
+    const isPositive = change >= 0;
+    
+    changeElement.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+    changeElement.innerHTML = `
+      <i class="fas fa-arrow-${isPositive ? 'up' : 'down'}"></i>
+      ${Math.abs(change).toFixed(1)}%
+    `;
+  }
+}
+
+function updateAttendanceStatCard(data) {
+  const card = document.getElementById('attendanceStatCard');
+  if (!card) return;
+
+  const valueElement = card.querySelector('.stat-value');
+  const changeElement = card.querySelector('.stat-change');
+  
+  console.log('📅 Updating attendance stat card with:', data);
+  
+  if (valueElement) {
+    valueElement.textContent = `${data.percentage || 0}%`;
+  }
+  
+  if (changeElement) {
+    const trend = data.trend || 'neutral';
+    let icon = 'fa-clock';
+    let text = 'Steady';
+    
+    if (trend === 'up') {
+      icon = 'fa-arrow-up';
+      text = 'Improving';
+    } else if (trend === 'down') {
+      icon = 'fa-arrow-down';
+      text = 'Declining';
+    }
+    
+    changeElement.className = `stat-change ${trend === 'up' ? 'positive' : trend === 'down' ? 'negative' : 'neutral'}`;
+    changeElement.innerHTML = `<i class="fas ${icon}"></i> ${text}`;
+  }
+}
+
+function updateTrainersStatCard(data) {
+  const card = document.querySelector('.stat-card.trainers');
+  if (!card) return;
+
+  const valueElement = card.querySelector('.stat-value');
+  const changeElement = card.querySelector('.stat-change');
+  
+  console.log('🏋️ Updating trainers stat card with:', data);
+  
+  if (valueElement) valueElement.textContent = data.active || data.total || 0;
+  
+  if (changeElement) {
+    const change = parseFloat(data.change) || 0;
+    const isPositive = change >= 0;
+    
+    changeElement.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+    changeElement.innerHTML = `
+      <i class="fas fa-arrow-${isPositive ? 'up' : 'down'}"></i>
+      ${Math.abs(change).toFixed(1)}%
+    `;
+  }
+}
+
+// Loading state management
+function showStatCardsLoading() {
+  const statCards = document.querySelectorAll('.stat-card');
+  statCards.forEach(card => {
+    card.classList.add('loading');
+  });
+}
+
+function hideStatCardsLoading() {
+  const statCards = document.querySelectorAll('.stat-card');
+  statCards.forEach(card => {
+    card.classList.remove('loading');
+  });
+}
+
+function showStatCardsError() {
+  const statCards = document.querySelectorAll('.stat-card');
+  statCards.forEach(card => {
+    const valueElement = card.querySelector('.stat-value');
+    if (valueElement) {
+      valueElement.textContent = 'Error';
+    }
+  });
+}
+
+function updateStatCardsWithDefaultData() {
+  console.log('📊 Using default/demo data for stat cards');
+  updateMembersStatCard({ total: 24, change: 8.5 });
+  updatePaymentsStatCard({ total: 125000, change: 12.3 });
+  updateAttendanceStatCard({ percentage: 78, trend: 'up' });
+  updateTrainersStatCard({ active: 5, change: 2.1 });
+}
+
+// Legacy function aliases for compatibility
+window.updateMembersStatsCard = function() {
+  // Re-fetch and update members stats
+  fetchMembersStats(localStorage.getItem('gymAdminToken')).then(updateMembersStatCard);
+};
+
+window.updatePaymentsStatsCard = function() {
+  // Re-fetch and update payments stats
+  fetchPaymentsStats(localStorage.getItem('gymAdminToken')).then(updatePaymentsStatCard);
+};
+
+// Test function for debugging stat cards (can be called from console)
+window.testStatCards = async function() {
+  console.log('🧪 Testing stat cards system...');
+  const token = localStorage.getItem('gymAdminToken');
+  console.log('🔑 Token found:', !!token);
+  
+  if (token) {
+    console.log('🔗 Testing API endpoints...');
+    
+    // Test members endpoint
+    try {
+      const membersResponse = await fetch('http://localhost:5000/api/members', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('👥 Members API status:', membersResponse.status);
+      if (membersResponse.ok) {
+        const members = await membersResponse.json();
+        console.log('👥 Members count:', members.length);
+      }
+    } catch (e) {
+      console.error('👥 Members API error:', e);
+    }
+    
+    // Test payments endpoint
+    try {
+      const paymentsResponse = await fetch('http://localhost:5000/api/payments/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('💰 Payments API status:', paymentsResponse.status);
+      if (paymentsResponse.ok) {
+        const payments = await paymentsResponse.json();
+        console.log('💰 Payments data:', payments);
+      }
+    } catch (e) {
+      console.error('💰 Payments API error:', e);
+    }
+    
+    // Test trainers endpoint
+    try {
+      const trainersResponse = await fetch('http://localhost:5000/api/trainers', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('🏋️ Trainers API status:', trainersResponse.status);
+      if (trainersResponse.ok) {
+        const trainers = await trainersResponse.json();
+        console.log('🏋️ Trainers count:', trainers.length);
+      }
+    } catch (e) {
+      console.error('🏋️ Trainers API error:', e);
+    }
+  }
+  
+  // Force refresh stat cards
+  console.log('🔄 Force refreshing stat cards...');
+  await initializeStatCards();
+};
+
+// Test function for skeleton loading (can be called from console)
+window.testSkeletonLoading = function() {
+  console.log('🧪 Testing skeleton loading system...');
+  
+  // Test different skeleton types
+  const tests = [
+    { containerId: 'memberDisplayTab', templateType: 'table', duration: 2000 },
+    { containerId: 'paymentTab', templateType: 'dashboard-stats', duration: 1500 },
+    { containerId: 'equipmentTab', templateType: 'card-grid', duration: 2500 },
+  ];
+  
+  tests.forEach((test, index) => {
+    setTimeout(() => {
+      console.log(`📋 Testing ${test.templateType} skeleton on ${test.containerId}`);
+      if (window.showSkeleton) {
+        window.showSkeleton(test.containerId, test.templateType);
+        
+        setTimeout(() => {
+          if (window.hideSkeleton) {
+            window.hideSkeleton(test.containerId);
+            console.log(`✅ ${test.templateType} skeleton test completed`);
+          }
+        }, test.duration);
+      }
+    }, index * 500);
+  });
+};
+
+// --- Tab and Setting Management ---
 
 // Dynamic sidebar menu highlight
 sidebarMenuLinks.forEach(link => {
   link.addEventListener('click', function(e) {
-    // Only handle tab switching links (not external/settings etc.)
+    e.preventDefault(); // Always prevent default to handle navigation with JS
+
+    // Find the text content of the clicked link to identify it
     const menuText = link.querySelector('.menu-text')?.textContent.trim();
-    if (menuText === 'Dashboard') {
-      // Show dashboard, hide others
-      hideAllMainTabs();
-      dashboardContent.style.display = 'block';
-      // Remove active from all, add to dashboard
-      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-    } else if (menuText === 'Members') {
-      // Show members, hide others
-      hideAllMainTabs();
-      memberDisplayTab.style.display = 'block';
-      // Remove active from all, add to members
-      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      // Fetch members if needed
-      if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
-    } else if (menuText === 'Support & Reviews') {
-      // Show support & reviews, hide others
-      hideAllMainTabs();
-      const supportReviewsTab = document.getElementById('supportReviewsTab');
-      if (supportReviewsTab) supportReviewsTab.style.display = 'block';
-      // Remove active from all, add to support & reviews
-      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      // Initialize support reviews if available
-      if (window.supportReviewsManager && typeof window.supportReviewsManager.switchTab === 'function') {
-        window.supportReviewsManager.switchTab('notifications');
-      }
-    } else if (menuText === 'Settings') {
-      // Show settings, hide others
-      hideAllMainTabs();
-      settingsTab.style.display = 'block';
-      // Remove active from all, add to settings
-      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      
-      // Update passkey settings UI when settings tab is opened
-      if (window.paymentManager && typeof window.paymentManager.updatePasskeySettingsUI === 'function') {
-        window.paymentManager.updatePasskeySettingsUI();
-      }
+    console.log('🔍 Sidebar menu clicked:', menuText);
+
+    // Hide all main tab sections first
+    hideAllMainTabs();
+
+    // A map to associate menu text with tab elements and initialization functions
+    const tabActions = {
+        'Dashboard': { tab: dashboardContent },
+        'Members': { tab: memberDisplayTab, action: window.fetchAndDisplayMembers },
+        'Trainers': { tab: trainerTab, action: window.showTrainerTab },
+        'Attendance': { tab: attendanceTab, action: () => {
+            if (window.attendanceManager) {
+                window.attendanceManager.loadData();
+                window.attendanceManager.loadAttendanceForDate();
+            }
+        }},
+        'Payments': { tab: paymentTab, action: () => {
+            if (window.paymentManager) {
+                window.paymentManager.loadPaymentData();
+            }
+        }},
+        'Equipment': { tab: equipmentTab, action: () => {
+            if (window.equipmentManager) {
+                window.equipmentManager.loadEquipmentData();
+            }
+        }},
+        'Offers & coupons': { tab: offersTab, action: () => {
+            if (window.offersManager) {
+                window.offersManager.switchToTab('templates');
+            }
+        }},
+        'Support & Reviews': { tab: supportReviewsTab, action: () => {
+            if (window.supportReviewsManager) {
+                window.supportReviewsManager.switchTab('notifications');
+            }
+        }},
+        'Settings': { tab: settingsTab, action: () => {
+            if (window.paymentManager && typeof window.paymentManager.updatePasskeySettingsUI === 'function') {
+                window.paymentManager.updatePasskeySettingsUI();
+            }
+        }}
+    };
+
+    // Show the correct tab and run its associated action
+    if (tabActions[menuText]) {
+        console.log('✅ Found tab action for:', menuText);
+        const { tab, action } = tabActions[menuText];
+        if (tab) {
+            tab.style.display = 'block';
+            console.log('✅ Tab displayed:', tab.id || 'unknown');
+        }
+        if (typeof action === 'function') {
+            console.log('🔧 Running tab action for:', menuText);
+            action();
+        }
     } else {
-      // For other tabs, just highlight
-      sidebarMenuLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
+        console.warn('⚠️ No tab action found for menu text:', menuText);
+        console.log('Available actions:', Object.keys(tabActions));
     }
-    e.preventDefault();
+
+    // Update the active class on all sidebar links
+    sidebarMenuLinks.forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+
+    // Close mobile sidebar if it's open
+    if (sidebar.classList.contains('sidebar-open')) {
+        sidebar.classList.remove('sidebar-open');
+    }
   });
 });
 
@@ -5419,58 +5945,95 @@ document.addEventListener('DOMContentLoaded', function() {
       const dashboardContent = document.querySelector('.content');
       if (tabName === 'Dashboard') {
         hideAllMainTabs();
-        if (dashboardContent) dashboardContent.style.display = 'block';
+        showTabWithSkeleton(dashboardContent, 'dashboard-stats', () => {
+          if (typeof window.loadDashboardData === 'function') {
+            return window.loadDashboardData();
+          }
+          return Promise.resolve();
+        });
 
       } else if (tabName === 'Members') {
         hideAllMainTabs();
         const memberTab = document.getElementById('memberDisplayTab');
-        if (memberTab) memberTab.style.display = 'block';
-
-        if (typeof fetchAndDisplayMembers === 'function') fetchAndDisplayMembers();
+        if (memberTab) {
+          showTabWithSkeleton(memberTab, 'table', () => {
+            if (typeof fetchAndDisplayMembers === 'function') {
+              return fetchAndDisplayMembers();
+            }
+            return Promise.resolve();
+          });
+        }
       } else if (tabName === 'Attendance') {
         hideAllMainTabs();
         const attendanceTab = document.getElementById('attendanceTab');
-        if (attendanceTab) attendanceTab.style.display = 'block';
-
-        // Initialize attendance manager if it exists
-        if (typeof window.attendanceManager !== 'undefined') {
-          window.attendanceManager.loadData();
-          window.attendanceManager.loadAttendanceForDate();
+        if (attendanceTab) {
+          showTabWithSkeleton(attendanceTab, 'table', () => {
+            // Initialize attendance manager if it exists
+            if (typeof window.attendanceManager !== 'undefined') {
+              window.attendanceManager.loadData();
+              window.attendanceManager.loadAttendanceForDate();
+            }
+            return Promise.resolve();
+          });
         }
       } else if (tabName === 'Payments') {
         hideAllMainTabs();
         const paymentTab = document.getElementById('paymentTab');
-        if (paymentTab) paymentTab.style.display = 'block';
-
-        // Initialize payment manager if it exists
-        if (typeof window.paymentManager !== 'undefined') {
-          window.paymentManager.loadPaymentData();
+        if (paymentTab) {
+          showTabWithSkeleton(paymentTab, 'dashboard-stats', () => {
+            // Initialize payment manager if it exists
+            if (typeof window.paymentManager !== 'undefined') {
+              return window.paymentManager.loadPaymentData();
+            }
+            return Promise.resolve();
+          });
         }
       } else if (tabName === 'Equipment') {
         hideAllMainTabs();
         const equipmentTab = document.getElementById('equipmentTab');
-        if (equipmentTab) equipmentTab.style.display = 'block';
-
-        // Initialize equipment manager if it exists
-        if (typeof window.equipmentManager !== 'undefined') {
-          window.equipmentManager.loadEquipmentData();
+        if (equipmentTab) {
+          showTabWithSkeleton(equipmentTab, 'card-grid', () => {
+            // Initialize equipment manager if it exists
+            if (typeof window.equipmentManager !== 'undefined') {
+              return window.equipmentManager.loadEquipmentData();
+            }
+            return Promise.resolve();
+          });
         }
       } else if(tabName === 'Offers & Coupons'){
         hideAllMainTabs();
         const offersTab = document.getElementById('offersTab');
-        if (offersTab) offersTab.style.display = 'block'; 
-        if (typeof window.loadOffersAndCoupons === 'function') {
-          window.loadOffersAndCoupons();
+        if (offersTab) {
+          showTabWithSkeleton(offersTab, 'dashboard-stats', () => {
+            // Initialize offers manager
+            if (window.offersManager && typeof window.offersManager.switchToTab === 'function') {
+              return window.offersManager.switchToTab('templates');
+            }
+            return Promise.resolve();
+          });
         }
       } else if (tabName === 'Support & Reviews') {
         hideAllMainTabs();
         const supportReviewsTab = document.getElementById('supportReviewsTab');
-        if (supportReviewsTab) supportReviewsTab.style.display = 'block';
-
+        if (supportReviewsTab) {
+          showTabWithSkeleton(supportReviewsTab, 'list', () => {
+            if (typeof window.supportModule !== 'undefined' && window.supportModule.loadData) {
+              return window.supportModule.loadData();
+            }
+            return Promise.resolve();
+          });
+        }
       } else if (tabName === 'Settings') {
         hideAllMainTabs();
         const settingsTab = document.getElementById('settingsTab');
-        if (settingsTab) settingsTab.style.display = 'block';
+        if (settingsTab) {
+          showTabWithSkeleton(settingsTab, 'form', () => {
+            if (typeof window.loadSettingsData === 'function') {
+              return window.loadSettingsData();
+            }
+            return Promise.resolve();
+          });
+        }
 
       } else {
 

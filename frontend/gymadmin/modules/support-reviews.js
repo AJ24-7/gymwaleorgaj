@@ -18,59 +18,15 @@ class SupportReviewsManager {
             grievances: { total: 0, open: 0, resolved: 0, urgent: 0 },
             communications: { total: 0, unread: 0, active: 0, responseTime: 0 }
         };
-        
-        // Authentication helper reference
-        this.AuthHelper = window.AuthHelper;
-        
-        // API manager reference
-        this.api = window.asyncFetchManager;
-        
-        // Lazy loading manager reference
-        this.lazyLoader = window.LazyLoadManager;
-        
-        // Track event listeners for cleanup
-        this.eventListeners = [];
-        this.boundHandlers = new Map();
-        
-        // Initialize with lazy loading
-        this.initializeLazy();
+        this.init();
     }
 
-    initializeLazy() {
-        console.log('🚀 Initializing Enhanced Support & Reviews Manager with Lazy Loading');
-        
-        // Immediate initialization - only critical UI setup
+    init() {
+        console.log('🚀 Initializing Enhanced Support & Reviews Manager');
         this.bindEvents();
-        
-        // Defer heavy operations until idle time
-        if (this.lazyLoader) {
-            this.lazyLoader.deferUntilIdle('support-gym-fetch', () => this.fetchGymId());
-            this.lazyLoader.deferUntilIdle('support-modals', () => this.initializeModalEnhancements());
-            this.lazyLoader.deferUntilIdle('support-diagnostics', () => this.performSystemDiagnostics());
-        } else {
-            // Fallback if LazyLoadManager not available
-            setTimeout(() => {
-                this.fetchGymId();
-                this.initializeModalEnhancements();
-                this.performSystemDiagnostics();
-            }, 100);
-        }
-    }
-
-    // Helper to add tracked event listeners
-    addTrackedEventListener(element, event, handler, options = {}) {
-        element.addEventListener(event, handler, options);
-        this.eventListeners.push({ element, event, handler, options });
-    }
-
-    // Cleanup method to remove all event listeners
-    cleanup() {
-        console.log('🧹 Cleaning up Support Reviews Manager...');
-        this.eventListeners.forEach(({ element, event, handler }) => {
-            element.removeEventListener(event, handler);
-        });
-        this.eventListeners = [];
-        this.boundHandlers.clear();
+        this.fetchGymId();
+        this.initializeModalEnhancements();
+        this.performSystemDiagnostics();
     }
 
     // System diagnostics to identify issues
@@ -84,10 +40,14 @@ class SupportReviewsManager {
             enhancedIntegrationStatus: 'checking'
         };
         
-        // Check tokens using unified auth manager
-        const token = window.unifiedAuthManager ? await window.unifiedAuthManager.getToken() : localStorage.getItem('gymAdminToken');
+        // Check tokens
+        const tokens = {
+            gymAdminToken: localStorage.getItem('gymAdminToken'),
+            gymAuthToken: localStorage.getItem('gymAuthToken'),
+            token: localStorage.getItem('token')
+        };
         
-        diagnostics.tokenStatus = token ? 'available' : 'missing';
+        diagnostics.tokenStatus = Object.values(tokens).some(t => t) ? 'available' : 'missing';
         console.log('🔐 Token status:', diagnostics.tokenStatus, tokens);
         
         // Check enhanced integration
@@ -139,14 +99,14 @@ class SupportReviewsManager {
             const modal = document.getElementById(modalId);
             if (modal) {
                 // Add click outside to close functionality
-                this.addTrackedEventListener(modal, 'click', (e) => {
+                modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
                         this.closeModal();
                     }
                 });
                 
                 // Add escape key to close functionality
-                this.addTrackedEventListener(document, 'keydown', (e) => {
+                document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && modal.classList.contains('active')) {
                         this.closeModal();
                     }
@@ -160,7 +120,11 @@ class SupportReviewsManager {
     async fetchGymId() {
         try {
             // Try multiple token storage keys for compatibility
-            const token = window.unifiedAuthManager ? await window.unifiedAuthManager.waitForToken() : localStorage.getItem('gymAdminToken');            if (!token) {
+            const token = localStorage.getItem('gymAdminToken') || 
+                         localStorage.getItem('gymAuthToken') || 
+                         localStorage.getItem('token');
+            
+            if (!token) {
                 console.error('❌ No gym admin token found');
                 return;
             }
@@ -233,7 +197,7 @@ class SupportReviewsManager {
         console.log('🔗 Binding support tab events');
         
         // Tab navigation - Enhanced with better event handling and debugging
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             if (e.target.matches('.support-tab-btn') || e.target.closest('.support-tab-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -248,7 +212,7 @@ class SupportReviewsManager {
         });
 
         // Header action buttons
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             if (e.target.matches('#supportSendNotificationBtn') || e.target.closest('#supportSendNotificationBtn')) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -267,7 +231,7 @@ class SupportReviewsManager {
         });
 
         // Modal controls with enhanced event handling
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             // Check for modal close buttons
             if (e.target.matches('.support-modal-close') || e.target.closest('.support-modal-close')) {
                 e.preventDefault();
@@ -294,7 +258,7 @@ class SupportReviewsManager {
         });
 
         // Review reply buttons
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             if (e.target.matches('.review-action[data-action="reply"]') || e.target.closest('.review-action[data-action="reply"]')) {
                 const reviewId = e.target.closest('.review-item').dataset.reviewId;
                 this.openReplyModal(reviewId);
@@ -340,7 +304,7 @@ class SupportReviewsManager {
         });
 
         // Notification actions
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             if (e.target.matches('.notification-action')) {
                 const action = e.target.dataset.action;
                 const notificationId = e.target.closest('.notification-item').dataset.notificationId;
@@ -349,7 +313,7 @@ class SupportReviewsManager {
         });
 
         // Grievance actions
-        this.addTrackedEventListener(document, 'click', (e) => {
+        document.addEventListener('click', (e) => {
             if (e.target.matches('.grievance-item')) {
                 const grievanceId = e.target.dataset.grievanceId;
                 this.openGrievanceDetails(grievanceId);
@@ -357,7 +321,7 @@ class SupportReviewsManager {
         });
 
         // Form submissions
-        this.addTrackedEventListener(document, 'submit', (e) => {
+        document.addEventListener('submit', (e) => {
             if (e.target.matches('#sendNotificationForm')) {
                 e.preventDefault();
                 this.handleSendNotification(e.target);
@@ -385,13 +349,13 @@ class SupportReviewsManager {
         });
 
         // Search and filters
-        this.addTrackedEventListener(document, 'input', (e) => {
+        document.addEventListener('input', (e) => {
             if (e.target.matches('.support-search')) {
                 this.handleSearch(e.target.value, this.currentTab);
             }
         });
 
-        this.addTrackedEventListener(document, 'change', (e) => {
+        document.addEventListener('change', (e) => {
             if (e.target.matches('.support-filter')) {
                 this.handleFilter(e.target.value, this.currentTab);
             }
@@ -436,31 +400,17 @@ class SupportReviewsManager {
     }
 
     async loadInitialData() {
-        console.log('📊 Loading initial data for Support & Reviews with lazy loading');
-        
-        // Load only critical data immediately (notifications for default tab)
-        await this.loadNotifications();
-        this.renderNotifications();
-        
-        // Defer non-critical data loading
-        if (this.lazyLoader) {
-            this.lazyLoader.deferUntilIdle('support-reviews-data', () => this.loadReviews());
-            this.lazyLoader.deferUntilIdle('support-grievances-data', () => this.loadGrievances());
-            this.lazyLoader.deferUntilIdle('support-communications-data', () => this.loadCommunications());
-            
-            // Update stats after all data loads
-            this.lazyLoader.deferUntilIdle('support-stats-update', () => this.updateStats());
-        } else {
-            // Fallback - stagger loading to prevent UI blocking
-            setTimeout(() => this.loadReviews(), 200);
-            setTimeout(() => this.loadGrievances(), 400);
-            setTimeout(() => this.loadCommunications(), 600);
-            setTimeout(() => this.updateStats(), 800);
-        }
-        
+        console.log('📊 Loading initial data for Support & Reviews');
+        await Promise.all([
+            this.loadNotifications(),
+            this.loadReviews(),
+            this.loadGrievances(),
+            this.loadCommunications()
+        ]);
+        this.updateStats();
         // Ensure notifications tab is active by default
         this.switchTab('notifications');
-        console.log('📊 Initial data loading initiated with lazy loading');
+        console.log('📊 Initial data loaded successfully');
     }
 
     async loadTabData(tabName) {
@@ -482,7 +432,13 @@ class SupportReviewsManager {
 
     async loadNotifications() {
         try {
-            const response = await this.api.get(`/api/gym/notifications`);
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const response = await fetch(`${this.BASE_URL}/api/gym/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -503,6 +459,7 @@ class SupportReviewsManager {
 
     async loadReviews() {
         try {
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
             if (!this.currentGymId) {
                 console.error('No gym ID available for loading reviews');
                 this.reviews = this.getMockReviews();
@@ -510,7 +467,12 @@ class SupportReviewsManager {
                 return;
             }
 
-            const response = await this.api.get(`/api/reviews/gym/${this.currentGymId}`);
+            const response = await fetch(`${this.BASE_URL}/api/reviews/gym/${this.currentGymId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -603,7 +565,12 @@ class SupportReviewsManager {
             }
             
             // Fallback to direct support API call
-            const response = await this.api.get(`/api/support/grievances/gym/${this.currentGymId}`);
+            const response = await fetch(`${this.BASE_URL}/api/support/grievances/gym/${this.currentGymId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -885,7 +852,7 @@ class SupportReviewsManager {
         `).join('');
 
         // Bind escalation action handlers
-        this.addTrackedEventListener(container, 'click', this.handleGrievanceActions.bind(this));
+        container.addEventListener('click', this.handleGrievanceActions.bind(this));
     }
 
     async handleGrievanceActions(event) {
@@ -1220,7 +1187,7 @@ class SupportReviewsManager {
         };
 
         try {
-            const token = await this.AuthHelper.getToken();
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
             
             // Check if this is for main admin
             if (notificationData.targetType === 'admin' || notificationData.targetType === 'main-admin') {
@@ -1445,7 +1412,7 @@ class SupportReviewsManager {
             }
             
             // Fallback escalation
-            const token = await this.AuthHelper.getToken();
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
             const response = await fetch(`${this.BASE_URL}/api/support/tickets/${grievanceId}/escalate`, {
                 method: 'POST',
                 headers: {
@@ -1520,9 +1487,13 @@ class SupportReviewsManager {
             if (!notification) return;
 
             switch (action) {
-                case 'mark-read': {
-                    const response = await this.api.put(`/api/gym/notifications/${notificationId}/read`, {}, {
-                        successMessage: 'Notification marked as read'
+                case 'mark-read':
+                    const response = await fetch(`${this.BASE_URL}/api/gym/notifications/${notificationId}/read`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
                     });
                     
                     if (response.ok) {
@@ -1533,7 +1504,6 @@ class SupportReviewsManager {
                         this.showErrorMessage('Failed to mark notification as read');
                     }
                     break;
-                }
                     
                 case 'reply':
                     this.openNotificationReplyModal(notificationId);
@@ -1566,8 +1536,14 @@ class SupportReviewsManager {
         };
 
         try {
-            const response = await this.api.put(`/api/reviews/${reviewId}/reply`, replyData, {
-                successMessage: 'Reply sent successfully'
+            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
+            const response = await fetch(`${this.BASE_URL}/api/reviews/${reviewId}/reply`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(replyData)
             });
 
             if (response.ok) {

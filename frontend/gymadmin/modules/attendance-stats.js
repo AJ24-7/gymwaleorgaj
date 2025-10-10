@@ -5,31 +5,9 @@ class AttendanceStats {
         const ctx = document.getElementById('dashboardAttendanceChart');
         if (!ctx || !chartContainer) return;
 
-        // Add spinner if not present or show it
-        let spinnerDiv = document.getElementById('dashboardChartSpinner');
-        if (!spinnerDiv) {
-            spinnerDiv = document.createElement('div');
-            spinnerDiv.id = 'dashboardChartSpinner';
-            spinnerDiv.style.display = 'flex';
-            spinnerDiv.style.flexDirection = 'column';
-            spinnerDiv.style.alignItems = 'center';
-            spinnerDiv.style.justifyContent = 'center';
-            spinnerDiv.style.position = 'absolute';
-            spinnerDiv.style.top = '0';
-            spinnerDiv.style.left = '0';
-            spinnerDiv.style.width = '100%';
-            spinnerDiv.style.height = '100%';
-            spinnerDiv.style.background = 'rgba(255,255,255,0.8)';
-            spinnerDiv.style.zIndex = '10';
-            spinnerDiv.innerHTML = `
-                <div class="spinner" style="margin-top:80px;margin-bottom:18px;width:48px;height:48px;border:6px solid #eee;border-top:6px solid #1976d2;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
-                <div style="font-size:1.1rem;color:#1976d2;font-weight:500;">Preparing stat chart...</div>
-                <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
-            `;
-            chartContainer.style.position = 'relative';
-            chartContainer.appendChild(spinnerDiv);
-        } else {
-            spinnerDiv.style.display = 'flex';
+        // Use skeleton loading instead of custom spinner
+        if (window.showSkeleton) {
+            window.showSkeleton('dashboardAttendanceChart', 'chart');
         }
 
         // Destroy existing chart if it exists
@@ -88,98 +66,15 @@ class AttendanceStats {
         }
     }
 
-    renderDashboardChart() {
-        const chartContainer = document.querySelector('.chart-container');
-        const ctx = document.getElementById('dashboardAttendanceChart');
-        if (!ctx || !chartContainer) return;
-
-        // Add spinner if not present
-        if (!document.getElementById('dashboardChartSpinner')) {
-            const spinnerDiv = document.createElement('div');
-            spinnerDiv.id = 'dashboardChartSpinner';
-            spinnerDiv.style.display = 'flex';
-            spinnerDiv.style.flexDirection = 'column';
-            spinnerDiv.style.alignItems = 'center';
-            spinnerDiv.style.justifyContent = 'center';
-            spinnerDiv.style.position = 'absolute';
-            spinnerDiv.style.top = '0';
-            spinnerDiv.style.left = '0';
-            spinnerDiv.style.width = '100%';
-            spinnerDiv.style.height = '100%';
-            spinnerDiv.style.background = 'rgba(255,255,255,0.8)';
-            spinnerDiv.style.zIndex = '10';
-            spinnerDiv.innerHTML = `
-                <div class="spinner" style="margin-top:80px;margin-bottom:18px;width:48px;height:48px;border:6px solid #eee;border-top:6px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                <div style="font-size:1.1rem;color:#1976d2;font-weight:500;">Preparing stat chart...</div>
-                <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
-            `;
-            chartContainer.style.position = 'relative';
-            chartContainer.appendChild(spinnerDiv);
-        }
-
-        // Destroy existing chart if it exists
-        if (this.dashboardChart) {
-            this.dashboardChart.destroy();
-        }
-
-        // Set month/year from dashboard filter
-        const monthSelect = document.getElementById('dashboardChartMonth');
-        const yearSelect = document.getElementById('dashboardChartYear');
-        let month, year;
-        const now = new Date();
-        if (monthSelect && yearSelect) {
-            month = parseInt(monthSelect.value);
-            year = parseInt(yearSelect.value);
-        } else {
-            month = now.getMonth();
-            year = now.getFullYear();
-        }
-
-        // Populate year dropdown if empty
-        if (yearSelect && yearSelect.options.length === 0) {
-            const currentYear = now.getFullYear();
-            for (let y = currentYear - 3; y <= currentYear + 1; y++) {
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.textContent = y;
-                if (y === currentYear) opt.selected = true;
-                yearSelect.appendChild(opt);
-            }
-        }
-
-        // Use cached chart data if available, else fetch
-        if (this._dashboardChartData && this._dashboardChartDataMonth === month && this._dashboardChartDataYear === year) {
-            this._renderDashboardChartWithData(this._dashboardChartData);
-        } else {
-            this.getMonthlyAttendanceData(month, year).then(data => {
-                this._dashboardChartData = data;
-                this._dashboardChartDataMonth = month;
-                this._dashboardChartDataYear = year;
-                this._renderDashboardChartWithData(data);
-            });
-        }
-
-        // Add change listeners for dashboard chart filters
-        if (monthSelect && !monthSelect._listenerAdded) {
-            monthSelect.addEventListener('change', () => {
-                this._dashboardChartData = null;
-                this.renderDashboardChart();
-            });
-            monthSelect._listenerAdded = true;
-        }
-        if (yearSelect && !yearSelect._listenerAdded) {
-            yearSelect.addEventListener('change', () => {
-                this._dashboardChartData = null;
-                this.renderDashboardChart();
-            });
-            yearSelect._listenerAdded = true;
-        }
-    }
-
     _renderDashboardChartWithData(data) {
         const ctx = document.getElementById('dashboardAttendanceChart');
-        const spinnerDiv = document.getElementById('dashboardChartSpinner');
         if (!ctx) return;
+        
+        // Hide skeleton loading
+        if (window.hideSkeleton) {
+            window.hideSkeleton('dashboardAttendanceChart');
+        }
+        
         if (this.dashboardChart) {
             this.dashboardChart.destroy();
         }
@@ -250,39 +145,9 @@ class AttendanceStats {
                 }
             }
         });
-        // Hide spinner after chart is rendered
-        if (spinnerDiv) spinnerDiv.style.display = 'none';
+        // Skeleton loading is already hidden in the function above
     }
-    showModalChartSpinner() {
-        const modalContent = document.querySelector('#attendanceStatsModal .modal-content');
-        if (!modalContent) return;
-        if (!document.getElementById('modalChartSpinner')) {
-            const spinnerDiv = document.createElement('div');
-            spinnerDiv.id = 'modalChartSpinner';
-            spinnerDiv.style.display = 'flex';
-            spinnerDiv.style.flexDirection = 'column';
-            spinnerDiv.style.alignItems = 'center';
-            spinnerDiv.style.justifyContent = 'center';
-            spinnerDiv.style.position = 'absolute';
-            spinnerDiv.style.top = '0';
-            spinnerDiv.style.left = '0';
-            spinnerDiv.style.width = '100%';
-            spinnerDiv.style.height = '100%';
-            spinnerDiv.style.background = 'rgba(255,255,255,0.8)';
-            spinnerDiv.style.zIndex = '10';
-            spinnerDiv.innerHTML = `
-                <div class="spinner" style="margin-top:80px;margin-bottom:18px;width:48px;height:48px;border:6px solid #eee;border-top:6px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                <div style="font-size:1.1rem;color:#1976d2;font-weight:500;">Preparing stat chart...</div>
-                <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
-            `;
-            modalContent.style.position = 'relative';
-            modalContent.appendChild(spinnerDiv);
-        }
-    }
-    hideModalChartSpinner() {
-        const spinnerDiv = document.getElementById('modalChartSpinner');
-        if (spinnerDiv) spinnerDiv.style.display = 'none';
-    }
+
     constructor() {
         this.chart = null;
         this.attendanceData = {};
@@ -399,7 +264,7 @@ class AttendanceStats {
 
             // Get gymId from profile (same logic as attendance.js)
             let gymId = null;
-            if (window.currentGymProfile && window.currentGymProfile._id) {
+            if (window.currentGymProfile?._id) {
                 gymId = window.currentGymProfile._id;
             } else if (this.membersData.length > 0 && this.membersData[0].gym) {
                 gymId = this.membersData[0].gym;
@@ -431,7 +296,6 @@ class AttendanceStats {
 
     updateDashboardStats() {
         const today = new Date();
-        const todayStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
         
         // Filter active members only
         const activeMembers = this.membersData.filter(member => {
@@ -548,8 +412,10 @@ class AttendanceStats {
         const yearSelect = document.getElementById('attendanceChartYear');
         if (!monthSelect || !yearSelect) return;
 
-        this.showModalChartSpinner();
-        await new Promise(resolve => setTimeout(resolve, 250)); // Smooth spinner effect
+        // Use skeleton loading for modal chart
+        if (window.showSkeleton) {
+            window.showSkeleton('attendanceChart', 'chart');
+        }
 
         const month = parseInt(monthSelect.value);
         const year = parseInt(yearSelect.value);
@@ -559,7 +425,11 @@ class AttendanceStats {
         } catch (error) {
             console.error('Error updating chart:', error);
         }
-        this.hideModalChartSpinner();
+        
+        // Hide skeleton loading
+        if (window.hideSkeleton) {
+            window.hideSkeleton('attendanceChart');
+        }
     }
 
     async getMonthlyAttendanceData(month, year) {

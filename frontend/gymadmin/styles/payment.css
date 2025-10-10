@@ -43,6 +43,8 @@
 
 .payment-stat-card.paid {
   grid-column: 3 / span 1;
+   border-left: 6px solid #ef4444;
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
 }
 
 /* Second row - Three equal cards for pending, due, profit */
@@ -57,16 +59,22 @@
 /* Distribute the 3 smaller cards equally across the second row */
 .payment-stat-card.pending {
   grid-column: 1;
+   border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
 }
 
 .payment-stat-card.due {
   grid-column: 2;
+   border-left: 4px solid #dc2626;
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
 }
 
 .payment-stat-card.profit {
   grid-column: 3;
   transform: scale(0.95);
   justify-self: stretch;
+   border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
 }
 
 .payment-stat-card.received::before,
@@ -127,28 +135,6 @@
 
 .payment-stat-card:hover::before {
   transform: scaleX(1);
-}
-
-
-
-.payment-stat-card.paid {
-  border-left: 6px solid #ef4444;
-  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
-}
-
-.payment-stat-card.pending {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-}
-
-.payment-stat-card.due {
-  border-left: 4px solid #dc2626;
-  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
-}
-
-.payment-stat-card.profit {
-  border-left: 4px solid #3b82f6;
-  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
 }
 
 /* Enhanced Stat Card Header */
@@ -866,17 +852,6 @@
   min-width: 60px;
   flex-shrink: 0;
 }
-
-/* Enhanced before indicator for payment items */
-
-.recent-payment-amount.positive {
-  color: #22c55e;
-}
-
-.recent-payment-amount.negative {
-  color: #ef4444;
-}
-
 /* Enhanced Action Buttons - Compact */
 .payment-item-actions {
   display: flex;
@@ -955,66 +930,6 @@
   white-space: nowrap;
 }
 
-.recent-payment-amount.positive {
-  color: #22c55e;
-}
-
-.recent-payment-amount.negative {
-  color: #ef4444;
-}
-
-/* Row 3: Action Buttons - Compact Layout */
-.payment-item-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.payment-action-btn {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 28px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.payment-action-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  transition: left 0.5s;
-}
-
-.payment-action-btn:hover::before {
-  left: 100%;
-}
-
-.payment-action-btn.mark-paid {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25); /* Reduced shadow */
-}
-
-.payment-action-btn.mark-paid:hover {
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  transform: translateY(-1px) scale(1.02); /* More subtle transform */
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-}
 
 .payment-action-btn.edit {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -1081,38 +996,19 @@
 }
 
 /* Enhanced Recent Payment Icons */
-.recent-payment-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  color: white;
-  margin-right: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-}
+
 
 .recent-payment-item:hover .recent-payment-icon {
   transform: scale(1.1);
 }
 
-.recent-payment-icon.received {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-}
+
 
 .recent-payment-icon.paid {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 }
 
-.recent-payment-time {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  text-align: right;
-  white-space: nowrap;
-}
+
 
 /* Enhanced Loading States */
 .payment-loading {
@@ -2182,19 +2078,23 @@
   height: 100%;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
-  z-index: 10010;
+  z-index: 100000 !important;
   align-items: flex-start;
   justify-content: center;
   padding: 20px;
   box-sizing: border-box;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .modal.show {
-  display: flex;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .modal .modal-content {
-  background: white;
+  background: white !important;
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease-out;
@@ -2202,6 +2102,9 @@
   overflow-y: auto;
   border: 1px solid #e2e8f0;
   position: relative;
+  z-index: 100001 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .modal-close {
@@ -2495,60 +2398,6 @@
   }
 }
 
-/* Payment Chart Section */
-.payment-chart-section {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 32px;
-}
-
-.payment-chart-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.payment-chart-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.payment-chart-controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.payment-chart-controls select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: white;
-  color: #374151;
-}
-
-.payment-chart-container {
-  position: relative;
-  height: 400px;
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-/* Payment Content Grid */
-.payment-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 24px;
-}
 
 /* Recurring Payments Section */
 .recurring-payments-section {
@@ -2573,29 +2422,6 @@
   align-items: center;
   gap: 8px;
 }
-
-.recurring-payments-filters {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-btn {
-  padding: 6px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
-  color: #374151;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-btn.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
 .filter-btn:hover {
   background: #f3f4f6;
 }
@@ -2625,21 +2451,6 @@
   border-color: #d1d5db;
 }
 
-.recurring-payment-item.overdue {
-  border-color: #ef4444;
-  background: #fef2f2;
-}
-
-.recurring-payment-item.pending {
-  border-color: #f59e0b;
-  background: #fffbeb;
-}
-
-.recurring-payment-item.completed {
-  border-color: #22c55e;
-  background: #f0fdf4;
-}
-
 .payment-item-info {
   flex: 1;
 }
@@ -2662,32 +2473,6 @@
   font-size: 1.1rem;
   color: #ef4444;
 }
-
-.payment-item-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.payment-action-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.payment-action-btn.mark-paid {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
-  border: 2px solid #22c55e;
-  position: relative;
-  overflow: hidden;
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .payment-action-btn.mark-paid::before {
   content: '';
   position: absolute;
@@ -2703,12 +2488,7 @@
   left: 100%;
 }
 
-.payment-action-btn.mark-paid:hover {
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  border-color: #16a34a;
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-}
+
 
 .payment-action-btn.mark-paid:active {
   transform: translateY(-1px) scale(1.02);
@@ -2718,43 +2498,6 @@
 .payment-action-btn.mark-paid:focus {
   outline: none;
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4), 0 0 0 3px rgba(34, 197, 94, 0.2);
-}
-
-.payment-action-btn.edit {
-  background: #3b82f6;
-  color: white;
-}
-
-.payment-action-btn.edit:hover {
-  background: #2563eb;
-}
-
-.payment-action-btn.delete {
-  background: #ef4444;
-  color: white;
-}
-
-.payment-action-btn.delete:hover {
-  background: #dc2626;
-}
-
-.add-payment-btn {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.add-payment-btn:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
 }
 
 /* Recent Payments Section */
@@ -2786,13 +2529,7 @@
   overflow-y: auto;
 }
 
-.recent-payment-item {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.2s ease;
-}
+
 
 .recent-payment-item:hover {
   background: #f9fafb;
@@ -2800,62 +2537,6 @@
 
 .recent-payment-item:last-child {
   border-bottom: none;
-}
-
-.recent-payment-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: white;
-  margin-right: 16px;
-}
-
-.recent-payment-icon.received {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-}
-
-.recent-payment-icon.paid {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.recent-payment-info {
-  flex: 1;
-}
-
-.recent-payment-title {
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.recent-payment-details {
-  font-size: 0.85rem;
-  color: #6b7280;
-  display: flex;
-  gap: 12px;
-}
-
-.recent-payment-amount {
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
-.recent-payment-amount.positive {
-  color: #22c55e;
-}
-
-.recent-payment-amount.negative {
-  color: #ef4444;
-}
-
-.recent-payment-time {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  text-align: right;
 }
 
 /* Responsive Design */
@@ -2909,47 +2590,9 @@
     opacity: 1;
   }
 }
-
-/* Loading States */
-.payment-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: #6b7280;
-}
-
-.payment-loading i {
-  animation: spin 1s linear infinite;
-  margin-right: 8px;
-}
-
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-/* Empty State */
-.payment-empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #6b7280;
-}
-
-.payment-empty-state i {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.payment-empty-state h3 {
-  font-size: 1.2rem;
-  margin-bottom: 8px;
-}
-
-.payment-empty-state p {
-  font-size: 0.9rem;
-  margin-bottom: 24px;
 }
 
 /* Enhanced Payment Category Grid */
@@ -3366,13 +3009,6 @@
 }
 
 /* Payment History Button and Modal Styles */
-.recent-payments-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
 .payment-history-btn {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark)100%);
   color: white;

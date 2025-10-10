@@ -3,34 +3,57 @@
  * Handles all offer-related functionality in the gym admin dashboard
  */
 
+console.log('🚀 OFFERS MANAGER SCRIPT LOADING...');
+
 class OffersManager {
   constructor() {
+    console.log('🏗️ OffersManager constructor called');
     this.currentTab = 'templates';
     this.offers = [];
     this.coupons = [];
     this.templates = [];
-    this.initialized = false; // Add a flag to track initialization
+    this.initialized = false;
+    
+    // Make this instance globally available immediately
+    window.offersManager = this;
+    console.log('🌐 OffersManager made globally available');
+    
     this.init();
   }
 
   async init() {
     console.log('🎯 Offers Manager: Setting up...');
-    window.offersManager = this;
-    // The main initialization will now be triggered by the tab becoming visible.
-    this.watchForTabActivation();
+    
+    // Simple direct initialization
+    this.safeInitialize();
   }
 
   safeInitialize() {
-    // This function will be called once the tab is visible.
-    if (this.initialized) return; // Prevent re-running setup
-    console.log('🚀 Offers tab is visible. Performing one-time initialization...');
+    console.log('🚀 OffersManager: safeInitialize() called');
+    console.log('🔍 Document ready state:', document.readyState);
+    console.log('🔍 Already initialized?:', this.initialized);
+    
+    // This function will be called once the DOM is ready
+    if (this.initialized) {
+      console.log('⚠️ Already initialized, skipping...');
+      return; // Prevent re-running setup
+    }
+    
+    console.log('🚀 Offers Manager: Performing initialization...');
     
     try {
       this.initializeElements();
       this.initialized = true; // Mark as initialized
       console.log('✅ Offers Manager initialized successfully.');
     } catch (error) {
-      console.error('❌ Error during offers manager one-time initialization:', error);
+      console.error('❌ Error during offers manager initialization:', error);
+      console.error('❌ Error stack:', error.stack);
+      // Retry initialization after a delay
+      setTimeout(() => {
+        console.log('🔄 Retrying initialization...');
+        this.initialized = false;
+        this.safeInitialize();
+      }, 1000);
     }
   }
 
@@ -41,7 +64,6 @@ class OffersManager {
       this.loadOfferTemplates();
       this.loadOfferStats();
       this.setupTabNavigation();
-      this.setupModalClosers();
       this.debugButtonAvailability();
     } catch (error) {
       console.error('❌ Error initializing Offers Manager elements:', error);
@@ -67,43 +89,6 @@ class OffersManager {
     });
   }
   
-  watchForTabActivation() {
-    // Simplified initialization - just check if tab becomes visible periodically
-    const checkInterval = setInterval(() => {
-      const offersTab = document.getElementById('offersTab');
-      if (offersTab && offersTab.style.display === 'block' && !this.initialized) {
-        console.log('💡 Offers tab detected as visible. Initializing...');
-        this.safeInitialize();
-        clearInterval(checkInterval); // Stop checking after initialization
-      }
-    }, 500); // Check every 500ms
-
-    // Stop checking after 30 seconds to prevent infinite polling
-    setTimeout(() => {
-      clearInterval(checkInterval);
-    }, 30000);
-  }
-  
-  setupModalClosers() {
-    // Setup common modal closing functionality
-    document.addEventListener('click', (e) => {
-      // Only close if the click is on the modal backdrop itself
-      if (e.target.classList.contains('modal')) {
-        e.target.classList.remove('show');
-      }
-    });
-    
-    // Setup escape key to close modals
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const openModal = document.querySelector('.modal.show');
-        if (openModal) {
-          openModal.classList.remove('show');
-        }
-      }
-    });
-  }
-
   setupEventListeners() {
     console.log('🔗 Setting up event listeners...');
     
@@ -116,7 +101,7 @@ class OffersManager {
       console.log('✅ Found createCustomOfferBtn, adding click listener');
       createOfferBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('🖱️ Create offer button clicked');
+        console.log('🖱️ Create offer button clicked - calling openOfferCreationModal()');
         this.openOfferCreationModal();
       });
     } else {
@@ -128,7 +113,7 @@ class OffersManager {
       viewCouponsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         console.log('🖱️ View coupons button clicked');
-        this.switchToTab('coupons');
+        this.showActiveCouponsModal();
       });
     } else {
       console.warn('⚠️ viewActiveCouponsBtn not found');
@@ -138,7 +123,7 @@ class OffersManager {
       console.log('✅ Found generateCouponBtn, adding click listener');
       generateCouponBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('🖱️ Generate coupon button clicked');
+        console.log('🖱️ Generate coupon button clicked - calling openCouponGenerationModal()');
         this.openCouponGenerationModal();
       });
     } else {
@@ -158,16 +143,20 @@ class OffersManager {
   }
 
   setupModalListeners() {
+    console.log('🔧 Setting up modal listeners...');
+    
     // Offer Creation Modal
     const closeOfferModal = document.getElementById('closeOfferModal');
     const cancelOfferBtn = document.getElementById('cancelOfferBtn');
 
     if (closeOfferModal) {
       closeOfferModal.addEventListener('click', () => this.closeModal('offerCreationModal'));
+      console.log('✅ Close offer modal listener attached');
     }
 
     if (cancelOfferBtn) {
       cancelOfferBtn.addEventListener('click', () => this.closeModal('offerCreationModal'));
+      console.log('✅ Cancel offer button listener attached');
     }
 
     // Coupon Generation Modal
@@ -176,16 +165,19 @@ class OffersManager {
 
     if (closeCouponModal) {
       closeCouponModal.addEventListener('click', () => this.closeModal('couponGenerationModal'));
+      console.log('✅ Close coupon modal listener attached');
     }
 
     if (cancelCouponBtn) {
       cancelCouponBtn.addEventListener('click', () => this.closeModal('couponGenerationModal'));
+      console.log('✅ Cancel coupon button listener attached');
     }
 
     // Template Preview Modal
     const closeTemplatePreviewModal = document.getElementById('closeTemplatePreviewModal');
     if (closeTemplatePreviewModal) {
       closeTemplatePreviewModal.addEventListener('click', () => this.closeModal('templatePreviewModal'));
+      console.log('✅ Close template preview modal listener attached');
     }
 
     // Coupon Detail Modal
@@ -203,6 +195,7 @@ class OffersManager {
     const generateRandomCouponBtn = document.getElementById('generateRandomCouponBtn');
     if (generateRandomCouponBtn) {
       generateRandomCouponBtn.addEventListener('click', () => this.generateRandomCouponCode());
+      console.log('✅ Generate random coupon button listener attached');
     }
 
     // Auto-generate coupon on offer creation
@@ -218,6 +211,8 @@ class OffersManager {
         }
       });
     }
+    
+    console.log('✅ Modal listeners setup complete');
   }
 
   setupFormSubmissions() {
@@ -255,21 +250,39 @@ class OffersManager {
   }
 
   setupTabNavigation() {
+    console.log('🔧 Setting up tab navigation...');
     const offersTabElement = document.getElementById('offersTab');
-    if (!offersTabElement) return;
+    if (!offersTabElement) {
+      console.error('❌ Offers tab element not found');
+      return;
+    }
 
     const tabButtons = offersTabElement.querySelectorAll('.payment-tab-btn');
+    console.log(`Found ${tabButtons.length} tab buttons`);
+    
     tabButtons.forEach(btn => {
+      const tabName = btn.dataset.tab;
+      console.log(`Setting up tab button for: ${tabName}`);
+      
       btn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent click from affecting other elements
-        this.switchToTab(btn.dataset.tab);
+        e.preventDefault();
+        console.log(`🎯 Tab button clicked: ${tabName}`);
+        this.switchToTab(tabName);
       });
     });
+    
+    // Initialize with templates tab active
+    this.switchToTab('templates');
+    console.log('✅ Tab navigation setup complete');
   }
 
   switchToTab(tabName) {
+    console.log(`🔄 Switching to tab: ${tabName}`);
     const offersTabElement = document.getElementById('offersTab');
-    if (!offersTabElement) return;
+    if (!offersTabElement) {
+      console.error('❌ Offers tab element not found');
+      return;
+    }
   
     // Update active tab button within the offers tab
     offersTabElement.querySelectorAll('.payment-tab-btn').forEach(btn => {
@@ -277,29 +290,56 @@ class OffersManager {
     });
     const activeButton = offersTabElement.querySelector(`[data-tab="${tabName}"]`);
     if (activeButton) {
-        activeButton.classList.add('active');
+      activeButton.classList.add('active');
+      console.log(`✅ Tab button activated: ${tabName}`);
+    } else {
+      console.error(`❌ Tab button not found for: ${tabName}`);
     }
   
-    // Show corresponding tab content within the offers tab
-    offersTabElement.querySelectorAll('.offer-tab-content').forEach(content => {
+    // Hide all tab content within the offers tab
+    offersTabElement.querySelectorAll('.payment-tab-content, .offer-tab-content').forEach(content => {
+      content.style.display = 'none';
       content.classList.remove('active');
     });
   
+    // Show the target tab content
     const targetTab = offersTabElement.querySelector(`#${tabName}Tab`);
     if (targetTab) {
+      targetTab.style.display = 'block';
       targetTab.classList.add('active');
       this.currentTab = tabName;
+      console.log(`✅ Tab content shown: ${tabName}Tab`);
   
       // Load data for the activated tab
-      if (tabName === 'campaigns') {
-        this.loadActiveCampaigns();
-      } else if (tabName === 'coupons') {
-        this.loadCoupons();
-      } else if (tabName === 'templates') {
+      this.loadTabData(tabName);
+    } else {
+      console.error(`❌ Tab content not found: ${tabName}Tab`);
+      
+      // Debug: List all available tab content elements
+      const allTabContent = offersTabElement.querySelectorAll('[id$="Tab"]');
+      console.log('📋 Available tab content elements:', Array.from(allTabContent).map(el => el.id));
+    }
+  }
+
+  loadTabData(tabName) {
+    console.log(`📊 Loading data for tab: ${tabName}`);
+    
+    switch (tabName) {
+      case 'templates':
         this.loadOfferTemplates();
-      } else if (tabName === 'analytics') {
+        break;
+      case 'active':
+      case 'campaigns':
+        this.loadActiveCampaigns();
+        break;
+      case 'coupons':
+        this.loadCoupons();
+        break;
+      case 'analytics':
         this.loadAnalytics();
-      }
+        break;
+      default:
+        console.warn(`⚠️ Unknown tab: ${tabName}`);
     }
   }
 
@@ -449,14 +489,15 @@ class OffersManager {
     const template = this.templates.find(t => t.id === templateId);
     if (!template) return;
 
-    const modal = document.getElementById('templatePreviewModal');
     const content = document.getElementById('templatePreviewContent');
-    
-    if (modal && content) {
+    if (content) {
       content.innerHTML = this.generateTemplatePreview(template);
-      modal.style.display = 'flex';
+    }
 
-      // Setup preview modal buttons
+    this.openModal('templatePreviewModal');
+
+    // Setup preview modal buttons after modal is open
+    setTimeout(() => {
       const customizeBtn = document.getElementById('customizeTemplateBtn');
       const launchBtn = document.getElementById('launchOfferBtn');
 
@@ -473,7 +514,7 @@ class OffersManager {
           this.launchOffer(template);
         };
       }
-    }
+    }, 100);
   }
 
   generateTemplatePreview(template) {
@@ -823,31 +864,167 @@ class OffersManager {
   // Modal Management
   openOfferCreationModal() {
     console.log('🎯 Opening offer creation modal...');
-    const modal = document.getElementById('offerCreationModal');
-    if (modal) {
-      this.resetForm('offerCreationForm');
-      this.generateCouponCode();
-      modal.style.display = 'flex';
-      modal.style.alignItems = 'center';
-      modal.style.justifyContent = 'center';
-      console.log('✅ Offer creation modal opened');
-    } else {
-      console.error('❌ Offer creation modal not found');
-    }
+    this.resetForm('offerCreationForm');
+    this.openModal('offerCreationModal');
   }
 
   openCouponGenerationModal() {
     console.log('🎯 Opening coupon generation modal...');
-    const modal = document.getElementById('couponGenerationModal');
+    this.resetForm('couponGenerationForm');
+    this.generateRandomCouponCode();
+    this.openModal('couponGenerationModal');
+  }
+
+  showActiveCouponsModal() {
+    console.log('🎯 Showing active coupons modal...');
+    
+    // Load current coupons data
+    const modal = document.getElementById('couponDetailModal');
+    if (!modal) {
+      console.error('❌ Coupon detail modal not found');
+      return;
+    }
+
+    // Update modal content with active coupons
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) {
+      modalBody.innerHTML = `
+        <h3 style="margin-bottom: 20px;">Active Coupons</h3>
+        <div class="coupons-table-container">
+          <table class="coupons-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Discount</th>
+                <th>Usage</th>
+                <th>Expires</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="activeCouponsTableBody">
+              <tr>
+                <td><span class="coupon-code">WINTER25</span></td>
+                <td><span class="coupon-type percentage">Percentage</span></td>
+                <td><span class="coupon-discount">25%</span></td>
+                <td>
+                  <div class="coupon-usage">
+                    <span>12/50</span>
+                    <div class="usage-bar">
+                      <div class="usage-fill" style="width: 24%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>Dec 31, 2025</td>
+                <td><span class="coupon-status active">Active</span></td>
+              </tr>
+              <tr>
+                <td><span class="coupon-code">SAVE100</span></td>
+                <td><span class="coupon-type fixed">Fixed</span></td>
+                <td><span class="coupon-discount">₹100</span></td>
+                <td>
+                  <div class="coupon-usage">
+                    <span>8/25</span>
+                    <div class="usage-bar">
+                      <div class="usage-fill" style="width: 32%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>Nov 30, 2025</td>
+                <td><span class="coupon-status active">Active</span></td>
+              </tr>
+              <tr>
+                <td><span class="coupon-code">FIRSTTIME</span></td>
+                <td><span class="coupon-type percentage">Percentage</span></td>
+                <td><span class="coupon-discount">20%</span></td>
+                <td>
+                  <div class="coupon-usage">
+                    <span>45/100</span>
+                    <div class="usage-bar">
+                      <div class="usage-fill" style="width: 45%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>Dec 15, 2025</td>
+                <td><span class="coupon-status active">Active</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+          <button class="btn-primary" onclick="offersManager.openCouponGenerationModal(); offersManager.closeModal('couponDetailModal');">
+            <i class="fas fa-plus"></i> Generate New Coupon
+          </button>
+        </div>
+      `;
+    }
+
+    this.openModal('couponDetailModal');
+  }
+
+  // Unified modal management functions
+  openModal(modalId) {
+    console.log(`🎯 Opening modal: ${modalId}`);
+    console.log(`🔍 Checking if modal element exists...`);
+    
+    // Close any other open modals first (both regular modals and offers modals)
+    document.querySelectorAll('.modal, .offers-modal').forEach(m => {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    });
+
+    // Hide interfering elements
+    const interfering = ['profileDropdownMenu', 'userDropdown', 'notificationDropdown'];
+    interfering.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.style.display = 'none';
+    });
+
+    const modal = document.getElementById(modalId);
+    console.log(`🔍 Modal element found:`, modal);
+    
     if (modal) {
-      this.resetForm('couponGenerationForm');
-      this.generateRandomCouponCode();
+      console.log(`🔧 Setting modal styles...`);
+      
+      // Set explicit styles to override CSS
       modal.style.display = 'flex';
-      modal.style.alignItems = 'center';
-      modal.style.justifyContent = 'center';
-      console.log('✅ Coupon generation modal opened');
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.width = '100vw';
+      modal.style.height = '100vh';
+      modal.style.zIndex = '1000000';
+      modal.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+      modal.style.opacity = '1';
+      modal.style.visibility = 'visible';
+      modal.style.pointerEvents = 'auto';
+      modal.classList.add('show');
+      
+      // Ensure modal content is visible
+      const modalContent = modal.querySelector('.modal-content');
+      if (modalContent) {
+        console.log(`🔧 Setting modal content styles...`);
+        modalContent.style.zIndex = '1000001';
+        modalContent.style.position = 'relative';
+        modalContent.style.opacity = '1';
+        modalContent.style.visibility = 'visible';
+      }
+      
+      // Force a reflow
+      modal.offsetHeight;
+      
+      console.log(`✅ Modal ${modalId} opened with styles:`, {
+        display: modal.style.display,
+        position: modal.style.position,
+        zIndex: modal.style.zIndex,
+        opacity: modal.style.opacity,
+        visibility: modal.style.visibility
+      });
     } else {
-      console.error('❌ Coupon generation modal not found');
+      console.error(`❌ Modal ${modalId} not found in DOM`);
+      console.log(`🔍 Available modal elements:`, 
+        Array.from(document.querySelectorAll('[id*="Modal"]')).map(el => el.id)
+      );
     }
   }
 
@@ -856,6 +1033,7 @@ class OffersManager {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.style.display = 'none';
+      modal.classList.remove('show');
       console.log(`✅ Modal ${modalId} closed`);
     } else {
       console.error(`❌ Modal ${modalId} not found`);
@@ -1138,14 +1316,139 @@ class OffersManager {
   }
 }
 
-// Initialize offers manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🔄 Initializing Offers Manager...');
-  window.offersManager = new OffersManager();
-  console.log('✅ Offers Manager initialized and made globally available');
-});
+console.log('🏁 OffersManager class defined successfully');
 
+// Add immediate global test functions
+window.directTestModal = function(modalId) {
+  console.log(`🔧 DIRECT TEST: Attempting to show modal ${modalId}`);
+  const modal = document.getElementById(modalId);
+  console.log(`🔍 Modal element:`, modal);
+  
+  if (modal) {
+    // Force modal to show with very explicit styles
+    modal.style.cssText = `
+      display: flex !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 999999 !important;
+      background-color: rgba(0, 0, 0, 0.8) !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      align-items: center !important;
+      justify-content: center !important;
+    `;
+    
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.style.cssText = `
+        z-index: 1000000 !important;
+        position: relative !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: scale(1) !important;
+      `;
+    }
+    
+    console.log(`✅ DIRECT TEST: Modal ${modalId} forced to display`);
+    return true;
+  } else {
+    console.log(`❌ DIRECT TEST: Modal ${modalId} not found`);
+    // List all available modal-like elements
+    const allModals = document.querySelectorAll('[id*="Modal"], [id*="modal"]');
+    console.log(`🔍 Available modal elements:`, Array.from(allModals).map(el => el.id));
+    return false;
+  }
+};
+
+window.directTestButtons = function() {
+  console.log(`🔧 DIRECT TEST: Checking button availability`);
+  const buttons = ['createCustomOfferBtn', 'viewActiveCouponsBtn', 'generateCouponBtn'];
+  const results = {};
+  
+  buttons.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    results[btnId] = {
+      exists: !!btn,
+      visible: btn ? (btn.offsetWidth > 0 && btn.offsetHeight > 0) : false,
+      element: btn
+    };
+    console.log(`🔍 ${btnId}:`, results[btnId]);
+  });
+  
+  return results;
+};
+
+window.directTestOffersTab = function() {
+  console.log(`🔧 DIRECT TEST: Checking offers tab`);
+  const offersTab = document.getElementById('offersTab');
+  console.log(`🔍 Offers tab:`, {
+    exists: !!offersTab,
+    display: offersTab ? offersTab.style.display : 'not found',
+    visible: offersTab ? (offersTab.offsetWidth > 0 && offersTab.offsetHeight > 0) : false
+  });
+  
+  if (offersTab) {
+    // Force offers tab to show
+    offersTab.style.display = 'block';
+    console.log(`✅ Offers tab forced to display`);
+    
+    // Re-test buttons
+    return window.directTestButtons();
+  }
+  
+  return false;
+};
+
+// Defer initialization until explicitly called
+// document.addEventListener('DOMContentLoaded', () => {
+//   console.log('🔄 DOM loaded, initializing Offers Manager...');
+//   try {
+//     window.offersManager = new OffersManager();
+//     console.log('✅ Offers Manager initialized and made globally available');
+//   } catch (error) {
+//     console.error('❌ Error during OffersManager initialization:', error);
+//   }
+// });
+
+/**
+ * Initializes the Offers Manager. This should be called when the offers tab becomes visible.
+ */
+window.initializeOffersManager = function() {
+  console.log('🚀 Called initializeOffersManager()');
+  if (window.offersManager && window.offersManager.initialized) {
+    console.log('⚠️ Offers Manager already initialized.');
+    return;
+  }
+  try {
+    console.log('🔄 Creating new OffersManager instance...');
+    window.offersManager = new OffersManager();
+    console.log('✅ Offers Manager initialized and made globally available');
+  } catch (error) {
+    console.error('❌ Error during OffersManager initialization:', error);
+  }
+};
+
+// Remove other early initialization attempts
+/*
 // Also make it available immediately for any early calls
 if (!window.offersManager) {
   window.offersManager = null;
+  
+  // If DOM is already loaded, initialize immediately
+  if (document.readyState !== 'loading') {
+    console.log('🔄 DOM already loaded, initializing Offers Manager immediately...');
+    setTimeout(() => {
+      try {
+        window.offersManager = new OffersManager();
+        console.log('✅ Offers Manager initialized and made globally available');
+      } catch (error) {
+        console.error('❌ Error during immediate OffersManager initialization:', error);
+      }
+    }, 100);
+  }
 }
+*/

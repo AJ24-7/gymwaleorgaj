@@ -3,48 +3,97 @@ class PaymentManager {
   constructor() {
     console.log('PaymentManager constructor started');
     this.isPaymentTabAuthorized = false;
-    this.isSetupMode = false;
+    this.passkeyAttempts = 3;
     this.maxAttempts = 3;
-    this.passkeyAttempts = this.maxAttempts;
-
-    // Light-weight setup only; heavy work happens on demand
-    this.setupPasskeyModal();
-    this.setupPasskeySettings();
-    // Do NOT auto-bind payment tab intercepts here to avoid duplicates; we use global lazy listeners.
+    this.isSetupMode = false;
+    
+    // Payment management properties
+    this.paymentChart = null;
+    this.currentFilter = 'all';
+    this.regularPendingAmount = 0; // Store regular pending payments
+    this.memberPendingAmount = 0;  // Store member pending payments
+    this.recentRegularPendingPayments = [];
+    this.recentMemberPendingPayments = [];
+    
+    // Enhanced notification system properties
+    this.seenNotifications = new Set();
+    this.lastNotificationCheck = new Date();
+    
+    console.log('Initializing admin passkey system...');
+    this.initializeAdminPasskey();
+    
+    // Initialize payment data and system
+    this.init();
+    this.bindAllStatCardEvents();
+    
+    // Initialize enhanced payment reminders
+    this.initializePaymentReminders();
+    
+    // Initialize passkey status on page load
+    this.updatePasskeySettingsUI();
+    
+    console.log('PaymentManager constructor completed');
   }
 
-  // Initialize admin passkey system (available if called elsewhere)
+  // Initialize admin passkey system
   initializeAdminPasskey() {
-    console.log('🔧 PaymentManager initializeAdminPasskey called');
     this.setupPasskeyModal();
     this.setupPasskeySettings();
-    // Add a small delay to ensure DOM is ready
-    setTimeout(() => {
-      this.interceptPaymentTabAccess();
-      console.log('✅ Payment tab access interception set up');
-    }, 100);
+    this.interceptPaymentTabAccess();
   }
 
   // Setup passkey modal functionality
   setupPasskeyModal() {
     const modal = document.getElementById('adminPasskeyModal');
-    if (!modal) return;
-
     const verifyBtn = document.getElementById('verifyPasskey');
     const cancelBtn = document.getElementById('cancelPasskey');
-    const keypad = document.getElementById('passkeyKeypad');
+    const passkeyInputs = document.querySelectorAll('.passkey-digit');
+    const keypadBtns = document.querySelectorAll('.keypad-btn');
 
-    if (verifyBtn) {
-      verifyBtn.onclick = () => this.verifyPasskey();
-    }
+    // Setup input navigation
+    passkeyInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        const value = e.target.value;
+        if (value && index < passkeyInputs.length - 1) {
+          passkeyInputs[index + 1].focus();
+        }
+        this.updatePasskeyDisplay();
+      });
 
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        console.log('Cancel button clicked - resetting authorization');
-        this.isPaymentTabAuthorized = false; // Reset authorization when cancelled
-        this.hidePasskeyModal();
-      };
-    }
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          passkeyInputs[index - 1].focus();
+        }
+      });
+    });
+
+    // Setup mobile keypad
+    keypadBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const digit = btn.dataset.digit;
+        const action = btn.dataset.action;
+
+        if (digit) {
+          this.addDigitToPasskey(digit);
+        } else if (action === 'clear') {
+          this.clearLastDigit();
+        } else if (action === 'clear-all') {
+          this.clearAllDigits();
+        }
+      });
+    });
+
+    // Setup verify button
+    verifyBtn.addEventListener('click', () => {
+      this.verifyPasskey();
+    });
+
+    // Setup cancel button
+    cancelBtn.addEventListener('click', () => {
+      console.log('Cancel button clicked - resetting authorization');
+      this.isPaymentTabAuthorized = false; // Reset authorization when cancelled
+      this.hidePasskeyModal();
+    });
 
     // Setup modal backdrop click
     modal.addEventListener('click', (e) => {
@@ -54,104 +103,6 @@ class PaymentManager {
         this.hidePasskeyModal();
       }
     });
-
-    // Keypad support (mobile-friendly)
-    if (keypad) {
-      keypad.addEventListener('click', (e) => {
-        const btn = e.target.closest('.keypad-btn');
-        if (!btn) return;
-        const digit = btn.getAttribute('data-digit');
-        const action = btn.getAttribute('data-action');
-        if (digit !== null) {
-          this.addDigitToPasskey(digit);
-        } else if (action === 'clear') {
-          this.clearLastDigit();
-        } else if (action === 'clear-all') {
-          this.clearAllDigits();
-        }
-      });
-    }
-
-    // Inputs navigation and keyboard handling
-    const inputs = modal.querySelectorAll('.passkey-digit');
-    inputs.forEach((input, index) => {
-      input.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 1);
-        if (e.target.value && index < inputs.length - 1) {
-          inputs[index + 1].focus();
-        }
-        this.updatePasskeyDisplay();
-      });
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Backspace' && !e.target.value && index > 0) {
-          inputs[index - 1].focus();
-        } else if (/^[0-9]$/.test(e.key)) {
-          e.preventDefault();
-          this.addDigitToPasskey(e.key);
-        } else if (e.key === 'Enter') {
-          this.verifyPasskey();
-        }
-      });
-    });
-  }
-
-  // Unified handler for Payment tab/menu click to avoid duplicate logic
-  async handlePaymentMenuClick(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    console.log('Payment tab access requested, checking authorization...');
-    if (!this.isPaymentTabAuthorized) {
-      try {
-        const gymId = await this.getCurrentGymAdminId();
-        const storedPasskey = localStorage.getItem(`gymAdminPasskey_${gymId}`);
-        const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${gymId}`);
-        const isSkipped = skipExpiry && new Date().getTime() < parseInt(skipExpiry);
-        console.log('Stored passkey check:', storedPasskey ? 'Found' : 'Not found');
-        console.log('Skip check:', isSkipped ? 'Active skip' : 'No skip or expired');
-        if (isSkipped) {
-          console.log('Passkey setup was skipped, allowing direct access');
-          this.isPaymentTabAuthorized = true;
-          this.showPaymentTab();
-        } else if (!storedPasskey) {
-          this.showPasskeySetupDialog();
-        } else {
-          this.showPasskeyModal();
-        }
-      } catch (error) {
-        console.error('Error checking payment access:', error);
-        window.unifiedAuthManager.redirectToLogin();
-      }
-    } else {
-      console.log('Already authorized, showing payment tab');
-      this.showPaymentTab();
-    }
-  }
-
-  // Simplified intercept: just delegate to unified handler
-  interceptPaymentTabAccess() {
-    const paymentTabButton = document.querySelector('[data-tab="paymentTab"]');
-    if (paymentTabButton) {
-      paymentTabButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handlePaymentMenuClick(e);
-      });
-    }
-    const paymentsMenuLink = Array.from(document.querySelectorAll('.menu-link')).find(link =>
-      link.querySelector('.fa-credit-card')
-    );
-    if (paymentsMenuLink) {
-      const newPaymentsMenuLink = paymentsMenuLink.cloneNode(true);
-      paymentsMenuLink.parentNode.replaceChild(newPaymentsMenuLink, paymentsMenuLink);
-      newPaymentsMenuLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handlePaymentMenuClick(e);
-      });
-    }
   }
 
   // Setup passkey settings functionality
@@ -225,6 +176,103 @@ class PaymentManager {
     this.setupPasskeyInputNavigation();
   }
 
+  // Intercept payment tab access
+  interceptPaymentTabAccess() {
+    const paymentTabButton = document.querySelector('[data-tab="paymentTab"]');
+    if (paymentTabButton) {
+      paymentTabButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Payment tab access requested, checking authorization...');
+        
+        if (!this.isPaymentTabAuthorized) {
+          // Check if passkey exists or if setup was skipped
+          const storedPasskey = localStorage.getItem(`gymAdminPasskey_${this.getCurrentGymAdminId()}`);
+          const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
+          const isSkipped = skipExpiry && new Date().getTime() < parseInt(skipExpiry);
+          
+          console.log('Stored passkey check:', storedPasskey ? 'Found' : 'Not found');
+          console.log('Skip check:', isSkipped ? 'Active skip' : 'No skip or expired');
+          
+          if (isSkipped) {
+            // Skip is active, allow direct access
+            console.log('Passkey setup was skipped, allowing direct access');
+            this.isPaymentTabAuthorized = true;
+            this.showPaymentTab();
+          } else if (!storedPasskey) {
+            this.showPasskeySetupDialog();
+          } else {
+            this.showPasskeyModal();
+          }
+        } else {
+          console.log('Already authorized, showing payment tab');
+          this.showPaymentTab();
+        }
+      });
+    }
+    
+    // Also intercept the main navigation system's payment menu link
+    const paymentsMenuLink = Array.from(document.querySelectorAll('.menu-link')).find(link => 
+      link.querySelector('.fa-credit-card')
+    );
+    
+    if (paymentsMenuLink) {
+      // Remove existing event listeners by cloning the node
+      const newPaymentsMenuLink = paymentsMenuLink.cloneNode(true);
+      paymentsMenuLink.parentNode.replaceChild(newPaymentsMenuLink, paymentsMenuLink);
+      
+      newPaymentsMenuLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Payment menu link clicked, checking authorization...');
+        
+        if (!this.isPaymentTabAuthorized) {
+          // Check if passkey exists or if setup was skipped
+          const storedPasskey = localStorage.getItem(`gymAdminPasskey_${this.getCurrentGymAdminId()}`);
+          const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
+          const isSkipped = skipExpiry && new Date().getTime() < parseInt(skipExpiry);
+          
+          console.log('Stored passkey check:', storedPasskey ? 'Found' : 'Not found');
+          console.log('Skip check:', isSkipped ? 'Active skip' : 'No skip or expired');
+          
+          if (isSkipped) {
+            // Skip is active, allow direct access
+            console.log('Passkey setup was skipped, allowing direct access');
+            this.isPaymentTabAuthorized = true;
+            this.showPaymentTab();
+          } else if (!storedPasskey) {
+            this.showPasskeySetupDialog();
+          } else {
+            this.showPasskeyModal();
+          }
+        } else {
+          console.log('Already authorized, showing payment tab with main navigation');
+          // Use the main app's navigation system
+          if (typeof window.hideAllMainTabs === 'function') {
+            window.hideAllMainTabs();
+          }
+          
+          const paymentTab = document.getElementById('paymentTab');
+          if (paymentTab) {
+            paymentTab.style.display = 'block';
+          }
+          
+          if (typeof window.updateMainContentMargins === 'function') {
+            window.updateMainContentMargins();
+          }
+          
+          // Update navigation state
+          document.querySelectorAll('.menu-link').forEach(link => link.classList.remove('active'));
+          newPaymentsMenuLink.classList.add('active');
+          
+          // Load payment data
+          this.loadPaymentData();
+        }
+      });
+    }
+  }
 
   // Show passkey setup dialog
   showPasskeySetupDialog() {
@@ -439,18 +487,11 @@ class PaymentManager {
 
   // Show passkey modal
   showPasskeyModal(isSetupMode = false) {
-    console.log('🔧 Showing passkey modal, isSetupMode:', isSetupMode);
-    
     const modal = document.getElementById('adminPasskeyModal');
     const paymentTab = document.getElementById('paymentTab');
     
     if (modal) {
-      console.log('🔧 Modal element found, applying show styles');
-      
-      // Use both methods to ensure visibility
-      modal.style.display = 'flex';
       modal.classList.add('active');
-      
       this.clearAllDigits();
       this.hidePasskeyError();
       
@@ -479,12 +520,8 @@ class PaymentManager {
       // Focus first input
       const firstInput = document.querySelector('.passkey-digit');
       if (firstInput) {
-        setTimeout(() => firstInput.focus(), 200);
+        setTimeout(() => firstInput.focus(), 100);
       }
-      
-      console.log('✅ Passkey modal should now be visible');
-    } else {
-      console.error('❌ adminPasskeyModal element not found in DOM');
     }
 
     // Blur background
@@ -495,15 +532,13 @@ class PaymentManager {
 
   // Hide passkey modal
   hidePasskeyModal() {
-    console.log('🔧 Hiding passkey modal...');
+    console.log('Hiding passkey modal...');
     
     const modal = document.getElementById('adminPasskeyModal');
     const paymentTab = document.getElementById('paymentTab');
     
     if (modal) {
-      modal.style.display = 'none';
       modal.classList.remove('active');
-      console.log('✅ Passkey modal hidden');
     }
 
     // Remove blur
@@ -712,44 +747,43 @@ class PaymentManager {
       return;
     }
 
-    // Use the UltraFastSidebar system to properly show payment tab
-    if (window.ultraFastSidebar && typeof window.ultraFastSidebar.switchTab === 'function') {
-      window.ultraFastSidebar.switchTab('paymentTab');
-      console.log('Payment tab switched using UltraFastSidebar');
-    } else {
-      // Fallback to manual tab switching if UltraFastSidebar is not available
-      console.log('UltraFastSidebar not available, using fallback method');
-      
-      // Hide all tabs first
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.style.display = 'none';
-        tab.classList.remove('active');
-      });
-      
-      // Show payment tab
-      const paymentTab = document.getElementById('paymentTab');
-      if (paymentTab) {
-        paymentTab.style.display = 'block';
-        paymentTab.classList.add('active');
-        console.log('Payment tab displayed');
-      }
+    // Use the main app's navigation system to properly show payment tab
+    if (typeof window.hideAllMainTabs === 'function') {
+      window.hideAllMainTabs();
+      console.log('hideAllMainTabs called from showPaymentTab');
+    }
+
+    // Show payment tab using main navigation system
+    const paymentTab = document.getElementById('paymentTab');
+    if (paymentTab) {
+      paymentTab.style.display = 'block';
+      paymentTab.classList.add('active');
+      console.log('Payment tab displayed');
       
       // Update navigation state - activate payment menu link
       document.querySelectorAll('.menu-link').forEach(link => link.classList.remove('active'));
       
       const paymentMenuLink = Array.from(document.querySelectorAll('.menu-link')).find(link => 
-        link.getAttribute('data-tab') === 'paymentTab'
+        link.querySelector('.fa-credit-card') || 
+        link.textContent.trim().toLowerCase().includes('payment')
       );
       
       if (paymentMenuLink) {
         paymentMenuLink.classList.add('active');
         console.log('Payment menu link activated');
       }
+      
+      // Update main content margins if function exists
+      if (typeof window.updateMainContentMargins === 'function') {
+        window.updateMainContentMargins();
+      }
+      
+      // Load payment data
+      this.loadPaymentData();
+      console.log('Payment data loading initiated');
+    } else {
+      console.error('Payment tab element not found');
     }
-    
-    // Load payment data
-    this.loadPaymentData();
-    console.log('Payment data loading initiated');
   }
 
   // Show passkey error
@@ -785,9 +819,35 @@ class PaymentManager {
   }
 
   // Get current gym admin ID
-  async getCurrentGymAdminId() {
-    // Use unified auth manager for consistent ID retrieval
-    return await window.unifiedAuthManager.getCurrentGymAdminId();
+  getCurrentGymAdminId() {
+    try {
+      const token = localStorage.getItem('gymAdminToken');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Get gym-specific ID from token
+        const gymId = payload.gymId || payload.admin?.gymId || payload.gym?.id;
+        const adminId = payload.adminId || payload.admin?.id || payload.id;
+        
+        if (gymId) {
+          console.log('Using gym-specific ID:', gymId);
+          return `gym_${gymId}`;
+        } else if (adminId) {
+          console.log('Using admin-specific ID:', adminId);
+          return `admin_${adminId}`;
+        } else {
+          console.log('Using payload-based fallback');
+          return `user_${JSON.stringify(payload).slice(0, 10)}`;
+        }
+      }
+      
+      // Fallback: use a more specific default based on current URL or timestamp
+      const urlHash = window.location.href.split('/').pop() || 'default';
+      console.log('Using URL-based fallback:', urlHash);
+      return `default_${urlHash}`;
+    } catch (error) {
+      console.error('Error getting gym admin ID:', error);
+      return 'default_fallback';
+    }
   }
 
   // Show notification
@@ -1157,7 +1217,13 @@ class PaymentManager {
 
         this.renderReceivedPaymentsWithMonthSelector(container, paymentsByMonth, currentMonth);
       } else {
-        throw new Error('Failed to fetch received payments');
+        container.innerHTML = `
+          <div class="payment-modal-empty">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Failed to Load</h4>
+            <p>Unable to fetch received payments data.</p>
+          </div>
+        `;
       }
     } catch (error) {
       console.error('Error fetching received payments:', error);
@@ -1298,37 +1364,29 @@ class PaymentManager {
     // Always fetch latest manual (add payment) pending payments from backend
     try {
       // First try to get all recent payments and filter for pending ones
-      let data;
-      if (window.apiConfig) {
-        data = await window.apiConfig.get(window.apiConfig.ENDPOINTS.PAYMENTS.RECENT + '?limit=100');
-      } else {
-        const response = await fetch('http://localhost:5000/api/payments/recent?limit=100', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          data = await response.json();
-        } else {
-          console.error('Failed to fetch manual pending payments:', response.status);
-          manualPending = [];
-          this.recentRegularPendingPayments = [];
-          return;
+      const response = await fetch('http://localhost:5000/api/payments/recent?limit=100', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
+          'Content-Type': 'application/json'
         }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        let allRecent = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        // Only include manual pending payments (not recurring monthly payments)
+        // Filter for type 'pending' and exclude recurring payments
+        manualPending = allRecent.filter(p => 
+          p.type === 'pending' && 
+          !p.isRecurring // Exclude recurring payments (they belong in recurring section)
+        );
+        // Store for modal and stat card use
+        this.recentRegularPendingPayments = manualPending;
+        console.log('Manual pending payments loaded:', manualPending.length, 'payments (excluding recurring)');
+      } else {
+        console.error('Failed to fetch manual pending payments:', response.status);
+        manualPending = [];
+        this.recentRegularPendingPayments = [];
       }
-      
-      let allRecent = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
-      // Only include manual pending payments (not recurring monthly payments)
-      // Filter for type 'pending' and exclude recurring payments
-      manualPending = allRecent.filter(p => 
-        p.type === 'pending' && 
-        !p.isRecurring // Exclude recurring payments (they belong in recurring section)
-      );
-      // Store for modal and stat card use
-      this.recentRegularPendingPayments = manualPending;
-      console.log('Manual pending payments loaded:', manualPending.length, 'payments (excluding recurring)');
     } catch (e) { 
       console.error('Error fetching manual pending payments:', e);
       manualPending = []; 
@@ -5290,51 +5348,24 @@ class PaymentManager {
 
 }
 
-// Lazy initializer to improve dashboard load time
-window.ensurePaymentManager = () => {
-  if (!window.paymentManager) {
-    try {
-      window.paymentManager = new PaymentManager();
-      console.log('PaymentManager created lazily');
-    } catch (error) {
-      console.error('Error creating PaymentManager:', error);
-    }
-  }
-  return window.paymentManager;
-};
-
-// Light-weight global binding: lazily initialize PaymentManager on first Payment tab/menu click
+// Initialize payment manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing PaymentManager...');
   try {
-    const paymentTabButton = document.querySelector('[data-tab="paymentTab"]');
-    if (paymentTabButton) {
-      paymentTabButton.addEventListener('click', (e) => {
-        const mgr = window.ensurePaymentManager();
-        if (mgr && typeof mgr.handlePaymentMenuClick === 'function') {
-          mgr.handlePaymentMenuClick(e);
-        }
-      });
-    }
-
-    // Also intercept sidebar/mobile Payments menu link early (capture) to avoid duplicate handlers
-    const paymentsMenuLink = Array.from(document.querySelectorAll('.menu-link')).find(link =>
-      link.querySelector('.fa-credit-card') || (link.dataset && link.dataset.tab === 'paymentTab')
-    );
-    if (paymentsMenuLink) {
-      paymentsMenuLink.addEventListener('click', (e) => {
-        const mgr = window.ensurePaymentManager();
-        if (mgr && typeof mgr.handlePaymentMenuClick === 'function') {
-          mgr.handlePaymentMenuClick(e);
-        }
-      }, { capture: true });
-    }
-  } catch (err) {
-    console.error('Error binding lazy payment handlers:', err);
+    window.paymentManager = new PaymentManager();
+    console.log('PaymentManager successfully created and attached to window');
+    
+    // Make it globally accessible for debugging
+    window.createPaymentManager = () => {
+      window.paymentManager = new PaymentManager();
+      console.log('New PaymentManager instance created');
+    };
+    
+  } catch (error) {
+    console.error('Error creating PaymentManager:', error);
   }
-});
 
-// Optional: close add payment modal when clicking outside modal content
-document.addEventListener('DOMContentLoaded', () => {
+  // Add logic to close add payment modal when clicking outside modal content
   const modal = document.getElementById('addPaymentModal');
   const modalContent = modal ? modal.querySelector('.add-payment-modal-content') : null;
   if (modal && modalContent) {
