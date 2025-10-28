@@ -89,6 +89,9 @@
             <button class="settings-tab-btn" data-tab="payments">
                 <i class="fas fa-credit-card"></i> Payments
             </button>
+            <button class="settings-tab-btn" data-tab="coupons">
+                <i class="fas fa-gift"></i> My Coupons
+            </button>
             <button class="settings-tab-btn" data-tab="notifications">
                 <i class="fas fa-bell"></i> Notifications
             </button>
@@ -196,6 +199,79 @@
                         </div>
                         <button class="view-all-btn" onclick="viewAllTransactions()">View All Transactions</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- My Coupons Tab -->
+            <div class="settings-tab-content" id="coupons-tab">
+                <div class="tab-header">
+                    <h2><i class="fas fa-gift"></i> My Coupons & Offers</h2>
+                    <p>Manage your claimed coupons and discover new offers</p>
+                </div>
+
+                <!-- Coupons Stats -->
+                <div class="coupons-overview">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="settings-active-coupons">0</span>
+                                <span class="stat-label">Active Coupons</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-piggy-bank"></i>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="settings-total-savings">₹0</span>
+                                <span class="stat-label">Total Savings</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="settings-expiring-soon">0</span>
+                                <span class="stat-label">Expiring Soon</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coupons Filter -->
+                <div class="coupons-filter">
+                    <h3>Filter Coupons</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">All Coupons</button>
+                        <button class="filter-btn" data-filter="active">Active</button>
+                        <button class="filter-btn" data-filter="expiring">Expiring Soon</button>
+                        <button class="filter-btn" data-filter="expired">Expired</button>
+                        <button class="filter-btn" data-filter="used">Used</button>
+                    </div>
+                </div>
+
+                <!-- Coupons List -->
+                <div class="coupons-list-container">
+                    <div id="settings-coupons-list" class="settings-coupons-list">
+                        <div class="coupons-loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading your coupons...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coupon Actions -->
+                <div class="coupon-actions-section">
+                    <button class="action-btn primary" onclick="findNewOffers()">
+                        <i class="fas fa-search"></i> Find New Offers
+                    </button>
+                    <button class="action-btn secondary" onclick="refreshUserCoupons()">
+                        <i class="fas fa-sync-alt"></i> Refresh Coupons
+                    </button>
                 </div>
             </div>
 
@@ -747,5 +823,10 @@
             });
         });
     </script>
+    
+    <!-- Load Settings Enhancements -->
+    <script src="settings-enhancements.js"></script>
+    <!-- Load User Coupons Manager -->
+    <script src="user-coupons-manager.js"></script>
 </body>
 </html>

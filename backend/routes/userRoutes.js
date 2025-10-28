@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const multer = require('multer');
 const { googleAuth } = require('../controllers/userController');
-const { saveWorkoutSchedule, getWorkoutSchedule } = require('../controllers/userController');
+const { saveWorkoutSchedule, getWorkoutSchedule, getUserCoupons, saveOfferToProfile, checkCouponValidity } = require('../controllers/userController');
 
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -51,5 +51,12 @@ router.put('/update-profile', authMiddleware, upload.single('profileImage'), upd
 // ✅ Change Password Route
 // ======================
 router.put('/change-password', authMiddleware, changePassword);
+
+// ======================
+// ✅ User Coupons Routes
+// ======================
+router.get('/:userId/coupons', authMiddleware, getUserCoupons);
+router.post('/:userId/coupons', authMiddleware, saveOfferToProfile);
+router.get('/:userId/coupons/:couponId/check', authMiddleware, checkCouponValidity);
 
 module.exports = router;

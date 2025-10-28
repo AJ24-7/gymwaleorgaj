@@ -410,10 +410,10 @@ function showDialog({ title = '', message = '', confirmText = 'OK', cancelText =
   const buttonsHtml = customFooter ? customFooter : (cancelText ? 
     `<div style="display:flex;gap:12px;justify-content:center;">
       <button id="dialogCancelBtn" style="background:#6c757d;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${cancelText}</button>
-      <button id="dialogConfirmBtn" style="background:#1976d2;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>
+      <button id="dialogConfirmBtn" style="background:var(--primary);color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>
     </div>` :
-    `<button id="dialogConfirmBtn" style="background:#1976d2;color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>`);
-  
+    `<button id="dialogConfirmBtn" style="background:var(--primary);color:#fff;padding:10px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600;transition:background 0.2s ease;">${confirmText}</button>`);
+
   dialog.innerHTML = `
     <div style="background:#fff;max-width:450px;width:90vw;padding:30px 24px 20px 24px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.2);text-align:center;position:relative;animation:dialogSlideIn 0.3s ease-out;">
       <div style="margin-bottom:16px;">${iconHtml || ''}</div>
@@ -427,7 +427,7 @@ function showDialog({ title = '', message = '', confirmText = 'OK', cancelText =
         to { transform: translateY(0); opacity: 1; }
       }
       #dialogConfirmBtn:hover {
-        background: #1565c0 !important;
+        background: var(--primary-dark) !important;
       }
       #dialogCancelBtn:hover {
         background: #5a6268 !important;
@@ -4081,16 +4081,16 @@ function clearUploadPhotoMsgAndCloseModal() {
 const toggleBtn = document.getElementById('toggleBtn');
 const sidebar = document.getElementById('sidebar');
 const mainContent = document.getElementById('mainContent');
-const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-const topNav = document.getElementById('topNav'); // Navbar element
+const hamburgerMenuBtn = document.getElementById('hamburgerMenuBtn');
+const mobileSidebarDropdown = document.getElementById('mobileSidebarDropdown');
+const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
+const closeMobileSidebar = document.getElementById('closeMobileSidebar');
 
 // Desktop toggle (collapse/expand)
-if (toggleBtn && sidebar && mainContent) {
+if (toggleBtn && sidebar) {
     toggleBtn.addEventListener('click', () => {
         if (window.innerWidth > 900) {
             const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
-            // Also toggle on body for global state management
-            document.body.classList.toggle('sidebar-collapsed', isCollapsed);
             
             // Rotate the icon
             const icon = toggleBtn.querySelector('i');
@@ -4105,19 +4105,32 @@ if (toggleBtn && sidebar && mainContent) {
     });
 }
 
+// Mobile hamburger menu
+if (hamburgerMenuBtn && mobileSidebarDropdown && mobileSidebarBackdrop) {
+    hamburgerMenuBtn.addEventListener('click', () => {
+        mobileSidebarDropdown.classList.add('show');
+        mobileSidebarBackdrop.classList.add('show');
+        document.body.classList.add('mobile-menu-open');
+    });
+}
 
+// Close mobile sidebar
+if (closeMobileSidebar && mobileSidebarDropdown && mobileSidebarBackdrop) {
+    closeMobileSidebar.addEventListener('click', () => {
+        mobileSidebarDropdown.classList.remove('show');
+        mobileSidebarBackdrop.classList.remove('show');
+        document.body.classList.remove('mobile-menu-open');
+    });
+}
 
-// Hide sidebar when clicking outside on mobile
-document.addEventListener('click', (event) => {
-    if (
-        window.innerWidth <= 900 &&
-        sidebar.classList.contains('sidebar-open') &&
-        !sidebar.contains(event.target) &&
-        !mobileMenuBtn?.contains(event.target)
-    ) {
-        sidebar.classList.remove('sidebar-open');
-    }
-});
+// Close on backdrop click
+if (mobileSidebarBackdrop && mobileSidebarDropdown) {
+    mobileSidebarBackdrop.addEventListener('click', () => {
+        mobileSidebarDropdown.classList.remove('show');
+        mobileSidebarBackdrop.classList.remove('show');
+        document.body.classList.remove('mobile-menu-open');
+    });
+}
 
 // --- Display Tab Logic ---
 const sidebarMenuLinks = document.querySelectorAll('.sidebar .menu-link');
@@ -4154,47 +4167,40 @@ const supportReviewsTab = document.getElementById('supportReviewsTab');
 const dashboardContent = document.querySelector('.content');
 
 function hideAllMainTabs() {
-    // Close any open modals first to prevent interference - enhanced for all modal types
-    document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"], .modal.active, .offers-modal.show, .offers-modal[style*="display: flex"], .offers-modal[style*="display:flex"], .offers-modal.active').forEach(modal => {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    // Close all open modals when switching tabs
+    document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"], .offers-modal.show, .offers-modal[style*="display: flex"], .offers-modal[style*="display:flex"], .support-modal.active, .support-modal[style*="display: flex"], .support-modal[style*="display:flex"]').forEach(modal => {
         modal.classList.remove('show', 'active');
         modal.style.display = 'none';
-        modal.style.opacity = '0';
+        modal.style.zIndex = '-1';
+        modal.style.pointerEvents = 'none';
         modal.style.visibility = 'hidden';
     });
+    
+    // Reset body overflow
+    document.body.style.overflow = '';
 
-    // Specifically close payment modals
-    const paymentModal = document.getElementById('addPaymentModal');
-    if (paymentModal) {
-        paymentModal.classList.remove('show', 'active');
-        paymentModal.style.display = 'none';
-        paymentModal.style.opacity = '0';
-        paymentModal.style.visibility = 'hidden';
-    }
-
-    // Close offers modals specifically
-    document.querySelectorAll('#offersTab .modal, #offersTab .offers-modal, .offers-modal').forEach(modal => {
-        modal.classList.remove('show', 'active');
-        modal.style.display = 'none';
-    });
-
-    const tabs = [
-        dashboardContent,
-        memberDisplayTab,
-        trainerTab,
-        settingsTab,
-        attendanceTab,
-        paymentTab,
-        equipmentTab,
-        offersTab,
-        supportReviewsTab
-    ];
-     tabs.forEach(tab => {
+    // Hide all tabs (both .content and .tab-content)
+    const tabs = mainContent.querySelectorAll(':scope > .content, :scope > .tab-content');
+    
+    console.log('hideAllMainTabs: Found', tabs.length, 'tabs to hide');
+    
+    tabs.forEach(tab => {
         if (tab) {
-            // Use style.display directly, avoid !important
+            console.log('Hiding tab:', tab.id || tab.className);
             tab.style.display = 'none';
-            // Remove any conflicting classes
-            tab.classList.remove('show', 'active');
+            tab.style.visibility = 'hidden';
+            tab.style.opacity = '0';
+            tab.style.pointerEvents = 'none';
+            tab.classList.remove('active');
         }
+    });
+    
+    // Remove active class from all menu links
+    document.querySelectorAll('.menu-link').forEach(link => {
+        link.classList.remove('active');
     });
 }
 
@@ -4204,6 +4210,9 @@ function showTabWithSkeleton(tabElement, skeletonType, initFunction = null) {
     
     // Show the tab first
     tabElement.style.display = 'block';
+    tabElement.style.visibility = 'visible';
+    tabElement.style.opacity = '1';
+    tabElement.style.pointerEvents = 'all';
     
     // Show skeleton loading while data loads
     const tabId = tabElement.id;

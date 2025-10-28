@@ -71,6 +71,14 @@ async function loadGymDetails(gymId) {
         populateGymDetails(gym);
         hideLoadingScreen();
         
+        // Trigger gym data loaded event for offers system
+        document.dispatchEvent(new CustomEvent('gymDataLoaded', {
+            detail: { 
+                gymId: gym.id || gymId,
+                gym: gym 
+            }
+        }));
+        
     } catch (error) {
         console.error('Error loading gym details:', error);
         showError('Failed to load gym details. Please try again later.');
@@ -2297,26 +2305,43 @@ async function buyMembershipWithDuration(planName, planIdx, planId, originalPric
         sessionStorage.setItem('membershipRegistrationData', JSON.stringify(registrationData));
         sessionStorage.setItem('userToken', token);
         
-        // Redirect to payment gateway with duration info
-        const paymentUrl = `/frontend/payment-gateway.html?` + new URLSearchParams({
-            type: 'membership',
-            gymId: currentGym._id,
-            gymName: currentGym.gymName,
-            planName: planName,
-            duration: months,
-            amount: totalAmount,
-            originalPrice: originalPrice,
-            monthlyPrice: originalPrice,
-            originalAmount: originalAmount,
-            discount: discount,
-            discountAmount: discountAmount,
-            email: user.email,
-            phone: user.phone,
-            name: user.name || user.fullName
-        }).toString();
-        
-        console.log('Redirecting to payment gateway:', paymentUrl);
-        window.location.href = paymentUrl;
+        // Show coupon selection modal before payment
+        if (window.couponManager) {
+            const purchaseData = {
+                planName: planName,
+                months: months,
+                originalAmount: originalAmount,
+                discountAmount: discountAmount,
+                totalAmount: totalAmount,
+                gymId: currentGym._id,
+                gymName: currentGym.gymName,
+                user: user,
+                registrationData: registrationData
+            };
+            
+            window.couponManager.showCouponSelectionModal(purchaseData);
+        } else {
+            // Fallback: Redirect directly to payment gateway with duration info
+            const paymentUrl = `/frontend/payment-gateway.html?` + new URLSearchParams({
+                type: 'membership',
+                gymId: currentGym._id,
+                gymName: currentGym.gymName,
+                planName: planName,
+                duration: months,
+                amount: totalAmount,
+                originalPrice: originalPrice,
+                monthlyPrice: originalPrice,
+                originalAmount: originalAmount,
+                discount: discount,
+                discountAmount: discountAmount,
+                email: user.email,
+                phone: user.phone,
+                name: user.name || user.fullName
+            }).toString();
+            
+            console.log('Redirecting to payment gateway:', paymentUrl);
+            window.location.href = paymentUrl;
+        }
 
     } catch (error) {
         console.error('Error in membership purchase:', error);

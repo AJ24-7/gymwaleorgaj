@@ -962,9 +962,9 @@ body {
     padding: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: fixed;
-    z-index: 100;
+    z-index: 1100;
     top: 0;
-    left: -270px;
+    left: 0;
     height: 100vh;
     min-height: 100vh;
     bottom: 0;
@@ -972,31 +972,25 @@ body {
     border-right: 1px solid #333;
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
 }
+
+/* Desktop: Always show sidebar */
 @media (min-width: 901px) {
     .sidebar {
-        left: 0; /* Show sidebar on desktop */
-        top: 0; /* Always at top */
-        height: 100vh;
-        min-height: 100vh;
-        bottom: 0;
+        left: 0;
     }
 }
+
+/* Mobile: Hide sidebar by default */
 @media (max-width: 900px) {
     .sidebar {
-        left: -270px; /* Hide sidebar on mobile */
-        top: 0;
-        height: 100vh;
-        min-height: 100vh;
-        bottom: 0;
+        left: -270px;
     }
+    
     .sidebar.sidebar-open {
-        left: 0; /* Show sidebar when open */
-        top: 0;
-        height: 100vh;
-        min-height: 100vh;
-        bottom: 0;
+        left: 0;
     }
 }
+
 .sidebar-collapsed {
     width: 70px;
 }
@@ -4080,44 +4074,14 @@ tr:last-child td {
 
 /* Responsive Dashboard Content */
 .content {
-    transition: margin-left 0.3s;
+    /* Layout handled by tab-layout.css */
+    box-sizing: border-box;
 }
-@media (max-width: 900px) {
-    .main-content {
-        margin-left: 0;
-    }
-    .sidebar {
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: auto;
-        width: 100vw;
-        z-index: 1000;
-    }
-}
-@media (max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-    }
-    .sidebar {
-        width: 100vw;
-        position: absolute;
-        left: 0;
-        top: 0;
-        z-index: 1000;
-    }
-    .toggle-btn {
-        display: none;
-    }
-    /* .search-bar removed */
-}
+
 @media (max-width: 600px) {
     .stats-cards, .main-grid, .equipment-gallery {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
-    }
-    .content {
-        padding: 5px;
     }
 }
 
@@ -4127,15 +4091,8 @@ tr:last-child td {
     50% { transform: scale(1.05);}
     100% { transform: scale(1);}
 }
-/* Duplicate .pulse selector removed */
-/* Main Content */
-.main-content {
-    flex: 1;
-    transition: all 0.3s;
-}
 
-
-/* Top Nav */
+/* Top Nav - Core styles only (positioning handled by tab-layout.css) */
 /* Enhanced Top Navigation - Fixed Height and Consistent Alignment */
 .top-nav, #topNav {
     display: flex;
@@ -4144,15 +4101,10 @@ tr:last-child td {
     padding: 0 30px;
     background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px #333;
-    position: fixed;
-    top: 0;
-    z-index: 1203;
+    /* Position, left, width handled by tab-layout.css */
     height: 70px; /* Fixed height for consistency */
     min-height: 70px;
     max-height: 70px;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
-    left: 270px;
-    width: calc(100vw - 270px);
     border-bottom: 1px solid #333;
     overflow: visible !important;
     margin: 0;
@@ -4252,8 +4204,8 @@ tr:last-child td {
 }
 
 /* Additional fix for specific tab content containers */
+/* CRITICAL: Do NOT use position: fixed - it creates stacking contexts that block clicks */
 .content,
-.main-content,
 .attendance-container,
 .settings-container,
 .support-section,
@@ -4263,6 +4215,12 @@ tr:last-child td {
 .trainer-content {
     z-index: 1 !important;
     position: relative !important;
+}
+
+/* Main content should NOT be fixed positioned */
+.main-content {
+    position: relative !important;
+    z-index: auto !important;
 }
 
 /* Global dropdown positioning - overrides ALL other CSS */
@@ -4409,160 +4367,13 @@ html #notificationDropdown.show {
     z-index: 1001; /* Above the top nav itself */
 }
 
-/* Sidebar collapsed navbar positioning */
-.sidebar-collapsed .top-nav,
-.sidebar-collapsed #topNav,
-.sidebar.sidebar-collapsed ~ .main-content .top-nav,
-.sidebar.sidebar-collapsed ~ .main-content #topNav {
-    left: 70px !important;
-    width: calc(100vw - 70px) !important;
-    height: 70px !important;
-}
+/* ========================================
+   TAB POSITIONING - HANDLED BY tab-layout.css
+   DO NOT ADD POSITIONING RULES HERE
+   ======================================== */
 
-/* Fix navbar position when profile badge overlaps */
-.sidebar-collapsed .top-nav,
-.sidebar-collapsed #topNav {
-    top: 0;
-    height: 70px !important;
-}
-
-@media (max-width: 900px) {
-  .top-nav, #topNav {
-    left: 0 !important;
-    width: 100vw !important;
-    height: 60px !important;
-    min-height: 60px !important;
-    max-height: 60px !important;
-    padding: 0 15px;
-    justify-content: space-between;
-    align-items: center;
-    transition: left 0.3s, width 0.3s, box-shadow 0.2s;
-    top: 0;
-  }
-}
-
-/* Main Content and All Tabs - Fixed Positioning with Consistent Top */
-.main-content, 
-.content,
-#memberDisplayTab,
-#trainerTab,
-#settingsTab,
-#attendanceTab,
-#paymentTab,
-#offersTab,
-#equipmentTab,
-#supportReviewsTab {
-    position: fixed !important;
-    top: 70px !important;
-    left: 270px !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    padding: 20px !important;
-    overflow-y: auto;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: #f5f5f5;
-    box-sizing: border-box;
-    z-index: 1;
-    width: calc(100vw - 270px) !important;
-    height: calc(100vh - 70px) !important;
-    margin: 0 !important;
-}
-
-/* Hide tabs by default */
-#memberDisplayTab,
-#trainerTab,
-#settingsTab,
-#attendanceTab,
-#paymentTab,
-#equipmentTab,
-#supportReviewsTab {
-    display: none;
-}
-
-/* Collapsed sidebar adjustments for all content - ENSURE FULL EXPANSION */
-.sidebar-collapsed .-content,
-.sidebar-collapsed .content,
-.sidebar-collapsed #memberDisplayTab,
-.sidebar-collapsed #trainerTab,
-.sidebar-collapsed #settingsTab,
-.sidebar-collapsed #attendanceTab,
-.sidebar-collapsed #paymentTab,
-.sidebar-collapsed #equipmentTab,
-.sidebar-collapsed #supportReviewsTab {
-    left: 70px !important;
-    width: calc(100vw - 70px) !important;
-    top: 70px !important;
-    height: calc(100vh - 70px) !important;
-}
-
-/* Additional specific targeting for sidebar collapsed state */
-.sidebar.sidebar-collapsed ~ .main-content,
-.sidebar.sidebar-collapsed ~ .content,
-.sidebar.sidebar-collapsed ~ #memberDisplayTab,
-.sidebar.sidebar-collapsed ~ #trainerTab,
-.sidebar.sidebar-collapsed ~ #settingsTab,
-.sidebar.sidebar-collapsed ~ #attendanceTab,
-.sidebar.sidebar-collapsed ~ #paymentTab,
-.sidebar.sidebar-collapsed ~ #offersTab,
-.sidebar.sidebar-collapsed ~ #equipmentTab,
-.sidebar.sidebar-collapsed ~ #supportReviewsTab {
-    left: 70px !important;
-    width: calc(100vw - 70px) !important;
-    top: 70px !important;
-    height: calc(100vh - 70px) !important;
-}
-
-/* Body class targeting for global sidebar state */
-body.sidebar-collapsed .main-content,
-body.sidebar-collapsed .content,
-body.sidebar-collapsed #memberDisplayTab,
-body.sidebar-collapsed #trainerTab,
-body.sidebar-collapsed #settingsTab,
-body.sidebar-collapsed #attendanceTab,
-body.sidebar-collapsed #paymentTab,
-body.sidebar-collapsed #offersTab,
-body.sidebar-collapsed #equipmentTab,
-body.sidebar-collapsed #supportReviewsTab {
-    left: 70px !important;
-    width: calc(100vw - 70px) !important;
-    top: 70px !important;
-    height: calc(100vh - 70px) !important;
-}
-
-/* Mobile responsive for all content */
-@media (max-width: 900px) {
-  .main-content,
-  .content,
-  #memberDisplayTab,
-  #trainerTab,
-  #settingsTab,
-  #attendanceTab,
-  #paymentTab,
-  #offersTab,
-  #equipmentTab,
-  #supportReviewsTab {
-    left: 0 !important;
-    width: 100vw !important;
-    top: 60px !important;
-    height: calc(100vh - 60px) !important;
-    padding: 15px !important;
-  }
-}
-
-/* Reset first child margins to eliminate gaps */
-.content > :first-child,
-.main-content > :first-child,
-#memberDisplayTab > :first-child,
-#trainerTab > :first-child,
-#settingsTab > :first-child,
-#attendanceTab > :first-child,
-#paymentTab > :first-child,
-#offersTab > :first-child,
-#equipmentTab > :first-child,
-#supportReviewsTab > :first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
+/* All tab positioning, padding, and layout is handled by tab-layout.css
+   This prevents conflicts and ensures consistent behavior across all tabs */
 
 /* Header notification icon - specific to header */
 .header-nav .notification,
@@ -6620,79 +6431,6 @@ body[data-theme="dark"] .filter-btn {
 .autofill-animation {
   animation: autofillPulse 0.6s ease-in-out;
 }
-/* === END MARK AS PAID MODAL ENHANCED STYLES === */
-
-/* ========================================
-   GLOBAL NAVBAR AND DROPDOWN OVERRIDES
-   ======================================== */
-
-/* Ensure consistent navbar height and positioning across ALL tabs */
-.top-nav, #topNav,
-#memberDisplayTab .top-nav, #memberDisplayTab #topNav,
-#trainerTab .top-nav, #trainerTab #topNav,
-#settingsTab .top-nav, #settingsTab #topNav,
-#attendanceTab .top-nav, #attendanceTab #topNav,
-#paymentTab .top-nav, #paymentTab #topNav,
-#equipmentTab .top-nav, #equipmentTab #topNav,
-#supportReviewsTab .top-nav, #supportReviewsTab #topNav {
-  height: 70px !important;
-  min-height: 70px !important;
-  max-height: 70px !important;
-  top: 0 !important;
-  z-index: 1203 !important;
-  position: fixed !important;
-  display: flex !important;
-  align-items: center !important;
-  box-sizing: border-box !important;
-}
-
-/* Mobile navbar height consistency */
-@media (max-width: 900px) {
-  .top-nav, #topNav,
-  #memberDisplayTab .top-nav, #memberDisplayTab #topNav,
-  #trainerTab .top-nav, #trainerTab #topNav,
-  #settingsTab .top-nav, #settingsTab #topNav,
-  #attendanceTab .top-nav, #attendanceTab #topNav,
-  #paymentTab .top-nav, #paymentTab #topNav,
-  #offersTab .top-nav, #offersTab #topNav,
-  #equipmentTab .top-nav, #equipmentTab #topNav,
-  #supportReviewsTab .top-nav, #supportReviewsTab #topNav {
-    height: 60px !important;
-    min-height: 60px !important;
-    max-height: 60px !important;
-    top: 0 !important;
-  }
-  
-  .main-content, .content,
-  #memberDisplayTab, #trainerTab, #settingsTab, 
-  #attendanceTab, #paymentTab, #equipmentTab, #offersTab, #supportReviewsTab {
-    top: 60px !important;
-    height: calc(100vh - 60px) !important;
-  }
-}
-
-/* Global dropdown positioning overrides - Highest priority */
-.profile-dropdown-menu, .notification-dropdown {
-  position: fixed !important;
-}
-
-/* Profile dropdown positioning for ALL tabs */
-.profile-dropdown-menu,
-#memberDisplayTab .profile-dropdown-menu,
-#trainerTab .profile-dropdown-menu,
-#settingsTab .profile-dropdown-menu,
-#attendanceTab .profile-dropdown-menu,
-#paymentTab .profile-dropdown-menu,
-#offersTab .profile-dropdown-menu,
-#equipmentTab .profile-dropdown-menu,
-#supportReviewsTab .profile-dropdown-menu {
-  position: fixed !important;
-  top: 70px !important;
-  right: 20px !important;
-  z-index: 999999 !important;
-}
-
-
 
 /* Trial Bookings Dashboard Styles */
 .trial-bookings-card {
@@ -7031,3 +6769,12 @@ div[id*="modal"][style*="display: flex"] .modal-content {
   z-index: 100001 !important;
 }
 
+
+/* Modals should be highest (when active) */
+.modal.show,
+.modal.active,
+.offers-modal.show,
+.support-modal.active {
+  z-index: 10000 !important;
+  pointer-events: all !important;
+}

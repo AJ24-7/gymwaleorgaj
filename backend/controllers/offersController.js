@@ -814,3 +814,105 @@ exports.validateCouponCode = async (req, res) => {
     });
   }
 };
+
+// Claim an offer (public endpoint)
+exports.claimOffer = async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const { userId, gymId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID is required' 
+      });
+    }
+
+    // Find the offer
+    const offer = await Offer.findById(offerId);
+    if (!offer) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Offer not found' 
+      });
+    }
+
+    // Check if offer is valid
+    const now = new Date();
+    if (offer.endDate < now || offer.startDate > now || offer.status !== 'active') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Offer is not currently valid' 
+      });
+    }
+
+    // Check usage limits
+    if (offer.maxUses && offer.usageCount >= offer.maxUses) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Offer usage limit reached' 
+      });
+    }
+
+    // Check if user already claimed this offer
+    const existingCoupon = await Coupon.findOne({
+      offerId: offerId,
+      userId: userId,
+      status: 'active'
+    });
+
+    if (existingCoupon) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'You have already claimed this offer' 
+      });
+    }
+
+    // Generate coupon code
+    const couponCode = offer.couponCode || `${offer.type.toUpperCase()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    // Create coupon for user
+    const coupon = new Coupon({
+      code: couponCode,
+      type: offer.type,
+      value: offer.value,
+      minAmount: offer.minAmount || 0,
+      gymId: gymId,
+      offerId: offerId,
+      userId: userId,
+      validFrom: offer.startDate,
+      validTill: offer.endDate,
+      status: 'active',
+      description: offer.title
+    });
+
+    await coupon.save();
+
+    // Update offer usage count
+    await Offer.findByIdAndUpdate(offerId, {
+      $inc: { usageCount: 1 }
+    });
+
+    res.json({
+      success: true,
+      message: 'Offer claimed successfully',
+      couponCode: couponCode,
+      claimId: coupon._id,
+      coupon: {
+        code: couponCode,
+        type: offer.type,
+        value: offer.value,
+        validTill: offer.endDate,
+        description: offer.title
+      }
+    });
+
+  } catch (error) {
+    console.error('Error claiming offer:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to claim offer',
+      error: error.message 
+    });
+  }
+};

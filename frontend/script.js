@@ -109,19 +109,24 @@ function logout() {
 
 // === HERO SECTION GSAP Animation ===
 document.addEventListener("DOMContentLoaded", function () {
-  if (document.querySelector("#hero-text")) {
-    gsap.to("#hero-text", { opacity: 1, duration: 1 });
-  }
-  if (document.querySelector("#hero-subtext")) {
-    gsap.to("#hero-subtext", { opacity: 1, duration: 1 });
-  }
-  if (document.querySelector(".btn")) {
-    gsap.to(".btn", { scale: 1.2, duration: 1 });
+  // Check if GSAP is loaded and elements exist before animating
+  if (typeof gsap !== 'undefined') {
+    if (document.querySelector("#hero-text")) {
+      gsap.to("#hero-text", { opacity: 1, duration: 1 });
+    }
+    if (document.querySelector("#hero-subtext")) {
+      gsap.to("#hero-subtext", { opacity: 1, duration: 1 });
+    }
+    if (document.querySelector(".btn")) {
+      gsap.to(".btn", { scale: 1.2, duration: 1 });
+    }
   }
 });
 
 // === DYNAMIC BASE URL FOR API (works on mobile and desktop) ===
-const BASE_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
+const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:5000' 
+  : `${window.location.protocol}//${window.location.hostname}:5000`;
 //gym search logic //
 // Default location (Delhi) - will be overridden when user allows geolocation
 let userLocation = { lat: 28.357353, lng: 77.295289 };
@@ -499,7 +504,10 @@ let index = 0;
 
 function moveSlide(step) {
   const slider = document.querySelector('.slider');
+  if (!slider) return; // Guard clause to prevent null errors
+  
   const totalImages = slider.children.length;
+  if (totalImages === 0) return; // Guard clause for empty slider
 
   index += step;
 
@@ -509,11 +517,20 @@ function moveSlide(step) {
   slider.style.transform = `translateX(${-index * 100}%)`;
 }
 
-setInterval(() => moveSlide(1), 4000);
+// Only start slider if slider element exists
+document.addEventListener('DOMContentLoaded', function() {
+  const slider = document.querySelector('.slider');
+  if (slider && slider.children.length > 0) {
+    setInterval(() => moveSlide(1), 4000);
+  }
+});
 
 // === SLIDER TEXT ANIMATION ON SCROLL ===
 document.addEventListener("DOMContentLoaded", function () {
   const textElement = document.querySelector(".slider-text");
+  
+  // Only add scroll listener if element exists
+  if (!textElement) return;
 
   function handleScroll() {
     const position = textElement.getBoundingClientRect().top;

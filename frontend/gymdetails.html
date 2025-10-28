@@ -6,6 +6,7 @@
     <title>Gym Details - Gym-Wale</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="gymdetails.css">
+    <link rel="stylesheet" href="gymdetails-offers.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -14,8 +15,8 @@
         const BASE_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
     </script>
     <script defer src="gymdetails.js"></script>
-    <script defer src="modules/gym-details-offers.js"></script>
-    <script defer src="modules/gym-details-offers.js"></script>
+    <script defer src="gymdetails-offers.js"></script>
+    <script defer src="coupon-integration.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -104,6 +105,9 @@
                     
                     <button class="btn-primary trial-booking-btn" id="trial-booking-btn">
                         <i class="fas fa-calendar-plus"></i> Book Trial
+                    </button>
+                    <button class="btn-secondary offers-btn" id="offers-btn">
+                        <i class="fas fa-gift"></i> View Offers
                     </button>
                     <button class="btn-secondary contact-btn" id="contact-btn">
                         <i class="fas fa-phone"></i> Contact
@@ -696,6 +700,123 @@
         </div>
     </div>
 
+    <!-- Coupon Selection Modal -->
+    <div id="coupon-selection-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-ticket-alt"></i> Apply Coupon</h3>
+                <span class="close" id="close-coupon-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="purchase-summary" id="purchase-summary">
+                    <h4>Purchase Summary</h4>
+                    <div class="summary-item">
+                        <span>Plan:</span>
+                        <span id="summary-plan-name">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Duration:</span>
+                        <span id="summary-duration">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Original Price:</span>
+                        <span id="summary-original-price">₹0</span>
+                    </div>
+                    <div class="summary-item discount-applied" id="plan-discount" style="display: none;">
+                        <span>Plan Discount:</span>
+                        <span id="summary-plan-discount">-₹0</span>
+                    </div>
+                    <div class="summary-item coupon-applied" id="coupon-discount" style="display: none;">
+                        <span>Coupon Discount:</span>
+                        <span id="summary-coupon-discount">-₹0</span>
+                    </div>
+                    <div class="summary-item total">
+                        <span><strong>Final Price:</strong></span>
+                        <span id="summary-final-price"><strong>₹0</strong></span>
+                    </div>
+                </div>
+
+                <div class="coupon-selection">
+                    <h4>Available Coupons</h4>
+                    <div class="available-coupons" id="available-coupons">
+                        <div class="no-coupons-message">
+                            <i class="fas fa-ticket-alt"></i>
+                            <p>No coupons available for this gym.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="manual-coupon-entry">
+                        <h4>Enter Coupon Code</h4>
+                        <div class="coupon-input-group">
+                            <input type="text" id="manual-coupon-code" placeholder="Enter coupon code" maxlength="20">
+                            <button id="apply-manual-coupon" class="btn-secondary">Apply</button>
+                        </div>
+                        <div class="coupon-validation-message" id="coupon-validation-message" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="proceed-without-coupon" class="btn-secondary">Proceed Without Coupon</button>
+                    <button id="proceed-with-coupon" class="btn-primary" style="display: none;">Proceed to Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offers Modal -->
+    <div id="offers-modal" class="modal">
+        <div class="modal-content offers-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-gift"></i> Special Offers & Deals</h3>
+                <span class="close" id="close-offers-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="offers-container">
+                    <!-- Offers Loading State -->
+                    <div class="offers-loading" id="modal-offers-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading exclusive offers...</p>
+                    </div>
+                    
+                    <!-- Active Offers Grid -->
+                    <div class="modal-offers-grid" id="modal-offers-grid" style="display: none;">
+                        <!-- Offers will be loaded here -->
+                    </div>
+                    
+                    <!-- No Offers State -->
+                    <div class="no-offers-state" id="modal-no-offers" style="display: none;">
+                        <i class="fas fa-gift"></i>
+                        <h4>No Active Offers</h4>
+                        <p>Check back later for exciting deals and promotions!</p>
+                        <button class="btn-primary" onclick="location.href='membership-plans.html'">
+                            <i class="fas fa-shopping-cart"></i> Browse Memberships
+                        </button>
+                    </div>
+                    
+                    <!-- My Claimed Offers Section -->
+                    <div class="my-claimed-offers" id="my-claimed-offers" style="display: none;">
+                        <div class="section-header">
+                            <h4><i class="fas fa-ticket-alt"></i> My Claimed Offers</h4>
+                            <span class="claimed-count" id="claimed-count">0 claimed</span>
+                        </div>
+                        <div class="claimed-offers-list" id="claimed-offers-list">
+                            <!-- Claimed offers will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="refresh-offers-btn">
+                        <i class="fas fa-sync-alt"></i> Refresh Offers
+                    </button>
+                    <button class="btn-primary" onclick="location.href='membership-plans.html'">
+                        <i class="fas fa-shopping-cart"></i> Browse Plans
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Back to Top Button -->
     <button id="back-to-top" class="back-to-top">
         <i class="fas fa-arrow-up"></i>
@@ -821,5 +942,11 @@
             });
         });
     </script>
+    
+    <!-- Gym Offers Integration -->
+    <script src="modules/gym-details-offers.js"></script>
+    
+    <!-- Hero Offers Manager -->
+    <script src="gymdetails-hero-offers.js"></script>
 </body>
 </html>

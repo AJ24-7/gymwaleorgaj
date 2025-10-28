@@ -1662,3 +1662,14 @@ document.addEventListener('keydown', function(event) {
     closeAttendanceModal();
   }
 });
+
+// Initialize coupons functionality when available
+window.addEventListener('load', function() {
+  // Check if coupons sections exist and initialize
+  if (window.userCouponsManager && document.getElementById('active-coupons-grid')) {
+    console.log('Initializing coupons in user profile...');
+    setTimeout(() => {
+      window.userCouponsManager.renderCouponsInProfile();
+    }, 1000); // Small delay to ensure DOM is ready
+  }
+});

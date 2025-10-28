@@ -3,6 +3,9 @@
  * Displays active offers and coupons on the gym details page
  */
 
+// Base URL configuration
+const BASE_URL = window.location.origin;
+
 class GymDetailsOffers {
   constructor(gymId) {
     this.gymId = gymId;
@@ -23,14 +26,52 @@ class GymDetailsOffers {
 
   async loadOffers() {
     try {
-      // Load active offers for this gym
-      const response = await fetch(`${BASE_URL}/api/admin/offers/valid/${this.gymId}`);
+      console.log('🔄 Loading active offers for gym:', this.gymId);
+      
+      // First try to load from backend
+      const response = await fetch(`${BASE_URL}/api/admin/offers/gym/${this.gymId}/active`);
       if (response.ok) {
         this.offers = await response.json();
+        console.log('✅ Loaded offers from backend:', this.offers.length);
+      } else {
+        console.log('ℹ️ No backend offers found, checking local campaigns...');
+        // Fallback to local campaigns for immediate testing
+        this.offers = this.getLocalActiveCampaigns();
+      }
+      
+      if (this.offers && this.offers.length > 0) {
         this.displayOffers();
+        // Show offer popup for new users
+        this.showWelcomeOffer();
       }
     } catch (error) {
       console.error('Error loading offers:', error);
+      // Fallback to local campaigns
+      this.offers = this.getLocalActiveCampaigns();
+      if (this.offers && this.offers.length > 0) {
+        this.displayOffers();
+        this.showWelcomeOffer();
+      }
+    }
+  }
+
+  getLocalActiveCampaigns() {
+    const campaigns = JSON.parse(localStorage.getItem('activeCampaigns') || '[]');
+    return campaigns.filter(campaign => 
+      campaign.status === 'active' && 
+      campaign.displaySettings?.showOnGymProfile !== false
+    );
+  }
+
+  showWelcomeOffer() {
+    // Check if user is new or returning
+    const isNewUser = !localStorage.getItem('hasVisitedGym_' + this.gymId);
+    
+    if (isNewUser) {
+      localStorage.setItem('hasVisitedGym_' + this.gymId, 'true');
+      setTimeout(() => {
+        this.showOfferPopup(this.offers[0]); // Show first/best offer
+      }, 1500); // Show after 1.5 seconds
     }
   }
 
@@ -222,44 +263,128 @@ class GymDetailsOffers {
   }
 
   async claimOffer(offerId) {
-    const offer = this.offers.find(o => o._id === offerId);
-    if (!offer) return;
-
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    if (!token) {
-      this.showNotification('Please log in to claim this offer', 'info');
-      // Redirect to login or show login modal
+    const offer = this.offers.find(o => o._id === offerId || o.id === offerId);
+    if (!offer) {
+      this.showNotification('Offer not found', 'error');
       return;
     }
 
     try {
-      // If offer has a coupon code, validate it
-      if (offer.couponCode) {
-        const response = await fetch(`${BASE_URL}/api/admin/coupons/validate/${offer.couponCode}?gymId=${this.gymId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.valid) {
-            this.showOfferClaimModal(offer, result.discountDetails);
-          } else {
-            this.showNotification(result.message || 'Offer is not valid', 'error');
-          }
-        } else {
-          this.showNotification('Failed to validate offer', 'error');
-        }
-      } else {
-        // Show general offer claim modal
-        this.showOfferClaimModal(offer);
+      // Generate or get user ID
+      let userId = localStorage.getItem('userId');
+      if (!userId) {
+        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('userId', userId);
       }
+
+      // Show loading state
+      const claimButton = document.querySelector('.claim-btn');
+      if (claimButton) {
+        claimButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
+        claimButton.disabled = true;
+      }
+
+      // Call backend to claim offer and generate unique coupon
+      const response = await fetch(`${BASE_URL}/api/admin/offers/${offerId}/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: userId,
+          gymId: this.gymId
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Store claimed offer locally for immediate UI update
+        const claimedOffer = {
+          id: result.claimId,
+          offerId: offerId,
+          userId: userId,
+          gymId: this.gymId,
+          couponCode: result.couponCode,
+          claimedAt: new Date().toISOString(),
+          status: 'active',
+          coupon: result.coupon
+        };
+
+        // Save to user's claimed offers
+        const userOffers = JSON.parse(localStorage.getItem('userClaimedOffers') || '[]');
+        userOffers.push(claimedOffer);
+        localStorage.setItem('userClaimedOffers', JSON.stringify(userOffers));
+
+        // Close popup and show success
+        this.closeOfferPopup();
+        this.showOfferClaimedSuccess(result.couponCode);
+
+        this.showNotification(`🎉 Offer claimed! Your coupon code: ${result.couponCode}`, 'success');
+        
+      } else {
+        throw new Error(result.message || 'Failed to claim offer');
+      }
+
     } catch (error) {
       console.error('Error claiming offer:', error);
-      this.showNotification('Failed to claim offer. Please try again.', 'error');
+      this.showNotification(error.message || 'Failed to claim offer. Please try again.', 'error');
+    } finally {
+      // Reset button state
+      const claimButton = document.querySelector('.claim-btn');
+      if (claimButton) {
+        claimButton.innerHTML = '<i class="fas fa-gift"></i> Claim Offer';
+        claimButton.disabled = false;
+      }
     }
+  }
+
+  closeOfferPopup() {
+    const popup = document.querySelector('.gym-offer-popup');
+    if (popup) {
+      popup.remove();
+    }
+  }
+
+  showOfferClaimedSuccess(couponCode) {
+    const successHTML = `
+      <div id="offerClaimedSuccess" class="offer-claimed-success">
+        <div class="success-overlay" onclick="document.getElementById('offerClaimedSuccess').remove()"></div>
+        <div class="success-content">
+          <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3>🎉 Offer Claimed Successfully!</h3>
+          <p>Your exclusive coupon has been generated.</p>
+          
+          <div class="coupon-code-display">
+            <label>Your Coupon Code:</label>
+            <div class="coupon-code-container">
+              <span class="coupon-code" id="claimedCouponCode">${couponCode}</span>
+              <button class="copy-coupon-btn" onclick="gymDetailsOffers.copyCouponCode('${couponCode}', 'claimedCouponCode')">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+          </div>
+          
+          <p class="usage-info">
+            <i class="fas fa-info-circle"></i> 
+            Use this code when making a payment or show it at the gym counter.
+          </p>
+          
+          <button class="success-btn" onclick="document.getElementById('offerClaimedSuccess').remove()">
+            <i class="fas fa-thumbs-up"></i> Got it!
+          </button>
+        </div>
+      </div>`;
+    
+    document.body.insertAdjacentHTML('beforeend', successHTML);
+    
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+      const successEl = document.getElementById('offerClaimedSuccess');
+      if (successEl) successEl.remove();
+    }, 30000);
   }
 
   showOfferClaimModal(offer, discountDetails = null) {
@@ -322,6 +447,85 @@ class GymDetailsOffers {
 
     // Load gym contact info
     this.loadGymContactInfo();
+  }
+
+  showOfferPopup(offer) {
+    // Check if popup was already shown in this session
+    if (sessionStorage.getItem('offerPopupShown_' + this.gymId)) {
+      return;
+    }
+
+    // Mark as shown
+    sessionStorage.setItem('offerPopupShown_' + this.gymId, 'true');
+
+    const popup = document.createElement('div');
+    popup.className = 'gym-offer-popup';
+    popup.innerHTML = `
+      <div class="offer-popup-overlay" onclick="this.parentElement.remove()"></div>
+      <div class="offer-popup-content ${offer.offerType || 'default'}">
+        <button class="offer-popup-close" onclick="this.closest('.gym-offer-popup').remove()">
+          <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="offer-popup-header">
+          <div class="offer-popup-badge">
+            <span class="discount-value">${offer.type === 'percentage' ? offer.value + '%' : '₹' + offer.value}</span>
+            <span class="discount-text">OFF</span>
+          </div>
+          <div class="offer-popup-icon">
+            <i class="${offer.icon || 'fas fa-star'}"></i>
+          </div>
+        </div>
+        
+        <div class="offer-popup-body">
+          <h2 class="offer-popup-title">${offer.title}</h2>
+          <p class="offer-popup-description">${offer.description}</p>
+          
+          <div class="offer-popup-features">
+            <h4>What's Included:</h4>
+            <ul>
+              ${(offer.features || []).slice(0, 4).map(feature => 
+                `<li><i class="fas fa-check-circle"></i>${feature}</li>`
+              ).join('')}
+            </ul>
+          </div>
+          
+          <div class="offer-popup-validity">
+            <i class="fas fa-clock"></i>
+            <span>Limited time offer - Claim now!</span>
+          </div>
+        </div>
+        
+        <div class="offer-popup-footer">
+          <button class="offer-btn secondary" onclick="this.closest('.gym-offer-popup').remove()">
+            Maybe Later
+          </button>
+          <button class="offer-btn primary claim-btn" onclick="gymDetailsOffers.claimOffer('${offer._id || offer.id}')">>
+            <i class="fas fa-gift"></i> Claim Offer
+          </button>
+        </div>
+        
+        <div class="offer-popup-decorations">
+          <div class="decoration-1"></div>
+          <div class="decoration-2"></div>
+          <div class="decoration-3"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+    
+    // Animate in
+    setTimeout(() => {
+      popup.classList.add('show');
+    }, 100);
+    
+    // Auto-close after 30 seconds if not interacted with
+    setTimeout(() => {
+      if (popup.parentElement) {
+        popup.remove();
+      }
+    }, 30000);
   }
 
   async loadGymContactInfo() {
@@ -892,6 +1096,291 @@ class GymDetailsOffers {
         }
 
         .copy-coupon-btn {
+          width: 100%;
+        }
+      }
+
+      /* Offer Popup Styles */
+      .gym-offer-popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .gym-offer-popup.show {
+        opacity: 1;
+      }
+
+      .offer-popup-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+      }
+
+      .offer-popup-content {
+        position: relative;
+        background: white;
+        border-radius: 24px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .gym-offer-popup.show .offer-popup-content {
+        transform: scale(1);
+      }
+
+      .offer-popup-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        cursor: pointer;
+        font-size: 16px;
+        z-index: 10;
+        transition: background 0.3s ease;
+      }
+
+      .offer-popup-close:hover {
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .offer-popup-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 30px 25px;
+        border-radius: 24px 24px 0 0;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .offer-popup-badge {
+        background: var(--accent-color);
+        color: var(--secondary-color);
+        border-radius: 50px;
+        padding: 8px 20px;
+        display: inline-block;
+        margin-bottom: 15px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(233, 196, 106, 0.4);
+      }
+
+      .discount-value {
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .discount-text {
+        font-size: 14px;
+        margin-left: 5px;
+      }
+
+      .offer-popup-icon {
+        font-size: 40px;
+        margin: 10px 0;
+        opacity: 0.9;
+      }
+
+      .offer-popup-body {
+        padding: 25px;
+      }
+
+      .offer-popup-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--secondary-color);
+        margin: 0 0 10px 0;
+        text-align: center;
+      }
+
+      .offer-popup-description {
+        color: #666;
+        text-align: center;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      .offer-popup-features {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .offer-popup-features h4 {
+        margin: 0 0 12px 0;
+        color: var(--secondary-color);
+        font-size: 16px;
+      }
+
+      .offer-popup-features ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .offer-popup-features li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        color: #333;
+      }
+
+      .offer-popup-features li i {
+        color: var(--primary-color);
+        font-size: 14px;
+      }
+
+      .offer-popup-validity {
+        text-align: center;
+        color: #e74c3c;
+        font-weight: 600;
+        background: #fff5f5;
+        padding: 12px;
+        border-radius: 8px;
+        border-left: 4px solid #e74c3c;
+      }
+
+      .offer-popup-validity i {
+        margin-right: 8px;
+      }
+
+      .offer-popup-footer {
+        padding: 20px 25px 25px;
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      .offer-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .offer-btn.secondary {
+        background: #f1f3f4;
+        color: #5f6368;
+      }
+
+      .offer-btn.secondary:hover {
+        background: #e8eaed;
+      }
+
+      .offer-btn.primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        box-shadow: 0 4px 15px rgba(42, 157, 143, 0.3);
+      }
+
+      .offer-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(42, 157, 143, 0.4);
+      }
+
+      .offer-popup-decorations {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        border-radius: 24px 24px 0 0;
+      }
+
+      .decoration-1, .decoration-2, .decoration-3 {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+      }
+
+      .decoration-1 {
+        width: 80px;
+        height: 80px;
+        top: -40px;
+        right: -20px;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .decoration-2 {
+        width: 60px;
+        height: 60px;
+        bottom: -30px;
+        left: -15px;
+        animation: float 8s ease-in-out infinite reverse;
+      }
+
+      .decoration-3 {
+        width: 40px;
+        height: 40px;
+        top: 50%;
+        left: -10px;
+        animation: float 7s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+      }
+
+      @media (max-width: 768px) {
+        .offer-popup-content {
+          margin: 20px;
+          width: calc(100% - 40px);
+          border-radius: 20px;
+        }
+
+        .offer-popup-header {
+          padding: 25px 20px;
+          border-radius: 20px 20px 0 0;
+        }
+
+        .offer-popup-title {
+          font-size: 20px;
+        }
+
+        .offer-popup-body {
+          padding: 20px;
+        }
+
+        .offer-popup-footer {
+          flex-direction: column;
+          padding: 15px 20px 20px;
+        }
+
+        .offer-btn {
+          justify-content: center;
           width: 100%;
         }
       }

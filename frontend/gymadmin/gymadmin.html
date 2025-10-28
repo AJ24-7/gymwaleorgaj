@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym-Wale | Admin Dashboard</title>
+    <!-- Tab Layout System - Controls sidebar and content positioning -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/tab-layout.css">
     <link rel="stylesheet" href="styles/gymadmin.css">
     <link rel="stylesheet" href="styles/attendance.css">
     <link rel="stylesheet" href="styles/membertab.css">
@@ -37,14 +39,13 @@
     <script defer src="modules/cash-validation.js"></script>
     <script defer src="modules/cash-validation-dialog.js"></script>
     <script defer src="utils/quick-actions-customizer.js"></script>
-  <script defer src="modules/trainer-management.js"></script>
+    <script defer src="modules/trainer-management.js"></script>
 </head>
 <body>
 <!-- Hamburger Menu for Mobile (move outside sidebar, just after <body>) -->
 
 <!-- Backdrop for mobile sidebar -->
 <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
-<div class="dashboard">
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="logo" style="display:flex;align-items:center;padding:18px 0 18px 0;justify-content:center;">
@@ -133,14 +134,14 @@
     </div>
 
     <!-- Main Content -->
-    <div class="main-content" id="mainContent">
+ <div class="main-content" id="mainContent">
         <!-- Top Nav -->
         <div class="top-nav" id="topNav">
           <button id="hamburgerMenuBtn" class="hamburger-menu" aria-label="Open menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
+          <span></span>
+          <span></span>
+          <span></span>
+          </button>
             <div class="user-actions">
                 <!-- Notification Bell -->
                 <div class="notification" id="notificationBell">
@@ -186,9 +187,9 @@
                   <button class="dropdown-item" id="logoutLink" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </div>
             </div>
-
+        </div>
             <!-- Dashboard Content -->
-            <div class="content">
+             <div class="content" >
                 <div class="page-header">
                     <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h1>
                     <div class="page-actions">
@@ -376,7 +377,7 @@
                             <h2 class="card-title"><i class="fas fa-crown" style="color:#ffbe0b;margin-right:8px;"></i>Membership Plans</h2>
                             <button id="editPlansBtn" class="btn btn-primary" style="font-size:1em;padding:6px 18px;"><i class="fas fa-edit"></i> Edit Plans</button>
                           </div>
-<div class="plans-list" id="plansList"></div>
+                           <div class="plans-list" id="plansList"></div>
                         </div>
                         <!-- Membership Plan Editor Modal -->
                         <div class="modal" id="planEditorModal" style="display:none;z-index:100000;align-items:flex-start;">
@@ -610,10 +611,12 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Payment Tab (Initially Hidden) -->
-            <div id="paymentTab" class="payment-tab">
+            
+             </div>
+        
+        <!-- Payment Tab (Initially Hidden) -->
+        <div id="paymentTab" class="tab-content" style="display: none;">
+            <div class="tab-inner-content">
                 <div class="page-header">
                     <h1 class="page-title"><i class="fas fa-credit-card"></i> Payment Management</h1>
                     <div class="page-actions">
@@ -640,17 +643,6 @@
                         </div>
                     </div>
 
-                    <!-- Received Payments Details Modal -->
-                    <div class="modal" id="receivedPaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:520px;margin-top:48px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style="margin:0;color:#22c55e;font-weight:600;"><i class="fas fa-wallet"></i> Amount Received Breakdown</h3>
-                          <button class="modal-close" id="closeReceivedPaymentsModal" style="font-size:1.5rem;">&times;</button>
-                        </div>
-                        <div id="receivedPaymentsDetailsContainer" style="min-height:120px;"></div>
-                      </div>
-                    </div>
-
                     <div class="payment-stat-card paid" id="paidAmountStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Amount Paid</div>
@@ -665,17 +657,6 @@
                         </div>
                     </div>
 
-                    <!-- Paid Amounts Details Modal -->
-                    <div class="modal" id="paidAmountsModal" style="display:none;z-index:100000;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:520px;margin-top:48px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style="margin:0;color:#ef4444;font-weight:600;"><i class="fas fa-money-bill-wave"></i> Amount Paid Breakdown</h3>
-                          <button class="modal-close" id="closePaidAmountsModal" style="font-size:1.5rem;">&times;</button>
-                        </div>
-                        <div id="paidAmountsDetailsContainer" style="min-height:120px;"></div>
-                      </div>
-                    </div>
-
                     <div class="payment-stat-card pending" id="pendingPaymentsStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Pending Payments</div>
@@ -684,17 +665,6 @@
                             </div>
                         </div>
                         <div class="payment-stat-value">₹0</div>
-                    </div>
-
-                    <!-- Pending Payments Details Modal -->
-                    <div class="modal" id="pendingPaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:700px;margin-top:48px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style="margin:0;color:#f59e0b;font-weight:600;"><i class="fas fa-clock"></i> Pending Payments Details</h3>
-                          <button class="modal-close" id="closePendingPaymentsModal" style="font-size:1.5rem;">&times;</button>
-                        </div>
-                        <div id="pendingPaymentsDetailsContainer" style="margin-top:18px;min-height:120px;max-height:420px;overflow-y:auto;"></div>
-                      </div>
                     </div>
 
                     <div class="payment-stat-card due" id="duePaymentsStatCard" style="cursor:pointer;">
@@ -711,17 +681,6 @@
                         </div>
                     </div>
 
-                    <!-- Due Payments Details Modal -->
-                    <div class="modal" id="duePaymentsModal" style="display:none;z-index:100000;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:700px;margin-top:48px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style="margin:0;color:#dc2626;font-weight:600;"><i class="fas fa-calendar-times"></i> Due Payments Details</h3>
-                          <button class="modal-close" id="closeDuePaymentsModal" style="font-size:1.5rem;">&times;</button>
-                        </div>
-                        <div id="duePaymentsDetailsContainer" style="margin-top:18px;min-height:120px;max-height:420px;overflow-y:auto;"></div>
-                      </div>
-                    </div>
-
                     <div class="payment-stat-card profit" id="profitLossStatCard" style="cursor:pointer;">
                         <div class="payment-stat-header">
                             <div class="payment-stat-title">Profit/Loss</div>
@@ -734,17 +693,6 @@
                             <i class="fas fa-arrow-up"></i>
                             0.0%
                         </div>
-                    </div>
-
-                    <!-- Profit/Loss Details Modal -->
-                    <div class="modal" id="profitLossModal" style="display:none;z-index:100000;align-items:flex-start;">
-                      <div class="modal-content" style="max-width:600px;margin-top:48px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                          <h3 style="margin:0;color:#3b82f6;font-weight:600;"><i class="fas fa-chart-line"></i> Profit/Loss Analysis</h3>
-                          <button class="modal-close" id="closeProfitLossModal" style="font-size:1.5rem;">&times;</button>
-                        </div>
-                        <div id="profitLossDetailsContainer" style="margin-top:18px;min-height:120px;"></div>
-                      </div>
                     </div>
                 </div>
 
@@ -831,16 +779,71 @@
                             </button>
                         </div>
                         <div class="recent-payments-list" id="recentPaymentsList">
-                            <div class="payment-loading">
+                        <div class="payment-loading">
                                 <i class="fas fa-spinner"></i> Loading payments...
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div><!-- Close tab-inner-content -->
+        </div><!-- Close paymentTab -->
+
+<!-- Payment Tab Modals - Moved outside tab for proper positioning -->
+<!-- Received Payments Details Modal -->
+<div class="modal" id="receivedPaymentsModal" style="display:none;">
+  <div class="modal-content" style="max-width:520px;margin-top:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;color:#22c55e;font-weight:600;"><i class="fas fa-wallet"></i> Amount Received Breakdown</h3>
+      <button class="modal-close" id="closeReceivedPaymentsModal" style="font-size:1.5rem;">&times;</button>
     </div>
+    <div id="receivedPaymentsDetailsContainer" style="min-height:120px;"></div>
+  </div>
 </div>
+
+<!-- Paid Amounts Details Modal -->
+<div class="modal" id="paidAmountsModal" style="display:none;">
+  <div class="modal-content" style="max-width:520px;margin-top:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;color:#ef4444;font-weight:600;"><i class="fas fa-money-bill-wave"></i> Amount Paid Breakdown</h3>
+      <button class="modal-close" id="closePaidAmountsModal" style="font-size:1.5rem;">&times;</button>
+    </div>
+    <div id="paidAmountsDetailsContainer" style="min-height:120px;"></div>
+  </div>
+</div>
+
+<!-- Pending Payments Details Modal -->
+<div class="modal" id="pendingPaymentsModal" style="display:none;">
+  <div class="modal-content" style="max-width:700px;margin-top:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;color:#f59e0b;font-weight:600;"><i class="fas fa-clock"></i> Pending Payments Details</h3>
+      <button class="modal-close" id="closePendingPaymentsModal" style="font-size:1.5rem;">&times;</button>
+    </div>
+    <div id="pendingPaymentsDetailsContainer" style="margin-top:18px;min-height:120px;max-height:420px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- Due Payments Details Modal -->
+<div class="modal" id="duePaymentsModal" style="display:none;">
+  <div class="modal-content" style="max-width:700px;margin-top:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;color:#dc2626;font-weight:600;"><i class="fas fa-calendar-times"></i> Due Payments Details</h3>
+      <button class="modal-close" id="closeDuePaymentsModal" style="font-size:1.5rem;">&times;</button>
+    </div>
+    <div id="duePaymentsDetailsContainer" style="margin-top:18px;min-height:120px;max-height:420px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- Profit/Loss Details Modal -->
+<div class="modal" id="profitLossModal" style="display:none;">
+  <div class="modal-content" style="max-width:600px;margin-top:48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;color:#3b82f6;font-weight:600;"><i class="fas fa-chart-line"></i> Profit/Loss Analysis</h3>
+      <button class="modal-close" id="closeProfitLossModal" style="font-size:1.5rem;">&times;</button>
+    </div>
+    <div id="profitLossDetailsContainer" style="margin-top:18px;min-height:120px;"></div>
+  </div>
+</div>
+
 
 <!-- Quick Actions Floating Dock -->
 <div id="quickActionsFloatingBar" class="quick-actions-floating-bar" style="display: none;">
@@ -2132,7 +2135,8 @@
       </div>
     </div>
 <!-- Member Display Tab (hidden by default) -->
-<div id="memberDisplayTab" style="display:none;">
+<div id="memberDisplayTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
   <div class="page-header">
     <h1 class="page-title"><i class="fas fa-users"></i> All Members</h1>
     <div class="member-action-btn-group">
@@ -2181,7 +2185,9 @@
       </tbody>
     </table>
   </div>
-</div>
+  </div><!-- Close tab-inner-content -->
+</div><!-- Close memberDisplayTab -->
+
 <!-- Interactive Members Detail Card (hidden by default) -->
 <div id="membersDetailCard" class="modal">
   <div class="modal-content member-detail-modal">
@@ -2196,11 +2202,12 @@
       <!-- Dynamic content injected by JS -->
     </div>
   </div>
-</div>
+  </div> <!-- End tab-inner-content -->
 <!-- Trainer Tab -->
-<div id="trainerTab" style="display:none; padding: 24px;">
-  <div class="page-header" style="margin-bottom: 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-    <h1 class="page-title" style="display:flex;align-items:center;gap:10px;">
+<div id="trainerTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
+  <div class="page-header" >
+    <h1 class="page-title">
       <i class="fas fa-user-tie"></i> Trainer Management
       <span id="trainerPendingBadge" style="background:#ff9800;color:#fff;padding:4px 10px;border-radius:14px;font-size:0.75rem;font-weight:600;display:none;">0 Pending</span>
     </h1>
@@ -2350,7 +2357,8 @@
       .trainer-actions{flex-direction:column;align-items:flex-end;}
     }
   </style>
-</div>
+
+
 
 <!-- Trainer Certifications Lightbox Modal -->
 <div id="trainerCertModal" style="display:none;position:fixed;inset:0;z-index:100500;background:rgba(15,23,42,0.78);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
@@ -2417,11 +2425,14 @@
       </button>
     </div>
   </div>
-</div>
+  </div>
+  </div> <!-- End tab-inner-content --> 
+</div> <!-- End trainerTab -->
 
 
 <!-- Support & Reviews Tab -->
-<div id="supportReviewsTab" style="display:none;">
+<div id="supportReviewsTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
   <!-- Header Section - Consistent with other tabs -->
   <div class="page-header">
     <h1 class="page-title">
@@ -2635,10 +2646,8 @@
       </div>
     </div>
   </div>
-</div>
-
-<!-- Support & Reviews Modals -->
-
+  </div><!-- Close tab-inner-content -->
+</div><!-- Close supportReviewsTab -->
 <!-- Review Reply Modal -->
 <div id="reviewReplyModal" class="support-modal">
   <div class="support-modal-content">
@@ -2887,10 +2896,11 @@
       </div>
     </div>
   </div>
-</div>
+  </div> <!-- End tab-inner-content -->
 
 <!-- Equipment Tab -->
-<div id="equipmentTab" style="display:none; padding: 24px;">
+<div id="equipmentTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
   <div class="page-header" style="margin-bottom: 30px;">
     <h1 class="page-title">
       <i class="fas fa-dumbbell"></i> Equipment Management
@@ -2984,7 +2994,8 @@
       <p>Loading equipment...</p>
     </div>
   </div>
-</div>
+  </div><!-- Close tab-inner-content -->
+</div><!-- Close equipmentTab -->
 
 <!-- Equipment Detail Modal -->
 <div id="equipmentDetailModal" class="modal" style="display: none;">
@@ -3221,24 +3232,31 @@
       </button>
     </div>
   </div>
-</div>
+  </div> <!-- End tab-inner-content -->
 <!-- Offers & Coupons Tab -->
-<div id="offersTab"   style="display:none; padding: 24px;">
+ <div id="offersTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
+  <!-- Header Section - Consistent with other tabs -->
   <div class="page-header">
-    <h1 class="page-title"><i class="fas fa-tags"></i> <span data-i18n="offers.management">Offers & Coupons Management</span></h1>
+    <h1 class="page-title">
+      <i class="fas fa-tags"></i>
+      Offers & Coupons Management
+    </h1>
     <div class="page-actions">
-      <button id="createCustomOfferBtn" class="btn-primary">
-        <i class="fas fa-plus"></i> <span data-i18n="offers.create.custom">Create Custom Offer</span>
+      <button id="offersCreateOfferBtn" class="support-action-btn primary">
+        <i class="fas fa-plus"></i>
+        Create Custom Offer
       </button>
-      <button id="viewActiveCouponsBtn" class="btn-primary">
-        <i class="fas fa-ticket-alt"></i> <span data-i18n="offers.view.coupons">Active Coupons</span>
+      <button id="offersGenerateCouponBtn" class="support-action-btn secondary">
+        <i class="fas fa-ticket-alt"></i>
+        Generate Coupon
       </button>
     </div>
   </div>
 
   <!-- Offers Statistics -->
-  <div class="payment-stats-grid">
-    <div class="payment-stat-card received">
+  <div class="offers-stats-grid">
+    <div class="offers-stat-card active-offers">
       <div class="stat-info">
         <div class="stat-header">
           <h3 data-i18n="offers.active.count">Active Offers</h3>
@@ -3253,7 +3271,7 @@
         </div>
       </div>
     </div>
-    <div class="payment-stat-card paid">
+    <div class="offers-stat-card revenue">
       <div class="stat-info">
         <div class="stat-header">
           <h3 data-i18n="offers.revenue.generated">Revenue Generated</h3>
@@ -3268,7 +3286,7 @@
         </div>
       </div>
     </div>
-    <div class="payment-stat-card pending">
+    <div class="offers-stat-card coupons">
       <div class="stat-info">
         <div class="stat-header">
           <h3 data-i18n="offers.active.coupons">Active Coupons</h3>
@@ -3279,7 +3297,7 @@
         <div class="stat-number" id="activeCouponsCount">0</div>
       </div>
     </div>
-    <div class="payment-stat-card due">
+    <div class="offers-stat-card claims">
       <div class="stat-info">
         <div class="stat-header">
           <h3 data-i18n="offers.total.claims">Total Claims</h3>
@@ -3290,7 +3308,7 @@
         <div class="stat-number" id="couponClaimsCount">0</div>
       </div>
     </div>
-    <div class="payment-stat-card profit">
+    <div class="offers-stat-card conversion">
       <div class="stat-info">
         <div class="stat-header">
           <h3 data-i18n="offers.conversion.rate">Conversion Rate</h3>
@@ -3304,95 +3322,72 @@
   </div>
 
   <!-- Tab Navigation -->
-  <div class="payment-tabs-container">
-    <div class="payment-tabs">
-      <button class="payment-tab-btn active" data-tab="templates">
+  <div class="support-nav-container">
+    <div class="support-nav-tabs">
+      <button class="support-tab-btn active" data-tab="templates">
         <i class="fas fa-layer-group"></i>
-        <span data-i18n="offers.templates">Offer Templates</span>
-        <span class="tab-count" id="templatesCount">12</span>
+        <span>Offer Templates</span>
+        <span class="tab-counter" id="templatesTabCounter">12</span>
       </button>
-      <button class="payment-tab-btn" data-tab="active">
+      <button class="support-tab-btn" data-tab="campaigns">
         <i class="fas fa-play-circle"></i>
-        <span data-i18n="offers.active.campaigns">Active Campaigns</span>
-        <span class="tab-count" id="activeCampaignsCount">0</span>
+        <span>Active Campaigns</span>
+        <span class="tab-counter" id="campaignsTabCounter">0</span>
       </button>
-      <button class="payment-tab-btn" data-tab="coupons">
+      <button class="support-tab-btn" data-tab="coupons">
         <i class="fas fa-ticket-alt"></i>
-        <span data-i18n="offers.coupon.management">Coupon Management</span>
-        <span class="tab-count" id="couponsManagementCount">0</span>
+        <span>Coupon Management</span>
+        <span class="tab-counter" id="couponsTabCounter">0</span>
       </button>
-      <button class="payment-tab-btn" data-tab="analytics">
+      <button class="support-tab-btn" data-tab="analytics">
         <i class="fas fa-chart-bar"></i>
-        <span data-i18n="offers.analytics">Analytics</span>
+        <span>Analytics</span>
+        <span class="tab-counter" id="analyticsTabCounter">0</span>
       </button>
     </div>
   </div>
 
-  <!-- Offer Templates Tab -->
-  <div id="templatesTab" class="payment-tab-content">
-    <div class="section-header">
-      <h2><i class="fas fa-layer-group"></i> <span data-i18n="offers.quick.templates">Quick Offer Templates</span></h2>
-      <p data-i18n="offers.templates.description">Choose from pre-designed templates or create custom offers for your gym members</p>
+  <!-- Offer Templates Section -->
+<div id="templatesSection" class="support-section active">
+  <div class="support-content-container">
+    <div class="support-content-header">
+      <h2 class="content-title"><i class="fas fa-layer-group"></i> Quick Offer Templates</h2>
+      <p>Choose from pre-designed templates or create custom offers for your gym members</p>
     </div>
     
     <div class="templates-grid" id="templatesGrid">
       <!-- Templates will be dynamically loaded here -->
       <div class="loading-template">
-        <div class="loading-spinner"></div>
-        <p data-i18n="offers.loading.templates">Loading offer templates...</p>
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading offer templates...</p>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Active Campaigns Tab -->
-  <div id="activeTab" class="payment-tab-content" style="display: none;">
-    <div class="section-header">
-      <h2><i class="fas fa-play-circle"></i> <span data-i18n="offers.active.campaigns.title">Active Campaigns</span></h2>
-      <p data-i18n="offers.campaigns.description">Monitor and manage your currently running promotional campaigns</p>
+  <!-- Active Campaigns Section -->
+<div id="campaignsSection" class="support-section">
+  <div class="support-content-container">
+    <div class="support-content-header">
+      <h2 class="content-title"><i class="fas fa-play-circle"></i> Active Marketing Campaigns</h2>
+      <p>Monitor and manage your currently running offer campaigns</p>
     </div>
-    
-    <div class="campaigns-container">
-      <div class="campaigns-filters payment-filters">
-        <div class="filter-group">
-          <label for="campaignStatusFilter" data-i18n="offers.filter.status">Status:</label>
-          <select id="campaignStatusFilter" class="filter-select">
-            <option value="all" data-i18n="offers.filter.all">All Campaigns</option>
-            <option value="active" data-i18n="offers.filter.active">Active</option>
-            <option value="paused" data-i18n="offers.filter.paused">Paused</option>
-            <option value="expired" data-i18n="offers.filter.expired">Expired</option>
-          </select>
-        </div>
-      </div>
-      
-      <div id="activeCampaignsList" class="campaigns-list">
-        <!-- Active campaigns will be loaded here -->
-        <div class="empty-state">
-          <i class="fas fa-bullhorn"></i>
-          <h3 data-i18n="offers.no.campaigns">No Active Campaigns</h3>
-          <p data-i18n="offers.campaigns.empty.message">Create your first promotional campaign to start attracting new members</p>
-          <button class="btn-primary" id="createFirstCampaignBtn">
-            <i class="fas fa-plus"></i> <span data-i18n="offers.create.campaign">Create Campaign</span>
-          </button>
+   <div class="support-content-body"></div>
+      <div class="campaigns-list" id="campaignsList">
+      <!-- Campaigns will be dynamically loaded here -->
+        <div class="loading-template">
+         <i class="fas fa-spinner fa-spin"></i>
+         <p>Loading active campaigns...</p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Coupon Management Tab -->
-  <div id="couponsTab" class="payment-tab-content" style="display: none;">
-    <div class="section-header">
-      <h2><i class="fas fa-ticket-alt"></i> <span data-i18n="offers.coupon.management.title">Coupon Management</span></h2>
-      <div class="section-actions">
-        <button class="btn-primary" id="generateCouponBtn">
-          <i class="fas fa-plus"></i> <span data-i18n="offers.generate.coupon">Generate Coupon</span>
-        </button>
-        <button class="btn-secondary" id="exportCouponsBtn">
-          <i class="fas fa-download"></i> <span data-i18n="offers.export.coupons">Export</span>
-        </button>
-      </div>
-    </div>
-    
-    <div class="coupons-filters payment-filters">
+ </div>
+  <!-- Coupon Management Section -->
+  <div id="couponsSection" class="support-section">
+  <div class="support-content-container">
+    <div class="support-content-header">
+      <h2 class="content-title"><i class="fas fa-ticket-alt"></i> <span data-i18n="offers.coupon.management.title">Coupon Management</span></h2>
+      <div class="support-filters">
         <div class="filter-group">
           <label for="couponSearchInput" data-i18n="offers.search.coupons">Search Coupons:</label>
           <input type="text" id="couponSearchInput" class="filter-input" data-i18n-placeholder="offers.search.placeholder" placeholder="Search by code, type, or description...">
@@ -3407,9 +3402,18 @@
         </select>
       </div>
     </div>
+      <div class="section-actions">
+        <button class="support-action-btn" id="generateCouponBtn">
+          <i class="fas fa-plus"></i> <span data-i18n="offers.generate.coupon">Generate Coupon</span>
+        </button>
+        <button class="support-action-btn" id="exportCouponsBtn">
+          <i class="fas fa-download"></i> <span data-i18n="offers.export.coupons">Export</span>
+        </button>
+      </div>
+    </div>
     
-    <div class="coupons-table-container payment-table-container">
-      <table class="coupons-table payment-table" id="couponsTable">
+    <div class="coupons-table-container support-table-container">
+      <table class="coupons-table support-table" id="couponsTable">
         <thead>
           <tr>
             <th data-i18n="offers.table.code">Code</th>
@@ -3430,17 +3434,19 @@
         <i class="fas fa-ticket-alt"></i>
         <h3 data-i18n="offers.no.coupons">No Coupons Found</h3>
         <p data-i18n="offers.coupons.empty.message">Create your first coupon to offer discounts to your members</p>
-        <button class="btn-primary" id="createFirstCouponBtn">
+        <button class="support-action-btn" id="createFirstCouponBtn">
           <i class="fas fa-plus"></i> <span data-i18n="offers.create.first.coupon">Create First Coupon</span>
         </button>
       </div>
     </div>
+    
   </div>
-
-  <!-- Analytics Tab -->
-  <div id="analyticsTab" class="payment-tab-content" style="display: none;">
-    <div class="analytics-header" style="margin-bottom: 24px;">
-      <h2><i class="fas fa-chart-bar"></i> Offers & Coupons Analytics</h2>
+  </div>
+    <!-- Analytics Section -->
+  <div id="analyticsSection" class="support-section" style="display: none;">
+  <div class="support-content-container">
+    <div class="support-content-header" style="margin-bottom: 24px;">
+      <h2 class="content-title"><i class="fas fa-chart-bar"></i> Offers & Coupons Analytics</h2>
       <p>Track performance and engagement metrics for your campaigns</p>
     </div>
     
@@ -3463,15 +3469,20 @@
       </div>
     </div>
   </div>
-</div>
+  </div>
+  </div><!-- Close tab-inner-content -->
+ </div><!-- Close offersTab -->
+
 <!-- Offer Creation Modal -->
-<div id="offerCreationModal" class="offers-modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2><i class="fas fa-tags"></i> Create Custom Offer</h2>
-      <span class="modal-close" id="closeOfferModal">&times;</span>
+<div id="offerCreationModal" class="support-modal">
+  <div class="support-modal-content large">
+    <div class="support-modal-header">
+      <h3><i class="fas fa-tags"></i> Create Custom Offer</h3>
+      <button class="support-modal-close" id="closeOfferModal">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <div class="modal-body">
+    <div class="support-modal-body">
       <form id="offerCreationForm">
         <div class="form-group">
           <label for="offerTitle">Offer Title:</label>
@@ -3522,23 +3533,25 @@
             </button>
           </div>
         </div>
-        <div class="form-actions">
-          <button type="button" id="cancelOfferBtn" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Create Offer</button>
-        </div>
       </form>
+    </div>
+    <div class="support-modal-footer">
+      <button type="button" id="cancelOfferBtn" class="btn-secondary">Cancel</button>
+      <button type="submit" form="offerCreationForm" class="btn-primary">Create Offer</button>
     </div>
   </div>
 </div>
 
 <!-- Coupon Generation Modal -->
-<div id="couponGenerationModal" class="offers-modal">
-  <div class="modal-content">
-    <div class="modal-header-style">
-      <h2><i class="fas fa-ticket-alt"></i> Generate Coupon</h2>
-      <span class="modal-close" id="closeCouponModal">&times;</span>
+<div id="couponGenerationModal" class="support-modal">
+  <div class="support-modal-content large">
+    <div class="support-modal-header">
+      <h3><i class="fas fa-ticket-alt"></i> Generate Coupon</h3>
+      <button class="support-modal-close" id="closeCouponModal">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <div class="modal-body">
+    <div class="support-modal-body">
       <form id="couponGenerationForm">
         <div class="form-group">
           <label for="couponTitle">Coupon Title:</label>
@@ -3580,26 +3593,28 @@
           <label for="couponExpiryDate">Expiry Date:</label>
           <input type="datetime-local" id="couponExpiryDate" name="expiryDate" required>
         </div>
-        <div class="form-actions">
-          <button type="button" id="cancelCouponBtn" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Generate Coupon</button>
-        </div>
       </form>
+    </div>
+    <div class="support-modal-footer">
+      <button type="button" id="cancelCouponBtn" class="btn-secondary">Cancel</button>
+      <button type="submit" form="couponGenerationForm" class="btn-primary">Generate Coupon</button>
     </div>
   </div>
 </div>
 
 <!-- Template Preview Modal -->
-<div id="templatePreviewModal" class="offers-modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2><i class="fas fa-eye"></i> Template Preview</h2>
-      <span class="modal-close" id="closeTemplatePreviewModal">&times;</span>
+<div id="templatePreviewModal" class="support-modal">
+  <div class="support-modal-content large">
+    <div class="support-modal-header">
+      <h3><i class="fas fa-eye"></i> Template Preview</h3>
+      <button class="support-modal-close" id="closeTemplatePreviewModal">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <div class="modal-body" id="templatePreviewContent">
+    <div class="support-modal-body" id="templatePreviewContent">
       <!-- Preview content will be inserted here -->
     </div>
-    <div class="modal-footer">
+    <div class="support-modal-footer">
       <button id="customizeTemplateBtn" class="btn-secondary">
         <i class="fas fa-edit"></i> Customize
       </button>
@@ -3622,8 +3637,10 @@
     </div>
   </div>
 </div>
+
 <!-- Settings Tab -->
-<div id="settingsTab" style="display:none; padding: 24px;">
+ <div id="settingsTab" class="tab-content" style="display:none;">
+    <div class="tab-inner-content">
     <div class="page-header" style="margin-bottom: 30px;">
       <h1 class="page-title">
         <i class="fas fa-cog"></i> Settings
@@ -4024,7 +4041,7 @@
             </div>
           </div>
         </div>
-      }
+      </div>
 
     <!-- Subscription Management Section -->
     <div class="settings-section card" id="subscriptionManagementSection">
@@ -4573,10 +4590,12 @@
         </div>
       </div>
     </div>
-  </div>
-
+    </div><!-- close tab-inner-content -->
+  </div><!-- Close settingsTab -->
+ 
 <!-- Attendance Tab -->
-<div id="attendanceTab" style="display:none;">
+ <div id="attendanceTab" class="tab-content" style="display:none;">
+  <div class="tab-inner-content">
   <div class="attendance-container">
     <!-- Compact Top Control Panel -->
     <div class="attendance-control-panel">
@@ -4685,12 +4704,9 @@
       </div>
     </div>
   </div>
-</div>
-
- 
- 
-  <!-- Subscription Modals -->
-  
+  </div><!-- Close inner container -->
+ </div><!-- Close attendanceTab -->
+ </div> <!-- close main-container -->
   <!-- Renew Subscription Modal -->
   <div class="modal" id="renewSubscriptionModal" style="display: none;">
     <div class="modal-content" style="max-width: 600px;">
@@ -4918,7 +4934,7 @@
   </div>
 
   <!-- Add Payment Modal -->
-  <div class="add-payment-modal" id="addPaymentModal">
+  <div class="add-payment-modal" id="addPaymentModal" style="display: none;">
     <div class="add-payment-modal-content">
       <div class="add-payment-modal-header">
         <h3 class="add-payment-modal-title">
@@ -5389,6 +5405,9 @@
     </div>
   </div>
 </div>
+  </div> <!-- End tab-inner-content -->
+</div> <!-- End attendanceTab -->
+    </div><!-- Close main-content -->
  
    <!-- 7-Day Allowance System -->
    <script src="seven-day-allowance.js"></script>

@@ -1,17 +1,8 @@
-/* Enhanced Payment Tab Styles with Premium UI/UX */
-.payment-tab {
-  display: none;
-  padding: 32px 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  min-height: 100vh;
-  animation: fadeInSlideUp 0.4s ease-out;
-}
 
-.payment-tab.active {
-  display: block;
-}
-
-
+/* ===================================================================
+   PAYMENT TAB STYLES - SCOPED TO #paymentTab ONLY
+   All selectors prefixed to prevent global CSS bleed to other tabs
+   =================================================================== */
 
 /* Enhanced Payment Stats Grid with Proper 3-Column Layout */
 .payment-stats-grid {

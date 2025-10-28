@@ -1,0 +1,1198 @@
+/* Gym Details Offers System Styles */
+
+/* Offers Tab Button Styling */
+.offers-tab-btn {
+    position: relative;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
+    color: white !important;
+}
+
+.offers-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff3838;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border: 2px solid white;
+}
+
+/* Offers Tab Content */
+.offers-section {
+    padding: 30px 0;
+}
+
+.offers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f1f2f6;
+}
+
+.offers-header h2 {
+    color: #333;
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.offers-header h2 i {
+    color: #ff6b6b;
+    margin-right: 10px;
+}
+
+.view-all-offers-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-all-offers-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* Active Offers Grid */
+.active-offers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.offers-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.offers-loading i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #667eea;
+}
+
+.no-offers {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-offers i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: #ddd;
+}
+
+.no-offers h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+/* Tab Offer Card (different from popup) */
+.tab-offer-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab-offer-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.tab-offer-header {
+    height: 140px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: flex-end;
+    padding: 20px;
+    color: white;
+}
+
+.tab-offer-header.premium {
+    background: linear-gradient(135deg, rgba(255, 154, 0, 0.9), rgba(255, 206, 84, 0.9));
+}
+
+.tab-offer-header.fitness {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.9), rgba(39, 174, 96, 0.9));
+}
+
+.tab-offer-header.student {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.9), rgba(142, 68, 173, 0.9));
+}
+
+.tab-offer-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.tab-offer-body {
+    padding: 20px;
+}
+
+.tab-offer-description {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+}
+
+.tab-offer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tab-offer-discount {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.tab-offer-validity {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+.tab-offer-progress {
+    margin-bottom: 15px;
+}
+
+.tab-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f1f2f6;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.tab-progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+}
+
+.tab-progress-text {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.tab-offer-action {
+    display: flex;
+    gap: 10px;
+}
+
+.tab-claim-btn, .tab-claimed-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+}
+
+.tab-claim-btn {
+    background: #28a745;
+    color: white;
+}
+
+.tab-claim-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.tab-claimed-btn {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* My Offers Section */
+.my-offers-section {
+    border-top: 2px solid #f1f2f6;
+    padding-top: 30px;
+    margin-bottom: 30px;
+}
+
+.my-offers-section h3 {
+    color: #333;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.my-offers-section h3 i {
+    color: #28a745;
+    margin-right: 10px;
+}
+
+.claimed-offers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.no-claimed-offers {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.no-claimed-offers i {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: #ddd;
+}
+
+.claimed-offer-item {
+    background: white;
+    border: 2px solid #28a745;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.claimed-offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.claimed-offer-title {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.claimed-offer-status {
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.claimed-offer-coupon {
+    background: #f8f9fa;
+    border: 1px dashed #28a745;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.claimed-offer-details {
+    font-size: 0.85rem;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Offers Actions */
+.offers-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-top: 20px;
+    border-top: 1px solid #f1f2f6;
+}
+
+.action-btn {
+    background: white;
+    border: 2px solid #667eea;
+    color: #667eea;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Offers Popup */
+.gym-offers-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.gym-offers-popup.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.offers-popup-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.offers-popup-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 900px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: popupSlideIn 0.4s ease-out;
+}
+
+@keyframes popupSlideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+        scale: 0.9;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+.offers-popup-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.offers-popup-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.close-popup-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.close-popup-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* Offers Carousel */
+.offers-carousel {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.offer-card {
+    position: relative;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    cursor: pointer;
+        animation: offerCardSlideIn 0.4s ease-out;
+
+}
+
+.offer-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.offer-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.3;
+}
+
+.offer-content {
+    position: relative;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    color: white;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.offer-card.premium .offer-content {
+    background: linear-gradient(135deg, rgba(255, 154, 0, 0.9) 0%, rgba(255, 206, 84, 0.9) 100%);
+}
+
+.offer-card.fitness .offer-content {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.9) 0%, rgba(39, 174, 96, 0.9) 100%);
+}
+
+.offer-card.student .offer-content {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.9) 0%, rgba(142, 68, 173, 0.9) 100%);
+}
+
+.offer-content h4 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.offer-content p {
+    margin: 0 0 15px 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.offer-details {
+    margin-bottom: 15px;
+}
+
+.discount-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+.validity {
+    display: block;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.offer-actions {
+    margin-bottom: 15px;
+}
+
+.claim-offer-btn, .already-claimed-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.claim-offer-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+}
+
+.claim-offer-btn:hover {
+    background: white;
+    transform: translateY(-2px);
+}
+
+.already-claimed-btn {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    cursor: not-allowed;
+}
+
+.claim-progress {
+    margin-top: auto;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    transition: width 0.3s ease;
+}
+
+.claim-count {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Offers Popup Footer */
+.offers-popup-footer {
+    padding: 20px 30px;
+    background: #f8f9fa;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.view-all-offers-btn, .maybe-later-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    max-width: 200px;
+}
+
+
+
+
+
+.maybe-later-btn {
+    background: transparent;
+    color: #666;
+    border: 2px solid #ddd;
+}
+
+.maybe-later-btn:hover {
+    border-color: #bbb;
+    color: #333;
+}
+
+/* All Offers Modal */
+.offers-grid {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.full-offer-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.full-offer-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.offer-image {
+    height: 120px;
+    background-size: cover;
+    background-position: center;
+}
+
+.offer-info {
+    padding: 20px;
+}
+
+.offer-info h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.offer-info p {
+    margin: 0 0 15px 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.offer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.discount {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+
+
+.claim-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.claim-info span {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.claim-info button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.claim-info .claim-offer-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+}
+
+.claim-info .claim-offer-btn:hover {
+    background: #5a6fd8;
+}
+
+.claim-info .claimed-btn {
+    background: #e9ecef;
+    color: #6c757d;
+    border: none;
+    cursor: not-allowed;
+}
+
+/* My Coupons Section */
+.my-coupons-section {
+    padding: 30px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.my-coupons-section h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.coupons-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.coupon-item {
+    background: white;
+    border: 2px dashed #667eea;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.coupon-item:hover {
+    border-color: #5a6fd8;
+    transform: translateY(-2px);
+}
+
+.coupon-code {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #667eea;
+    text-align: center;
+    background: #f8f9ff;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.coupon-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.coupon-details .discount {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.apply-coupon-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.apply-coupon-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.no-coupons {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px;
+}
+
+/* Success Messages */
+.claim-success-message, .coupon-selected-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 15px;
+    padding: 0;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.claim-success-message.show, .coupon-selected-message.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.success-content, .message-content {
+    padding: 40px;
+    text-align: center;
+}
+
+.success-content i, .message-content i {
+    font-size: 3rem;
+    color: #28a745;
+    margin-bottom: 20px;
+}
+
+.success-content h4, .message-content h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.success-content p, .message-content p {
+    margin: 0 0 10px 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.success-content button, .message-content button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s ease;
+}
+
+.success-content button:hover, .message-content button:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .offers-popup-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .offers-carousel {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+
+    .offers-grid {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+
+    .coupons-list {
+        grid-template-columns: 1fr;
+    }
+
+    .offers-popup-footer {
+        flex-direction: column;
+    }
+
+    .view-all-offers-btn, .maybe-later-btn {
+        max-width: none;
+    }
+
+    .offer-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .success-content, .message-content {
+        padding: 30px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .offers-popup-header {
+        padding: 15px 20px;
+    }
+
+    .offers-popup-header h3 {
+        font-size: 1.2rem;
+    }
+
+    .offer-content {
+        padding: 15px;
+        min-height: 180px;
+    }
+
+    .offer-content h4 {
+        font-size: 1.1rem;
+    }
+
+    .my-coupons-section {
+        padding: 20px;
+    }
+}
+
+/* Animation for offer cards */
+@keyframes offerCardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+.offer-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.offer-card:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+/* Coupon Selection Modal */
+#coupon-selection-modal .modal-content {
+    max-width: 600px;
+    width: 90%;
+}
+
+.purchase-summary {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.purchase-summary h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 2px solid #667eea;
+}
+
+.summary-item.discount-applied {
+    color: #28a745;
+}
+
+.summary-item.coupon-applied {
+    color: #ff6b6b;
+}
+
+.summary-item.total {
+    font-size: 1.1rem;
+}
+
+.coupon-selection h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.available-coupons {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.coupon-option {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.coupon-option:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.coupon-option.selected {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.coupon-option:last-child {
+    margin-bottom: 0;
+}
+
+.coupon-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.coupon-discount {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.no-coupons-message {
+    text-align: center;
+    color: #888;
+    padding: 30px 20px;
+}
+
+.no-coupons-message i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #ddd;
+}
+
+.manual-coupon-entry {
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+}
+
+.coupon-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#manual-coupon-code {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+}
+
+#manual-coupon-code:focus {
+    border-color: #667eea;
+    outline: none;
+}
+
+#apply-manual-coupon {
+    padding: 10px 20px;
+    border: none;
+    background: #667eea;
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#apply-manual-coupon:hover {
+    background: #5a6fd8;
+}
+
+.coupon-validation-message {
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.coupon-validation-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.coupon-validation-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.modal-actions button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a6fd8;
+    transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #coupon-selection-modal .modal-content {
+        width: 95%;
+        margin: 20px auto;
+    }
+    
+    .coupon-input-group {
+        flex-direction: column;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    .coupon-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

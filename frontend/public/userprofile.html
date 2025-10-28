@@ -502,6 +502,97 @@
   </div>
 </div>
 
+<!-- My Coupons & Offers Section -->
+<div class="coupons-offers-section">
+  <div class="section-header">
+    <h3><i class="fas fa-gift"></i> My Coupons & Offers</h3>
+    <div class="section-actions">
+      <button class="btn-find-offers" onclick="findNewOffers()">
+        <i class="fas fa-search"></i> Find New Offers
+      </button>
+      <button class="btn-refresh-coupons" onclick="refreshCoupons()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="coupons-stats">
+    <div class="stat-card active-coupons">
+      <div class="stat-icon">
+        <i class="fas fa-ticket-alt"></i>
+      </div>
+      <div class="stat-content">
+        <h4 id="active-coupons-count">0</h4>
+        <p>Active Coupons</p>
+      </div>
+    </div>
+    <div class="stat-card total-savings">
+      <div class="stat-icon">
+        <i class="fas fa-piggy-bank"></i>
+      </div>
+      <div class="stat-content">
+        <h4 id="total-savings">₹0</h4>
+        <p>Total Savings</p>
+      </div>
+    </div>
+    <div class="stat-card expiring-soon">
+      <div class="stat-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <h4 id="expiring-soon-count">0</h4>
+        <p>Expiring Soon</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupons Categories -->
+  <div class="coupons-categories">
+    <div class="category-tabs">
+      <button class="category-tab active" data-category="active">
+        <i class="fas fa-check-circle"></i> Active Coupons
+      </button>
+      <button class="category-tab" data-category="expired">
+        <i class="fas fa-times-circle"></i> Expired
+      </button>
+      <button class="category-tab" data-category="used">
+        <i class="fas fa-shopping-cart"></i> Used
+      </button>
+    </div>
+
+    <!-- Active Coupons -->
+    <div class="coupons-grid active" id="active-coupons-grid">
+      <div class="coupons-loading" id="coupons-loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading your coupons...</p>
+      </div>
+    </div>
+
+    <!-- Expired Coupons -->
+    <div class="coupons-grid" id="expired-coupons-grid" style="display: none;">
+      <!-- Expired coupons will be loaded here -->
+    </div>
+
+    <!-- Used Coupons -->
+    <div class="coupons-grid" id="used-coupons-grid" style="display: none;">
+      <!-- Used coupons will be loaded here -->
+    </div>
+
+    <!-- No Coupons State -->
+    <div class="no-coupons-state" id="no-coupons-state" style="display: none;">
+      <div class="no-coupons-icon">
+        <i class="fas fa-gift"></i>
+      </div>
+      <h4>No Coupons Yet</h4>
+      <p>Start exploring gyms and claim exciting offers to save on your fitness journey!</p>
+      <button class="btn-explore-offers" onclick="exploreOffers()">
+        <i class="fas fa-search"></i> Explore Offers
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Diet Plan Section -->
 <div class="diet-plan">
   <div class="section-header">
@@ -737,6 +828,8 @@
 </div>
   </div>
 
+    <!-- Load User Coupons Manager -->
+    <script src="../user-coupons-manager.js"></script>
  
 </body>
 </html>

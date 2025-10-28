@@ -591,6 +591,233 @@ const changePassword = async (req, res) => {
   }
 };
 
+// ====== Get User's Claimed Coupons ======
+const getUserCoupons = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, page = 1, limit = 10 } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID is required' 
+      });
+    }
+
+    // Import Coupon model here to avoid circular dependency
+    const Coupon = require('../models/Coupon');
+
+    // Build query
+    const query = { userId };
+    if (status) query.status = status;
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    
+    const coupons = await Coupon.find(query)
+      .populate('offerId', 'title description category')
+      .populate('gymId', 'name location')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Coupon.countDocuments(query);
+
+    // Filter expired coupons and update their status
+    const now = new Date();
+    const activeCoupons = [];
+    const expiredCoupons = [];
+
+    for (const coupon of coupons) {
+      if (coupon.validTill < now && coupon.status === 'active') {
+        // Update expired coupon status
+        await Coupon.findByIdAndUpdate(coupon._id, { status: 'expired' });
+        coupon.status = 'expired';
+        expiredCoupons.push(coupon);
+      } else {
+        activeCoupons.push(coupon);
+      }
+    }
+
+    res.json({
+      success: true,
+      coupons,
+      activeCoupons: activeCoupons.length,
+      expiredCoupons: expiredCoupons.length,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user coupons:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch coupons',
+      error: error.message 
+    });
+  }
+};
+
+// ====== Save Offer to User Profile ======
+const saveOfferToProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { offerId, offerData, claimedAt, expiresAt } = req.body;
+
+    if (!userId || !offerId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID and Offer ID are required' 
+      });
+    }
+
+    // Import models here
+    const Coupon = require('../models/Coupon');
+    const Offer = require('../models/Offer');
+
+    // Check if offer exists
+    const offer = await Offer.findById(offerId);
+    if (!offer) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Offer not found' 
+      });
+    }
+
+    // Check if user already has this coupon
+    const existingCoupon = await Coupon.findOne({
+      userId,
+      offerId,
+      status: { $in: ['active', 'pending'] }
+    });
+
+    if (existingCoupon) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'You have already claimed this offer',
+        couponId: existingCoupon._id
+      });
+    }
+
+    // Generate unique coupon code
+    const couponCode = `${offer.type.toUpperCase()}${Date.now().toString().slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+
+    // Create new coupon
+    const coupon = new Coupon({
+      code: couponCode,
+      type: offer.type,
+      value: offer.value,
+      minAmount: offer.minAmount || 0,
+      gymId: offer.gymId,
+      offerId: offerId,
+      userId: userId,
+      validFrom: offer.startDate || new Date(),
+      validTill: expiresAt ? new Date(expiresAt) : offer.endDate,
+      status: 'active',
+      description: offer.title,
+      claimedAt: claimedAt ? new Date(claimedAt) : new Date()
+    });
+
+    await coupon.save();
+
+    // Update offer usage count
+    await Offer.findByIdAndUpdate(offerId, {
+      $inc: { usageCount: 1 }
+    });
+
+    res.json({
+      success: true,
+      message: 'Offer saved to profile successfully',
+      coupon: {
+        id: coupon._id,
+        code: couponCode,
+        type: offer.type,
+        value: offer.value,
+        validTill: coupon.validTill,
+        description: offer.title,
+        claimedAt: coupon.claimedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving offer to profile:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to save offer',
+      error: error.message 
+    });
+  }
+};
+
+// ====== Check Coupon Validity ======
+const checkCouponValidity = async (req, res) => {
+  try {
+    const { userId, couponId } = req.params;
+
+    const Coupon = require('../models/Coupon');
+
+    const coupon = await Coupon.findOne({
+      _id: couponId,
+      userId: userId
+    }).populate('offerId', 'title description').populate('gymId', 'name');
+
+    if (!coupon) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Coupon not found' 
+      });
+    }
+
+    const now = new Date();
+    let isValid = true;
+    let reason = '';
+
+    if (coupon.status !== 'active') {
+      isValid = false;
+      reason = `Coupon is ${coupon.status}`;
+    } else if (coupon.validTill < now) {
+      isValid = false;
+      reason = 'Coupon has expired';
+      
+      // Update status to expired
+      await Coupon.findByIdAndUpdate(couponId, { status: 'expired' });
+    } else if (coupon.validFrom > now) {
+      isValid = false;
+      reason = 'Coupon is not yet valid';
+    }
+
+    res.json({
+      success: true,
+      isValid,
+      reason,
+      coupon: {
+        id: coupon._id,
+        code: coupon.code,
+        type: coupon.type,
+        value: coupon.value,
+        validTill: coupon.validTill,
+        validFrom: coupon.validFrom,
+        status: coupon.status,
+        description: coupon.description,
+        offer: coupon.offerId,
+        gym: coupon.gymId
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking coupon validity:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to check coupon validity',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -601,6 +828,9 @@ module.exports = {
   googleAuth,
   getUserProfile,
   saveWorkoutSchedule,
-  getWorkoutSchedule
+  getWorkoutSchedule,
+  getUserCoupons,
+  saveOfferToProfile,
+  checkCouponValidity
 };
 
