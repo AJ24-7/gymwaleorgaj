@@ -2309,7 +2309,11 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         if (!token) {
-          alert('You must be logged in as a gym admin.');
+          if (window.unifiedNotificationSystem) {
+            window.unifiedNotificationSystem.showToast('You must be logged in as a gym admin.', 'error');
+          } else {
+            alert('You must be logged in as a gym admin.');
+          }
           return;
         }
       }
@@ -3223,7 +3227,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (adminNameElement) adminNameElement.textContent = 'Admin';
         if (adminAvatarElement) adminAvatarElement.src = 'https://via.placeholder.com/40';
         localStorage.removeItem('gymAdminToken');
-        alert('Unable to fetch profile. Please try logging in again.');
+        if (window.unifiedNotificationSystem) {
+            window.unifiedNotificationSystem.showToast('Unable to fetch profile. Please try logging in again.', 'error');
+        } else {
+            alert('Unable to fetch profile. Please try logging in again.');
+        }
     }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -3369,7 +3377,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleEditPhotoBtn(target) {
         const photoId = target.getAttribute('data-photo-id');
         const photo = (window._lastPhotoGrid || []).find(p => (p._id || p.id) === photoId);
-        if (!photo) return alert('Photo not found.');
+        if (!photo) {
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Photo not found.', 'error');
+            } else {
+                alert('Photo not found.');
+            }
+            return;
+        }
         document.getElementById('editPhotoId').value = photoId;
         document.getElementById('editPhotoTitle').value = photo.title || '';
         document.getElementById('editPhotoDescription').value = photo.description || '';
@@ -3380,7 +3395,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function handleRemovePhotoBtn(target) {
         const photoId = target.getAttribute('data-photo-id');
-        if (!photoId) return alert('Photo ID missing.');
+        if (!photoId) {
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Photo ID missing.', 'error');
+            } else {
+                alert('Photo ID missing.');
+            }
+            return;
+        }
         pendingDeletePhotoId = photoId;
         deletePhotoConfirmModal.style.display = 'flex';
     }
@@ -3755,8 +3777,8 @@ function clearUploadPhotoMsgAndCloseModal() {
                         equipmentModal.style.display = 'flex';
                     } else {
                         // Last resort: show notification that equipment functionality is disabled
-                        if (typeof showNotification === 'function') {
-                            showNotification('Equipment functionality is currently hidden. Enable it in Settings → Customize Dashboard to access all features.', 'info');
+                        if (window.unifiedNotificationSystem) {
+                            window.unifiedNotificationSystem.showToast('Equipment functionality is currently hidden. Enable it in Settings → Customize Dashboard to access all features.', 'info');
                         } else {
                             alert('Equipment functionality is currently hidden. Enable it in Settings → Customize Dashboard to access all features.');
                         }
@@ -3791,7 +3813,11 @@ function clearUploadPhotoMsgAndCloseModal() {
                     if (typeof showDeviceConfigurationModal === 'function') {
                         showDeviceConfigurationModal();
                     } else {
-                        alert('Device setup functionality will be available after enabling biometric attendance in settings.');
+                        if (window.unifiedNotificationSystem) {
+                            window.unifiedNotificationSystem.showToast('Device setup functionality will be available after enabling biometric attendance in settings.', 'info');
+                        } else {
+                            alert('Device setup functionality will be available after enabling biometric attendance in settings.');
+                        }
                     }
                 }
             });
@@ -3873,11 +3899,19 @@ function clearUploadPhotoMsgAndCloseModal() {
                     event.preventDefault();
                     const currentPassword = document.getElementById('currentPassword').value;
                     if (!currentPassword) {
-                        alert('Please enter your current password.');
+                        if (window.unifiedNotificationSystem) {
+                            window.unifiedNotificationSystem.showToast('Please enter your current password.', 'error');
+                        } else {
+                            alert('Please enter your current password.');
+                        }
                         return;
                     }
                     if (!pendingFormData) {
-                        alert('No pending profile update.');
+                        if (window.unifiedNotificationSystem) {
+                            window.unifiedNotificationSystem.showToast('No pending profile update.', 'error');
+                        } else {
+                            alert('No pending profile update.');
+                        }
                         hidePasswordConfirmDialog();
                         return;
                     }
@@ -4994,7 +5028,11 @@ async function submitMemberDetailEdit(originalMember) {
   // Use the MongoDB _id for updates
   const memberObjectId = originalMember._id;
   if (!memberObjectId) {
-    alert('Member record ID not found. Cannot update.');
+    if (window.unifiedNotificationSystem) {
+      window.unifiedNotificationSystem.showToast('Member record ID not found. Cannot update.', 'error');
+    } else {
+      alert('Member record ID not found. Cannot update.');
+    }
     return;
   }
   const formData = new FormData();

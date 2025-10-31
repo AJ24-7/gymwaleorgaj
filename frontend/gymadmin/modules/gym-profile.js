@@ -125,7 +125,11 @@ class GymProfileManager {
             }
         } catch (error) {
             console.error('Error loading gym profile:', error);
-            this.showNotification('Failed to load gym profile', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Failed to load gym profile', 'error');
+            } else {
+                this.showNotification('Failed to load gym profile', 'error');
+            }
         }
     }
 
@@ -299,7 +303,11 @@ class GymProfileManager {
                 // Update the global profile
                 window.currentGymProfile = updatedData;
                 
-                this.showNotification('Gym profile updated successfully', 'success');
+                if (window.unifiedNotificationSystem) {
+                    window.unifiedNotificationSystem.showToast('Gym profile updated successfully', 'success');
+                } else {
+                    this.showNotification('Gym profile updated successfully', 'success');
+                }
                 this.toggleEditMode();
                 
                 // Update any dashboard elements that show gym info
@@ -309,7 +317,11 @@ class GymProfileManager {
             }
         } catch (error) {
             console.error('Error updating gym profile:', error);
-            this.showNotification('Failed to update gym profile', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Failed to update gym profile', 'error');
+            } else {
+                this.showNotification('Failed to update gym profile', 'error');
+            }
         }
     }
 
@@ -319,13 +331,21 @@ class GymProfileManager {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            this.showNotification('Please select a valid image file', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Please select a valid image file', 'error');
+            } else {
+                this.showNotification('Please select a valid image file', 'error');
+            }
             return;
         }
 
         // Validate file size (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
-            this.showNotification('Image size should be less than 2MB', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Image size should be less than 2MB', 'error');
+            } else {
+                this.showNotification('Image size should be less than 2MB', 'error');
+            }
             return;
         }
 
@@ -358,13 +378,21 @@ class GymProfileManager {
 
         // Validate passwords match
         if (newPassword !== confirmPassword) {
-            this.showNotification('New passwords do not match', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('New passwords do not match', 'error');
+            } else {
+                this.showNotification('New passwords do not match', 'error');
+            }
             return;
         }
 
         // Validate password strength
         if (newPassword.length < 8) {
-            this.showNotification('Password must be at least 8 characters long', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast('Password must be at least 8 characters long', 'error');
+            } else {
+                this.showNotification('Password must be at least 8 characters long', 'error');
+            }
             return;
         }
 
@@ -382,7 +410,11 @@ class GymProfileManager {
             });
 
             if (response.ok) {
-                this.showNotification('Password changed successfully', 'success');
+                if (window.unifiedNotificationSystem) {
+                    window.unifiedNotificationSystem.showToast('Password changed successfully', 'success');
+                } else {
+                    this.showNotification('Password changed successfully', 'success');
+                }
                 this.closeChangePasswordModal();
             } else {
                 const error = await response.json();
@@ -390,7 +422,11 @@ class GymProfileManager {
             }
         } catch (error) {
             console.error('Error changing password:', error);
-            this.showNotification(error.message || 'Failed to change password', 'error');
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast(error.message || 'Failed to change password', 'error');
+            } else {
+                this.showNotification(error.message || 'Failed to change password', 'error');
+            }
         }
     }
 

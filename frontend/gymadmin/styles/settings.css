@@ -846,9 +846,15 @@ input:checked + .slider:before {
 }
  
 /* ===== BIOMETRIC ENROLLMENT MODAL STYLES ===== */
-.biometric-modal {
-  max-width: 500px;
-  width: 90vw;
+.modal-content.biometric-modal {
+  width: auto; /* Or width: 100% combined with max-width */
+  height: auto; /* Or height: 100% combined with max-height */
+  max-width: 90%; /* Example: limit modal width to 90% of viewport */
+  max-height: 400px; /* Example: limit modal height to 400px */
+  top: unset;
+  left: unset;
+  right: unset;
+  bottom: unset;
 }
 
 .enrollment-tabs {
@@ -1011,17 +1017,22 @@ input:checked + .slider:before {
 
 .modal-header {
   padding: 24px 24px 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
 }
 
 .modal-header h3 {
-  margin: 0;
-  color: #333;
-  font-size: 1.3rem;
+ font-size: 1.5rem;
   font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .close-btn {

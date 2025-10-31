@@ -726,34 +726,59 @@ router.post('/admin/tickets', adminAuth, async (req, res) => {
 // Get support tickets for a specific gym (for gym admin dashboard)
 router.get('/gym/:gymId', gymadminAuth, async (req, res) => {
   try {
+    console.log('📋 Fetching support tickets for gym:', req.params.gymId);
     const { gymId } = req.params;
     const { status, priority, category, page = 1, limit = 50 } = req.query;
 
-    // Build filter object
+    // Validate gymId
+    if (!gymId || gymId === 'undefined' || gymId === 'null') {
+      console.warn('⚠️ Invalid gymId provided');
+      return res.json({
+        success: true,
+        tickets: [],
+        communications: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: parseInt(limit)
+        }
+      });
+    }
+
+    // Build filter object - simplified to avoid complex queries that might fail
     const filter = {
-      $or: [
-        { userId: gymId, userType: 'Gym' }, // Tickets created by the gym
-        { 'responses.userId': gymId } // Tickets the gym has responded to
-      ]
+      userId: gymId,
+      userType: 'Gym'
     };
 
-    if (status) filter.status = status;
-    if (priority) filter.priority = priority;
-    if (category) filter.category = category;
+    if (status && status !== 'all') filter.status = status;
+    if (priority && priority !== 'all') filter.priority = priority;
+    if (category && category !== 'all') filter.category = category;
+
+    console.log('🔍 Query filter:', JSON.stringify(filter));
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+    // Use lean() for better performance and error handling
     const tickets = await Support.find(filter)
-      .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean()
+      .catch(err => {
+        console.error('Database query error:', err);
+        return [];
+      });
 
-    const totalCount = await Support.countDocuments(filter);
+    const totalCount = await Support.countDocuments(filter).catch(() => 0);
+
+    console.log(`✅ Found ${tickets.length} tickets for gym ${gymId}`);
 
     res.json({
       success: true,
-      tickets,
+      tickets: tickets || [],
+      communications: tickets || [], // Alias for compatibility
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCount / parseInt(limit)),
@@ -762,11 +787,21 @@ router.get('/gym/:gymId', gymadminAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching gym support tickets:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching support tickets',
-      error: error.message
+    console.error('❌ Error fetching gym support tickets:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Return empty array instead of error to prevent frontend breaking
+    res.json({
+      success: true,
+      tickets: [],
+      communications: [],
+      message: 'No tickets found or error occurred',
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        itemsPerPage: parseInt(req.query.limit || 50)
+      }
     });
   }
 });

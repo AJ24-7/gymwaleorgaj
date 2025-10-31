@@ -812,11 +812,17 @@ class PaymentManager {
     }
   }
 
-  // Show notification
+  // Show notification (use unified system if available)
   showNotification(message, type = 'info') {
     console.log(`${type.toUpperCase()}: ${message}`);
     
-    // Create a simple toast notification
+    // Use unified notification system if available
+    if (window.unifiedNotificationSystem) {
+      window.unifiedNotificationSystem.showToast(message, type);
+      return;
+    }
+    
+    // Fallback: Create a simple toast notification
     const toast = document.createElement('div');
     toast.className = `payment-toast payment-toast-${type}`;
     toast.textContent = message;

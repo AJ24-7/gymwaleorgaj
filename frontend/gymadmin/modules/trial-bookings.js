@@ -1319,6 +1319,26 @@ class DashboardTrialBookingsManager {
                 this.trialBookings[bookingIndex].status = 'confirmed';
             }
 
+            // Get booking details for notification
+            const booking = this.trialBookings.find(b => (b._id || b.id) === bookingId);
+            
+            // Add notification to unified system
+            if (window.unifiedNotificationSystem && booking) {
+                window.unifiedNotificationSystem.addNotification(
+                    'trial_confirmed',
+                    'Trial Booking Confirmed',
+                    `Trial session confirmed for ${booking.name || 'customer'}${booking.preferredDate ? ' on ' + new Date(booking.preferredDate).toLocaleDateString() : ''}`,
+                    { 
+                        bookingId: bookingId,
+                        customerName: booking.name,
+                        email: booking.email,
+                        phone: booking.phone,
+                        preferredDate: booking.preferredDate,
+                        sentVia: sendEmail && sendWhatsApp ? 'Email & WhatsApp' : sendEmail ? 'Email' : 'WhatsApp'
+                    }
+                );
+            }
+
             // Close modal
             modal.remove();
 

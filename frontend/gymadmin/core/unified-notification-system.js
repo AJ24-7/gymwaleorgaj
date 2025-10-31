@@ -6,17 +6,7 @@
 
 class UnifiedNotificationSystem {
     constructor() {
-        this.settings = this.loadSettings();
-        this.notifications = [];
-        this.unreadCount = 0;
-        this.templates = new Map();
-        
-        // Performance optimizations
-        this.notificationSignatures = new Map();
-        this.suppressionCache = new Map();
-        this.pollerManager = null;
-        
-        // Configuration
+        // Configuration must be set first before loading settings
         this.config = {
             endpoints: {
                 system: '/api/notifications/send',
@@ -40,6 +30,17 @@ class UnifiedNotificationSystem {
                 deliveryTime: 'now'
             }
         };
+        
+        // Now load settings (depends on config.defaults)
+        this.settings = this.loadSettings();
+        this.notifications = [];
+        this.unreadCount = 0;
+        this.templates = new Map();
+        
+        // Performance optimizations
+        this.notificationSignatures = new Map();
+        this.suppressionCache = new Map();
+        this.pollerManager = null;
 
         this.initializeSystem();
     }
@@ -80,10 +81,16 @@ class UnifiedNotificationSystem {
      * Create notification UI components
      */
     createNotificationUI() {
-        // Create notification bell if not exists
-        if (!document.getElementById('notificationBell')) {
-            const header = document.querySelector('.header') || document.querySelector('.top-bar') || document.body;
-            
+        // Find the user-actions container to insert the bell
+        const userActions = document.querySelector('.user-actions');
+        
+        // Remove any existing notification bell
+        const existingBell = document.getElementById('notificationBell');
+        if (existingBell) {
+            existingBell.remove();
+        }
+        
+        if (userActions) {
             const bellContainer = document.createElement('div');
             bellContainer.id = 'notificationBell';
             bellContainer.className = 'notification-bell-container';
@@ -110,7 +117,13 @@ class UnifiedNotificationSystem {
                 </div>
             `;
             
-            header.appendChild(bellContainer);
+            // Insert before the user profile element
+            const userProfile = userActions.querySelector('.user-profile');
+            if (userProfile) {
+                userActions.insertBefore(bellContainer, userProfile);
+            } else {
+                userActions.appendChild(bellContainer);
+            }
         }
 
         // Create notification composer modal
@@ -285,7 +298,8 @@ class UnifiedNotificationSystem {
     async pollForNotifications() {
         try {
             const fetchFunction = window.cachedFetch || fetch;
-            const response = await fetchFunction('/api/notifications/all', {
+            const apiURL = window.API_CONFIG ? window.API_CONFIG.getURL('/api/notifications/all') : '/api/notifications/all';
+            const response = await fetchFunction(apiURL, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
                     'Content-Type': 'application/json'
@@ -320,6 +334,7 @@ class UnifiedNotificationSystem {
         if (addedCount > 0) {
             this.unreadCount += addedCount;
             this.updateNotificationUI();
+            this.updateRecentActivities(newNotifications.slice(0, addedCount));
             this.playNotificationSound();
             this.showToast(`${addedCount} new notification(s) received!`, 'info');
         }
@@ -374,13 +389,51 @@ class UnifiedNotificationSystem {
      */
     getNotificationIcon(type) {
         const icons = {
+            // Payment related
             'payment': 'fa-credit-card',
+            'payment_received': 'fa-money-bill-wave',
+            'payment_pending': 'fa-clock',
+            'payment_failed': 'fa-exclamation-circle',
+            
+            // Member related
+            'member_added': 'fa-user-plus',
+            'member_updated': 'fa-user-edit',
+            'member_removed': 'fa-user-minus',
             'membership': 'fa-id-card',
-            'attendance': 'fa-clock',
-            'system': 'fa-cog',
+            'membership_expiry': 'fa-calendar-times',
+            
+            // Trainer related
+            'trainer_added': 'fa-user-tie',
+            'trainer_updated': 'fa-user-edit',
+            'trainer': 'fa-chalkboard-teacher',
+            
+            // Settings & Admin
+            'settings': 'fa-cog',
+            'settings_updated': 'fa-tools',
+            'admin': 'fa-user-shield',
+            'admin_action': 'fa-shield-alt',
+            
+            // System
+            'system': 'fa-server',
+            'attendance': 'fa-calendar-check',
+            'equipment_added': 'fa-dumbbell',
+            'equipment_updated': 'fa-wrench',
+            'biometric_enrolled': 'fa-fingerprint',
+            
+            // Status
             'alert': 'fa-exclamation-triangle',
             'success': 'fa-check-circle',
-            'info': 'fa-info-circle'
+            'info': 'fa-info-circle',
+            'warning': 'fa-exclamation-triangle',
+            'error': 'fa-times-circle',
+            
+            // Trial bookings
+            'trial_booking': 'fa-calendar-plus',
+            'trial_confirmed': 'fa-check-double',
+            'trial_cancelled': 'fa-calendar-times',
+            
+            // Notifications
+            'notification_sent': 'fa-paper-plane'
         };
         return icons[type] || 'fa-bell';
     }
@@ -537,7 +590,8 @@ class UnifiedNotificationSystem {
                 notificationData.customRecipients = document.getElementById('customRecipients').value;
             }
             
-            const response = await fetch(this.config.endpoints.system, {
+            const apiURL = window.API_CONFIG ? window.API_CONFIG.getURL(this.config.endpoints.system) : this.config.endpoints.system;
+            const response = await fetch(apiURL, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
@@ -638,8 +692,9 @@ class UnifiedNotificationSystem {
                 this.updateNotificationUI();
                 
                 // Update on server
-                await fetch(`/api/notifications/${notificationId}/read`, {
-                    method: 'PUT',
+                const apiURL = window.API_CONFIG ? window.API_CONFIG.getURL(`/api/notifications/${notificationId}/read`) : `/api/notifications/${notificationId}/read`;
+                await fetch(apiURL, {
+                    method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
                     }
@@ -660,8 +715,9 @@ class UnifiedNotificationSystem {
             this.updateNotificationUI();
             
             // Update on server
-            await fetch('/api/notifications/mark-all-read', {
-                method: 'PUT',
+            const apiURL = window.API_CONFIG ? window.API_CONFIG.getURL('/api/notifications/mark-all-read') : '/api/notifications/mark-all-read';
+            await fetch(apiURL, {
+                method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
                 }
@@ -677,7 +733,8 @@ class UnifiedNotificationSystem {
     async loadExistingNotifications() {
         try {
             const fetchFunction = window.cachedFetch || fetch;
-            const response = await fetchFunction('/api/notifications/all', {
+            const apiURL = window.API_CONFIG ? window.API_CONFIG.getURL('/api/notifications/all') : '/api/notifications/all';
+            const response = await fetchFunction(apiURL, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
                 }
@@ -694,7 +751,7 @@ class UnifiedNotificationSystem {
             console.error('Error details:', {
                 message: error.message,
                 stack: error.stack,
-                url: '/api/notifications/all'
+                url: apiURL
             });
         }
     }
@@ -735,8 +792,9 @@ class UnifiedNotificationSystem {
             
             .notification-bell {
                 position: relative;
-                background: #fff;
-                border: 1px solid #ddd;
+                color: var(--primary);
+                background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #333333 100%);;
+                border: 1px solid #333;
                 border-radius: 50%;
                 width: 40px;
                 height: 40px;
@@ -748,8 +806,9 @@ class UnifiedNotificationSystem {
             }
             
             .notification-bell:hover {
+                color: var(--primary-dark);
                 background: #f8f9fa;
-                border-color: #007bff;
+                border-color: var(--primary-dark);
             }
             
             .notification-badge {
@@ -770,33 +829,38 @@ class UnifiedNotificationSystem {
             
             .notification-panel {
                 position: absolute;
-                top: 100%;
+                top: calc(100% + 10px);
                 right: 0;
                 width: 400px;
                 max-height: 500px;
                 background: white;
                 border: 1px solid #ddd;
                 border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                z-index: 1000;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 9999;
                 opacity: 0;
                 visibility: hidden;
                 transform: translateY(-10px);
                 transition: all 0.3s ease;
+                pointer-events: none;
             }
             
             .notification-panel.show {
                 opacity: 1;
                 visibility: visible;
                 transform: translateY(0);
+                pointer-events: auto;
             }
             
             .notification-header {
-                padding: 15px;
-                border-bottom: 1px solid #eee;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                padding: 24px 24px 16px;
+               border-bottom: 1px solid #e5e7eb;
+               display: flex;
+               justify-content: space-between;
+               align-items: center;
+               background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                color: white;
+                border-radius: 12px 12px 0 0;
             }
             
             .notification-list {
@@ -822,7 +886,7 @@ class UnifiedNotificationSystem {
             
             .notification-icon {
                 margin-right: 12px;
-                color: #007bff;
+                color: var(--primary);
             }
             
             .notification-content {
@@ -850,9 +914,45 @@ class UnifiedNotificationSystem {
                 border-top: 1px solid #eee;
                 text-align: center;
             }
-            
+            button.mark-read-btn {
+             /* Basic layout */
+  display: inline-flex; /* Use flexbox for easy centering of icon */
+  align-items: center;
+  justify-content: center;
+  
+  /* Sizing and spacing */
+  padding: 8px 12px; /* Increased padding for better clickability */
+  min-width: 44px; /* Ensure minimum touch target size */
+  min-height: 44px; /* Ensure minimum touch target size */
+  
+  /* Appearance */
+  background-color: #007bff; /* A common primary blue */
+  color: white;
+  border: none;
+  border-radius: 4px; /* Slightly rounded corners */
+  cursor: pointer; /* Important for usability */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  font-weight: 500; /* Slightly bolder text */
+  text-decoration: none; /* Remove any default underline */
+  transition: background-color 0.2s ease, transform 0.1s ease; /* Smooth transitions */
+}
+
+button.mark-read-btn:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+button.mark-read-btn:active {
+  background-color: #004085; /* Even darker on active */
+  transform: translateY(1px); /* Slight press effect */
+}
+
+            button.mark-read-btn:focus {
+             outline: 2px solid #007bff; /* Accessibility outline */
+             outline-offset: 2px;
+            }
             .compose-notification {
-                background: #007bff;
+                background: var(--primary);
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -862,7 +962,7 @@ class UnifiedNotificationSystem {
             }
             
             .compose-notification:hover {
-                background: #0056b3;
+                background: var(--primary-dark);
             }
             
             .notification-modal .modal-content {
@@ -999,6 +1099,121 @@ class UnifiedNotificationSystem {
                 panel.classList.remove('show');
             }
         });
+    }
+
+    /**
+     * Update recent activities section on dashboard
+     */
+    updateRecentActivities(newActivities) {
+        const recentActivityList = document.getElementById('recentActivityList');
+        if (!recentActivityList) return;
+
+        // Convert notifications to activity format
+        const activities = newActivities.map(notification => this.convertNotificationToActivity(notification));
+        
+        // Get existing activities
+        const existingItems = Array.from(recentActivityList.querySelectorAll('.activity-item:not(.loading-row)'));
+        
+        // Add new activities to the top
+        activities.forEach(activity => {
+            const activityHTML = this.renderActivityItem(activity);
+            recentActivityList.insertAdjacentHTML('afterbegin', activityHTML);
+        });
+        
+        // Limit to 8 activities
+        const allItems = recentActivityList.querySelectorAll('.activity-item');
+        if (allItems.length > 8) {
+            Array.from(allItems).slice(8).forEach(item => item.remove());
+        }
+    }
+
+    /**
+     * Convert notification to activity format
+     */
+    convertNotificationToActivity(notification) {
+        const iconBgColors = {
+            'member_added': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            'payment': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            'payment_received': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            'trainer_added': 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            'settings': 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            'admin': 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+            'trial_booking': 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            'equipment_added': 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+            'notification_sent': 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+        };
+
+        return {
+            id: notification.id || Date.now(),
+            type: notification.type || 'info',
+            title: notification.title,
+            description: notification.message,
+            timestamp: notification.timestamp || new Date().toISOString(),
+            icon: this.getNotificationIcon(notification.type),
+            iconBg: iconBgColors[notification.type] || 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+            badge: this.getCategoryFromType(notification.type)
+        };
+    }
+
+    /**
+     * Get category badge from notification type
+     */
+    getCategoryFromType(type) {
+        const categories = {
+            'member_added': 'Members',
+            'payment': 'Payments',
+            'payment_received': 'Payments',
+            'trainer_added': 'Trainers',
+            'settings': 'Settings',
+            'admin': 'Admin',
+            'trial_booking': 'Bookings',
+            'equipment_added': 'Equipment',
+            'notification_sent': 'System'
+        };
+        return categories[type] || 'System';
+    }
+
+    /**
+     * Render activity item for recent activities
+     */
+    renderActivityItem(activity) {
+        const relativeTime = this.formatTime(activity.timestamp);
+        
+        return `
+            <li class="activity-item" data-activity-id="${activity.id}">
+                <div class="activity-icon" style="background: ${activity.iconBg};">
+                    <i class="fas ${activity.icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">${activity.title}</div>
+                    <div class="activity-time">
+                        <i class="fas fa-clock"></i>
+                        ${relativeTime}
+                    </div>
+                </div>
+                <div class="activity-badge">
+                    ${activity.badge}
+                </div>
+            </li>
+        `;
+    }
+
+    /**
+     * Add notification programmatically (for integrations)
+     */
+    addNotification(type, title, message, metadata = {}) {
+        const notification = {
+            id: Date.now(),
+            type: type,
+            title: title,
+            message: message,
+            timestamp: new Date().toISOString(),
+            read: false,
+            metadata: metadata
+        };
+        
+        this.processNewNotifications([notification]);
+        return notification;
     }
 
     /**
