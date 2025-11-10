@@ -110,6 +110,9 @@ class UnifiedNotificationSystem {
                         <div class="no-notifications">No notifications yet</div>
                     </div>
                     <div class="notification-footer">
+                        <button onclick="window.unifiedNotificationSystem.viewAllNotifications()" class="view-all-notifications" style="width: 100%; padding: 10px; background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s ease;">
+                            <i class="fas fa-external-link-alt"></i> View All in Support & Reviews
+                        </button>
                         <button onclick="window.unifiedNotificationSystem.openComposer()" class="compose-notification">
                             <i class="fas fa-plus"></i> Send Notification
                         </button>
@@ -341,6 +344,14 @@ class UnifiedNotificationSystem {
             this.updateRecentActivities(newNotifications.slice(0, addedCount));
             this.playNotificationSound();
             this.showToast(`${addedCount} new notification(s) received!`, 'info');
+            
+            // Dispatch event for other components (like Support & Reviews tab)
+            document.dispatchEvent(new CustomEvent('newUnifiedNotification', {
+                detail: {
+                    notifications: newNotifications.slice(0, addedCount),
+                    count: addedCount
+                }
+            }));
         }
     }
 
@@ -368,7 +379,9 @@ class UnifiedNotificationSystem {
                 list.innerHTML = '<div class="no-notifications">No notifications yet</div>';
             } else {
                 list.innerHTML = this.notifications.map(notification => `
-                    <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
+                    <div class="notification-item ${notification.read ? 'read' : 'unread'}" 
+                         data-id="${notification.id}"
+                         onclick="window.unifiedNotificationSystem.viewNotificationDetails('${notification.id}')">
                         <div class="notification-icon">
                             <i class="fas ${this.getNotificationIcon(notification.type)}"></i>
                         </div>
@@ -377,7 +390,7 @@ class UnifiedNotificationSystem {
                             <div class="notification-message">${notification.message}</div>
                             <div class="notification-time">${this.formatTime(notification.timestamp)}</div>
                         </div>
-                        <div class="notification-actions">
+                        <div class="notification-actions" onclick="event.stopPropagation()">
                             ${!notification.read ? `
                                 <button onclick="window.unifiedNotificationSystem.markAsRead('${notification.id}')" class="mark-read-btn" title="Mark as read">
                                     <i class="fas fa-check"></i>
@@ -391,6 +404,72 @@ class UnifiedNotificationSystem {
                     </div>
                 `).join('');
             }
+        }
+    }
+    
+    /**
+     * View notification details - Navigate to Support & Reviews tab
+     */
+    viewNotificationDetails(notificationId) {
+        console.log('📖 Viewing notification details:', notificationId);
+        
+        // Close the notification panel
+        const panel = document.getElementById('notificationPanel');
+        if (panel) {
+            panel.classList.remove('show');
+        }
+        
+        // Switch to Support & Reviews tab if available
+        const supportTab = document.querySelector('[data-tab="supportReviews"]');
+        if (supportTab) {
+            supportTab.click();
+            
+            // Wait for tab to load and then show notification details
+            setTimeout(() => {
+                if (window.supportManager) {
+                    // Make sure we're on notifications section
+                    window.supportManager.switchTab('notifications');
+                    
+                    // Trigger the notification details modal
+                    setTimeout(() => {
+                        window.supportManager.openNotificationDetailsModal(notificationId);
+                    }, 300);
+                }
+            }, 500);
+        } else {
+            // Fallback: just show a toast with the details
+            const notification = this.notifications.find(n => n.id === notificationId);
+            if (notification) {
+                this.showToast(`${notification.title}: ${notification.message}`, 'info');
+            }
+        }
+    }
+    
+    /**
+     * View all notifications in Support & Reviews tab
+     */
+    viewAllNotifications() {
+        console.log('📋 Navigating to all notifications...');
+        
+        // Close the notification panel
+        const panel = document.getElementById('notificationPanel');
+        if (panel) {
+            panel.classList.remove('show');
+        }
+        
+        // Switch to Support & Reviews tab
+        const supportTab = document.querySelector('[data-tab="supportReviews"]');
+        if (supportTab) {
+            supportTab.click();
+            
+            // Wait for tab to load and ensure we're on notifications section
+            setTimeout(() => {
+                if (window.supportManager) {
+                    window.supportManager.switchTab('notifications');
+                }
+            }, 300);
+        } else {
+            this.showToast('Support & Reviews tab not found', 'warning');
         }
     }
 
@@ -1010,6 +1089,8 @@ class UnifiedNotificationSystem {
                 display: flex;
                 align-items: flex-start;
                 transition: background-color 0.2s ease;
+                cursor: pointer;
+                position: relative;
             }
             
             .notification-item:hover {
@@ -1018,6 +1099,31 @@ class UnifiedNotificationSystem {
             
             .notification-item.unread {
                 background: #f0f8ff;
+            }
+            
+            .notification-item.unread:hover {
+                background: #e6f3ff;
+            }
+            
+            .notification-item::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background: var(--primary);
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            }
+            
+            .notification-item.unread::before {
+                opacity: 1;
+            }
+            
+            .notification-item:hover::before {
+                opacity: 1;
+                background: var(--primary-dark);
             }
             
             .notification-icon {
@@ -1049,6 +1155,32 @@ class UnifiedNotificationSystem {
                 padding: 15px;
                 border-top: 1px solid #eee;
                 text-align: center;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .view-all-notifications {
+                width: 100%;
+                padding: 10px;
+                background: transparent;
+                color: var(--primary);
+                border: 1px solid var(--primary);
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .view-all-notifications:hover {
+                background: var(--primary);
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             }
             button.mark-read-btn {
                 display: inline-flex;

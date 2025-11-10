@@ -24,25 +24,40 @@ class UserCouponsManager {
     async loadCurrentUser() {
         try {
             const token = localStorage.getItem('token');
-            if (token) {
-                const baseUrl = window.BASE_URL || 'http://localhost:5000';
-                const response = await fetch(`${baseUrl}/api/users/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+            if (!token) {
+                this.currentUser = null;
+                return;
+            }
 
-                if (response.ok) {
-                    this.currentUser = await response.json();
-                    this.currentUser.id = this.currentUser._id || this.currentUser.id;
-                    return;
+            const baseUrl = window.BASE_URL || 'http://localhost:5000';
+            const response = await fetch(`${baseUrl}/api/users/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
+            });
+
+            if (response.ok) {
+                this.currentUser = await response.json();
+                this.currentUser.id = this.currentUser._id || this.currentUser.id;
+                return;
             }
             
-            this.currentUser = null;
+            // If response is not ok, throw an error with status
+            const error = new Error(`Failed to load current user with status: ${response.status}`);
+            error.status = response.status;
+            throw error;
+
         } catch (error) {
-            console.error('Error loading current user:', error);
+            // Only log out if it's an auth error
+            if (error.status === 401 || error.status === 403) {
+                console.warn('User token is invalid. Clearing user data for coupons manager.');
+                localStorage.removeItem('token'); // Or handle logout globally
+            } else if (error.message.includes('Failed to fetch')) {
+                console.warn('Backend not reachable for coupons manager user check.');
+            } else {
+                console.error('Error loading current user for coupons:', error);
+            }
             this.currentUser = null;
         }
     }
@@ -53,29 +68,28 @@ class UserCouponsManager {
         this.isLoading = true;
         
         try {
-            if (!this.currentUser) {
-                await this.loadCurrentUser();
+            // This will attempt to load the user but will not throw a fatal error on network failure.
+            await this.loadCurrentUser();
+
+            // If the backend is reachable and we have a user, try fetching from the backend.
+            if (this.currentUser) {
+                const backendCoupons = await this.loadCouponsFromBackend();
+                if (backendCoupons && backendCoupons.length > 0) {
+                    this.userCoupons = backendCoupons;
+                    this.isLoading = false;
+                    return this.userCoupons;
+                }
             }
 
-            if (!this.currentUser) {
-                console.warn('No user logged in');
-                return [];
-            }
-
-            // Try to load from backend first
-            const backendCoupons = await this.loadCouponsFromBackend();
-            
-            if (backendCoupons && backendCoupons.length > 0) {
-                this.userCoupons = backendCoupons;
-            } else {
-                // Fallback to localStorage
-                this.userCoupons = this.loadCouponsFromLocalStorage();
-            }
-
+            // Fallback for offline mode or if backend has no coupons
+            console.log('Falling back to loading coupons from localStorage.');
+            this.userCoupons = this.loadCouponsFromLocalStorage();
             return this.userCoupons;
             
         } catch (error) {
-            console.error('Error loading user coupons:', error);
+            // This catch block will now only handle unexpected errors, not network failures.
+            console.error('An unexpected error occurred while loading user coupons:', error);
+            // Final fallback to local storage in case of any other error.
             this.userCoupons = this.loadCouponsFromLocalStorage();
             return this.userCoupons;
         } finally {
@@ -89,7 +103,7 @@ class UserCouponsManager {
 
             const token = localStorage.getItem('token');
             const baseUrl = window.BASE_URL || 'http://localhost:5000';
-            const response = await fetch(`${baseUrl}/api/user/${this.currentUser.id}/coupons`, {
+            const response = await fetch(`${baseUrl}/api/users/${this.currentUser.id}/coupons`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -102,7 +116,11 @@ class UserCouponsManager {
                 return data.coupons || [];
             }
         } catch (error) {
-            console.warn('Failed to load coupons from backend:', error);
+            if (error.message.includes('Failed to fetch')) {
+                console.warn('Backend not reachable for fetching coupons.');
+            } else {
+                console.warn('Failed to load coupons from backend:', error);
+            }
         }
         return [];
     }

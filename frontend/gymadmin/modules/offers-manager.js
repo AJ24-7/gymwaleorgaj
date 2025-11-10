@@ -86,8 +86,8 @@ class OffersManager {
       console.log('✅ Admin authenticated, enabling full backend integration');
       
       try {
-        // Sync with backend
-        await this.syncOffersWithBackend();
+        // Sync with backend - This endpoint does not exist and causes 404 errors.
+        // await this.syncOffersWithBackend();
         
         // Load real-time data
         await this.loadBackendStats();
@@ -160,7 +160,7 @@ class OffersManager {
       const adminToken = this.getAdminToken();
       if (adminToken) {
         try {
-          await this.syncOffersWithBackend();
+          // await this.syncOffersWithBackend(); // This endpoint does not exist and causes 404 errors.
         } catch (error) {
           console.warn('⚠️ Periodic backend sync failed:', error);
         }
@@ -2160,77 +2160,32 @@ class OffersManager {
     }
   }
 
-  async loadCouponsFromBackend() {
+   async loadCouponsFromBackend() {
+    this.showLoadingState();
     try {
+      if (!window.CouponBackendAPI) {
+        this.showError("Coupon backend module is not available.");
+        return [];
+      }
       const gymId = this.getGymId();
-      const adminToken = this.getAdminToken();
-      
-      console.log('🔍 Loading coupons - gymId:', gymId, 'hasToken:', !!adminToken);
-      
-      if (!adminToken) {
-        console.warn('⚠️ No admin token found - user may need to login');
-        // Return empty array instead of throwing - this is not an error state
-        // The UI will show "No coupons found" which is appropriate
-        return [];
-      }
-
       if (!gymId) {
-        console.warn('⚠️ No gym ID found');
+        this.showError("Gym ID is not available. Cannot fetch coupons.");
         return [];
       }
-
-      // Use the backend API module if available
-      if (window.CouponBackendAPI) {
-        console.log('📡 Using CouponBackendAPI module');
-        const result = await window.CouponBackendAPI.getCoupons(gymId, adminToken);
-        console.log('✅ Backend API response:', result);
-        return result.coupons || [];
-      }
-
-      // Fallback to direct fetch
-      console.log('🔄 Fetching coupons from backend for gym:', gymId);
       
-      const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiBaseUrl}/api/offers/coupons?gymId=${gymId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // FIX: Removed adminToken from the call as it's now handled by the API module
+      const backendData = await CouponBackendAPI.getCoupons(gymId);
 
-      console.log('📥 Response status:', response.status, response.statusText);
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          const errorData = await response.json();
-          console.error('🔒 Authentication error:', errorData);
-          throw new Error('Session expired. Please login again.');
-        } else if (response.status === 404) {
-          console.log('📋 No coupons found for this gym');
-          return [];
-        }
-        throw new Error(`Failed to fetch coupons (${response.status})`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Backend coupons loaded:', data);
-      
-      // Handle pagination response
-      if (data.coupons && Array.isArray(data.coupons)) {
-        return data.coupons;
-      }
-      
-      // Handle direct array response
-      if (Array.isArray(data)) {
-        return data;
-      }
-      
-      return [];
+      this.coupons = backendData.coupons || [];
+      this.updateOffersCountBadge();
+      return this.coupons;
 
     } catch (error) {
-      console.error('❌ Error loading coupons from backend:', error);
-      throw error; // Throw to show error in UI
+      console.error('Error loading coupons from backend:', error);
+      this.showError(`Failed to load coupons: ${error.message}`);
+      return this.getLocalCoupons(); // Fallback to local
+    } finally {
+      this.hideLoadingState();
     }
   }
 
@@ -2718,158 +2673,60 @@ class OffersManager {
   }
 
   async saveEditedCoupon() {
+    const couponId = document.getElementById('editCouponId').value;
+    const updates = {
+      title: document.getElementById('editCouponTitle').value,
+      description: document.getElementById('editCouponDescription').value,
+      discountValue: parseFloat(document.getElementById('editCouponValue').value),
+      minAmount: parseFloat(document.getElementById('editCouponMinAmount').value),
+      expiryDate: document.getElementById('editCouponExpiry').value,
+    };
+
     try {
-      const couponId = document.getElementById('editCouponId').value;
-      const updates = {
-        title: document.getElementById('editCouponTitle').value,
-        description: document.getElementById('editCouponDescription').value,
-        discountType: document.getElementById('editDiscountType').value,
-        discountValue: parseFloat(document.getElementById('editDiscountValue').value),
-        minAmount: parseFloat(document.getElementById('editMinAmount').value) || 0,
-        usageLimit: parseInt(document.getElementById('editUsageLimit').value) || null,
-        expiryDate: new Date(document.getElementById('editExpiryDate').value),
-        status: document.getElementById('editCouponStatus').value
-      };
-
-      // Validate required fields
-      if (!updates.title || !updates.discountType || !updates.discountValue) {
-        this.showError('Please fill in all required fields');
-        return;
-      }
-
-      const adminToken = this.getAdminToken();
-      if (!adminToken) {
-        this.showError('Authentication required');
-        return;
-      }
-
-      // Use backend API if available
-      if (window.CouponBackendAPI) {
-        await window.CouponBackendAPI.updateCoupon(couponId, updates, adminToken);
-      } else {
-        // Fallback to direct fetch
-        const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiBaseUrl}/api/offers/coupons/${couponId}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(updates)
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to update coupon');
-        }
-      }
-
+      this.showLoadingState();
+      // FIX: Removed adminToken from the call
+      await CouponBackendAPI.updateCoupon(couponId, updates);
       this.showSuccess('Coupon updated successfully!');
       this.closeModal('editCouponModal');
-      this.loadCoupons();
-
+      this.renderCoupons(); // Refresh the list
     } catch (error) {
-      console.error('Error updating coupon:', error);
-      this.showError(error.message || 'Failed to update coupon');
+      this.showError(`Error updating coupon: ${error.message}`);
+    } finally {
+      this.hideLoadingState();
     }
   }
 
-  async toggleCoupon(couponId) {
-    console.log('🔄 Toggling coupon:', couponId);
-    
+   async toggleCoupon(couponId) {
+    const coupon = this.coupons.find(c => c._id === couponId);
+    if (!coupon) return;
+    const newStatus = coupon.status === 'active' ? 'inactive' : 'active';
+
     try {
-      const adminToken = this.getAdminToken();
-      if (!adminToken) {
-        this.showError('Authentication required');
-        return;
-      }
-
-      // Find the coupon to check current status
-      const coupon = this.coupons.find(c => c._id === couponId || c.id === couponId);
-      if (!coupon) {
-        this.showError('Coupon not found');
-        return;
-      }
-
-      // Toggle status
-      const newStatus = coupon.status === 'active' ? 'disabled' : 'active';
-
-      // Use backend API if available
-      if (window.CouponBackendAPI) {
-        await window.CouponBackendAPI.toggleCouponStatus(couponId, newStatus, adminToken);
-      } else {
-        // Fallback to direct fetch
-        const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiBaseUrl}/api/offers/coupons/${couponId}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            status: newStatus,
-            isActive: newStatus === 'active'
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to toggle coupon');
-        }
-      }
-
-      this.showSuccess(`Coupon ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
-      this.loadCoupons();
-
+      this.showLoadingState();
+      // FIX: Corrected the API call and removed adminToken
+      await CouponBackendAPI.toggleCouponStatus(couponId, newStatus);
+      this.showSuccess(`Coupon status changed to ${newStatus}.`);
+      this.renderCoupons();
     } catch (error) {
-      console.error('Error toggling coupon:', error);
-      this.showError(error.message || 'Failed to toggle coupon status');
+      this.showError(`Error toggling coupon status: ${error.message}`);
+    } finally {
+      this.hideLoadingState();
     }
   }
 
   async deleteCoupon(couponId) {
-    // Use unified confirmation dialog
-    if (typeof window.showConfirmation === 'function') {
-      const confirmed = await window.showConfirmation(
-        'Delete Coupon',
-        'Are you sure you want to delete this coupon? This action cannot be undone.',
-        'Delete',
-        'Cancel'
-      );
-      
-      if (!confirmed) return;
-    } else {
-      // Fallback to standard confirm
-      if (!confirm('Are you sure you want to delete this coupon? This action cannot be undone.')) {
-        return;
-      }
-    }
-    
-    try {
-      const token = this.getAdminToken();
-      
-      if (token) {
-        // Delete from backend
-        const response = await fetch(`http://localhost:5000/api/offers/coupons/${couponId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+    if (!confirm('Are you sure you want to delete this coupon? This action cannot be undone.')) return;
 
-        if (response.ok) {
-          console.log('✅ Coupon deleted from backend');
-        }
-      }
-      
-      // Refresh coupon list and update counters
-      await this.loadCoupons();
-      this.updateOffersCountBadge();
-      this.showSuccess('Coupon deleted successfully!');
-      
+    try {
+      this.showLoadingState();
+      // FIX: Removed adminToken from the call
+      await CouponBackendAPI.deleteCoupon(couponId);
+      this.showSuccess('Coupon deleted successfully.');
+      this.renderCoupons();
     } catch (error) {
-      console.error('Error deleting coupon:', error);
-      this.showError('Failed to delete coupon');
+      this.showError(`Error deleting coupon: ${error.message}`);
+    } finally {
+      this.hideLoadingState();
     }
   }
 
@@ -3354,103 +3211,37 @@ class OffersManager {
 
   async handleCouponSubmission(event) {
     event.preventDefault();
-    console.log('📝 Coupon form submitted');
+    const gymId = this.getGymId();
+    if (!gymId) {
+      this.showError('Cannot create coupon without a valid Gym ID.');
+      return;
+    }
+
+    const couponData = {
+      code: document.getElementById('couponCode').value,
+      title: document.getElementById('couponTitle').value,
+      description: document.getElementById('couponDescription').value,
+      discountType: document.getElementById('couponDiscountType').value,
+      discountValue: parseFloat(document.getElementById('couponDiscountValue').value),
+      minAmount: parseFloat(document.getElementById('couponMinAmount').value),
+      expiryDate: document.getElementById('couponExpiryDate').value,
+      usageLimit: parseInt(document.getElementById('couponUsageLimit').value) || null,
+      gymId: gymId,
+    };
 
     try {
-      const form = event.target;
-      const gymId = this.getGymId();
-      const adminToken = this.getAdminToken();
-
-      if (!gymId || !adminToken) {
-        this.showError('Authentication required. Please login again.');
-        return;
-      }
-
-      // Collect form data
-      const couponData = {
-        code: document.getElementById('couponCodeInput').value.toUpperCase(),
-        title: document.getElementById('couponTitle').value,
-        description: document.getElementById('couponDescription')?.value || '',
-        discountType: document.getElementById('couponType').value,
-        discountValue: parseFloat(document.getElementById('couponValue').value),
-        minAmount: parseFloat(document.getElementById('couponMinPurchase').value) || 0,
-        usageLimit: parseInt(document.getElementById('couponUsageLimit').value) || null,
-        expiryDate: new Date(document.getElementById('couponExpiryDate').value),
-        gymId: gymId,
-        applicableCategories: ['all'], // Default to all categories
-        newUsersOnly: document.getElementById('couponNewUsersOnly')?.checked || false,
-        userUsageLimit: parseInt(document.getElementById('couponUserLimit')?.value) || 1
-      };
-
-      // Validate required fields
-      if (!couponData.code || !couponData.title || !couponData.discountType || !couponData.discountValue) {
-        this.showError('Please fill in all required fields');
-        return;
-      }
-
-      // Show loading state
-      const submitBtn = form.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-        submitBtn.disabled = true;
-      }
-
-      console.log('🚀 Creating coupon:', couponData);
-
-      // Use backend API if available
-      let createdCoupon;
-      if (window.CouponBackendAPI) {
-        createdCoupon = await window.CouponBackendAPI.createCoupon(couponData, adminToken);
-      } else {
-        // Fallback to direct fetch
-        const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiBaseUrl}/api/offers/coupons`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(couponData)
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to create coupon');
-        }
-
-        const data = await response.json();
-        createdCoupon = data.coupon;
-      }
-
-      console.log('✅ Coupon created successfully:', createdCoupon);
-
-      // Show success message
-      this.showSuccess(`Coupon "${couponData.code}" created successfully!`);
-
-      // Close modal and reset form
+      this.showLoadingState();
+      // FIX: Removed adminToken from the call
+      await CouponBackendAPI.createCoupon(couponData);
+      this.showSuccess('Coupon created successfully!');
       this.closeModal('couponGenerationModal');
-      form.reset();
-
-      // Reload coupons list
-      await this.loadCoupons();
-
-      // Update counters
-      this.updateOffersCountBadge();
-      this.switchToTab('coupons');
-
+      this.renderCoupons();
     } catch (error) {
-      console.error('❌ Error creating coupon:', error);
-      this.showError(error.message || 'Failed to create coupon');
-      
-      // Restore submit button
-      const submitBtn = event.target.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Generate Coupon';
-        submitBtn.disabled = false;
-      }
+      this.showError(`Error creating coupon: ${error.message}`);
+    } finally {
+      this.hideLoadingState();
     }
   }
-
   generateCouponCode() {
     const gymName = this.getGymName() || 'GYM';
     const prefix = gymName.substring(0, 3).toUpperCase();

@@ -1,0 +1,512 @@
+/* ===== MEMBER ID PASS CARD STYLES ===== */
+
+.id-pass-card {
+  background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+  border-radius: 16px;
+  padding: 32px;
+  margin: 24px 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.id-pass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 50px rgba(59, 130, 246, 0.2);
+}
+
+.id-pass-card.loading #id-pass-section {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ID Pass Header */
+.id-pass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.id-pass-header h3 {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.id-pass-header h3 i {
+  color: #3b82f6;
+}
+
+.pass-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid #22c55e;
+  border-radius: 20px;
+  color: #22c55e;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.pass-status-badge.expired {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ID Pass Preview (Mimics actual pass) */
+.id-pass-preview {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.pass-visual {
+  position: relative;
+}
+
+/* Pass Top Bar */
+.pass-top-bar {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pass-branding {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pass-logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pass-logo .logo-accent {
+  color: #ffeb3b;
+}
+
+.pass-tagline {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+}
+
+.pass-id-badge {
+  background: rgba(30, 41, 59, 0.9);
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pass-id-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pass-id-value {
+  font-size: 0.9rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Pass Content Area */
+.pass-content {
+  display: flex;
+  gap: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+}
+
+/* Photo and QR Section */
+.pass-photo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.pass-photo {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 3px solid #475569;
+  background: #334155;
+}
+
+.pass-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pass-qr-code {
+  width: 100px;
+  height: 100px;
+  background: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.pass-qr-code img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.qr-placeholder i {
+  font-size: 2rem;
+}
+
+.qr-placeholder span {
+  font-size: 0.7rem;
+}
+
+/* Pass Info Section */
+.pass-info-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pass-member-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pass-plan-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.pass-plan-badge {
+  padding: 6px 12px;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pass-duration-badge {
+  padding: 6px 12px;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pass-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pass-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
+.pass-detail-item i {
+  color: #64748b;
+  width: 16px;
+}
+
+/* Pass Validity Section */
+.pass-validity-section {
+  background: rgba(30, 41, 59, 0.6);
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.validity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.validity-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.validity-value {
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.status-indicator {
+  padding: 4px 10px;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-indicator.expired {
+  background: #ef4444;
+}
+
+.pass-gym-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+
+.pass-gym-info i {
+  color: #64748b;
+}
+
+/* Pass Footer */
+.pass-footer {
+  background: #1e293b;
+  padding: 8px 20px;
+  text-align: center;
+}
+
+.pass-footer-text {
+  font-size: 0.65rem;
+  color: #475569;
+}
+
+/* ID Pass Actions */
+.id-pass-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-download-pass,
+.btn-regenerate-pass,
+.btn-view-attendance,
+.btn-generate-pass {
+  flex: 1;
+  min-width: 150px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-download-pass {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-download-pass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-regenerate-pass {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.btn-regenerate-pass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.btn-view-attendance {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+.btn-view-attendance:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.btn-generate-pass {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-generate-pass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+/* QR Scanner Info */
+.qr-scanner-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+}
+
+.qr-scanner-info i {
+  color: #3b82f6;
+  font-size: 1.5rem;
+  margin-top: 4px;
+}
+
+.scanner-info-content h4 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.scanner-info-content ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.scanner-info-content li {
+  margin-bottom: 4px;
+}
+
+/* No Pass/Membership Messages */
+#no-pass-message,
+#no-membership-for-pass {
+  color: #fff;
+}
+
+#no-pass-message h3,
+#no-membership-for-pass h3 {
+  color: #fff;
+}
+
+#no-pass-message p,
+#no-membership-for-pass p {
+  color: #cbd5e1;
+}
+
+.btn-join-now {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+}
+
+.btn-join-now:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .id-pass-card {
+    padding: 20px;
+  }
+
+  .pass-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pass-photo-section {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .pass-info-section {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pass-plan-badges {
+    justify-content: center;
+  }
+
+  .pass-validity-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .id-pass-actions {
+    flex-direction: column;
+  }
+
+  .btn-download-pass,
+  .btn-regenerate-pass,
+  .btn-view-attendance {
+    min-width: 100%;
+  }
+
+  .qr-scanner-info {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.id-pass-card.loading .pass-visual {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

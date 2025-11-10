@@ -155,7 +155,7 @@ function populateGymDetails(gym) {
     populateActivities(gym.activities || []);
     populateEquipment(gym.equipment || []);
     populateLocation(gym);
-    populateContactInfo(gym);
+    // populateContactInfo(gym); // Removed - contact modal replaced with chat
     populateRushHours(gym._id);
     
     // Load initial rating data for hero section
@@ -787,6 +787,15 @@ function populateLocation(gym) {
     const fullAddress = `${gym.location?.address || ''}, ${gym.location?.city || ''}, ${gym.location?.state || ''} - ${gym.location?.pincode || ''}`;
     document.getElementById('full-address').textContent = fullAddress;
     
+    // Contact info in location tab
+    const contactPhone = document.getElementById('contact-phone');
+    const contactEmail = document.getElementById('contact-email');
+    const contactPerson = document.getElementById('contact-person');
+    
+    if (contactPhone) contactPhone.textContent = gym.phone || 'N/A';
+    if (contactEmail) contactEmail.textContent = gym.email || 'N/A';
+    if (contactPerson) contactPerson.textContent = gym.contactPerson || 'N/A';
+    
     // Initialize map (placeholder for now)
     const mapContainer = document.getElementById('gym-map');
     mapContainer.innerHTML = `
@@ -1216,9 +1225,7 @@ function initializeEventListeners() {
         // Auto-fill will be called from checkTrialLimitsAndOpenModal
     });
     
-    document.getElementById('contact-btn').addEventListener('click', () => {
-        openModal('contact-modal');
-    });
+    // Contact button removed - replaced with chat button (handled in gymdetails-chat.js)
     
     // Set minimum date for trial booking to today
     const today = new Date().toISOString().split('T')[0];
@@ -1644,9 +1651,9 @@ function closeModal(modalId) {
 async function checkTrialLimitsAndOpenModal() {
     const token = localStorage.getItem('token');
     
-    // If user is not logged in, open modal directly (guest booking)
+    // If user is not logged in, show login prompt
     if (!token) {
-        openModal('trial-booking-modal');
+        showStandardLoginPrompt('trial booking');
         return;
     }
     
@@ -2531,6 +2538,62 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// ===============================================
+// STANDARDIZED LOGIN PROMPT
+// ===============================================
+
+/**
+ * Shows a standardized login prompt modal
+ * @param {string} feature - The feature name requiring login (e.g., 'trial booking', 'chat', 'offers')
+ */
+function showStandardLoginPrompt(feature = 'this feature') {
+    // Store current page URL for redirect after login
+    const currentUrl = window.location.href;
+    localStorage.setItem('redirectAfterLogin', currentUrl);
+    
+    const loginModal = document.createElement('div');
+    loginModal.className = 'modal';
+    loginModal.style.display = 'flex';
+    loginModal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.3rem;">
+                    <i class="fas fa-sign-in-alt" style="color: var(--primary-color);"></i>
+                    Login Required
+                </h3>
+            </div>
+            <div class="modal-body" style="padding: 25px;">
+                <p style="margin: 0 0 20px 0; color: #555; line-height: 1.6;">
+                    Please login to your account to use ${feature}.
+                </p>
+                <div style="margin: 0 0 25px 0; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-dumbbell" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                        <span style="color: #333; font-size: 0.95rem;">Access exclusive gym features</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-gift" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                        <span style="color: #333; font-size: 0.95rem;">Claim special offers</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-comments" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                        <span style="color: #333; font-size: 0.95rem;">Chat with gym administrators</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="this.closest('.modal').remove()" style="padding: 10px 20px;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn-primary" onclick="window.location.href='/frontend/public/login.html'" style="padding: 10px 20px;">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loginModal);
+}
 
 // ===============================================
 // REVIEWS FUNCTIONALITY
@@ -3546,3 +3609,233 @@ async function refreshTrialLimitsAfterBooking() {
         console.error('Error refreshing trial limits:', error);
     }
 }
+
+// ===============================================
+// REPORT ISSUE / GRIEVANCE SYSTEM
+// ===============================================
+
+// Open Report Issue Modal
+function openReportIssueModal() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        showStandardLoginPrompt('report an issue');
+        return;
+    }
+    
+    const modal = document.getElementById('report-issue-modal');
+    if (!modal) {
+        console.error('Report issue modal not found');
+        return;
+    }
+    
+    // Reset form
+    const form = document.getElementById('report-issue-form');
+    if (form) form.reset();
+    
+    // Auto-fill user data if available
+    autoFillReportUserInfo();
+    
+    // Reset character counts
+    document.getElementById('subject-count').textContent = '0';
+    document.getElementById('description-count').textContent = '0';
+    
+    modal.style.display = 'flex';
+    console.log('📋 Report issue modal opened');
+}
+
+// Close Report Modal
+function closeReportModal() {
+    const modal = document.getElementById('report-issue-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Auto-fill user information in report form
+async function autoFillReportUserInfo() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${BASE_URL}/api/users/profile`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const userData = await response.json();
+            
+            // Fill contact number
+            const contactInput = document.getElementById('issue-contact');
+            if (contactInput && userData.phone) {
+                contactInput.value = userData.phone;
+            }
+            
+            // Fill email
+            const emailInput = document.getElementById('issue-email');
+            if (emailInput && userData.email) {
+                emailInput.value = userData.email;
+            }
+            
+            console.log('✅ User info auto-filled in report form');
+        }
+    } catch (error) {
+        console.log('ℹ️ Could not auto-fill user info:', error.message);
+    }
+}
+
+// Handle Report Form Submission
+document.addEventListener('DOMContentLoaded', function() {
+    // Character counter for subject
+    const subjectInput = document.getElementById('issue-subject');
+    if (subjectInput) {
+        subjectInput.addEventListener('input', function() {
+            document.getElementById('subject-count').textContent = this.value.length;
+        });
+    }
+    
+    // Character counter for description
+    const descriptionInput = document.getElementById('issue-description');
+    if (descriptionInput) {
+        descriptionInput.addEventListener('input', function() {
+            document.getElementById('description-count').textContent = this.value.length;
+        });
+    }
+    
+    // Form submission
+    const reportForm = document.getElementById('report-issue-form');
+    if (reportForm) {
+        reportForm.addEventListener('submit', handleReportSubmission);
+    }
+    
+    // Close modal handlers
+    const closeReportBtn = document.getElementById('close-report-modal');
+    if (closeReportBtn) {
+        closeReportBtn.addEventListener('click', closeReportModal);
+    }
+    
+    // Success modal OK button
+    const successOkBtn = document.getElementById('report-success-ok-btn');
+    if (successOkBtn) {
+        successOkBtn.addEventListener('click', function() {
+            const successModal = document.getElementById('report-success-modal');
+            if (successModal) successModal.style.display = 'none';
+        });
+    }
+    
+    // Click outside to close
+    window.addEventListener('click', function(e) {
+        const reportModal = document.getElementById('report-issue-modal');
+        const successModal = document.getElementById('report-success-modal');
+        
+        if (e.target === reportModal) {
+            closeReportModal();
+        }
+        if (e.target === successModal) {
+            successModal.style.display = 'none';
+        }
+    });
+});
+
+// Handle Report Form Submission
+async function handleReportSubmission(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showStandardLoginPrompt('submit a report');
+        return;
+    }
+    
+    if (!currentGym || !currentGym._id) {
+        showError('Gym information not available. Please refresh the page.');
+        return;
+    }
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Get form data
+    const grievanceData = {
+        gymId: currentGym._id,
+        category: form.category.value,
+        priority: form.priority.value,
+        subject: form.subject.value.trim(),
+        description: form.description.value.trim(),
+        contactNumber: form.contactNumber.value.trim(),
+        email: form.email.value.trim(),
+        status: 'open'
+    };
+    
+    // Validate
+    if (!grievanceData.category || !grievanceData.subject || !grievanceData.description) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    // Disable submit button
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    }
+    
+    try {
+        console.log('📤 Submitting grievance:', grievanceData);
+        
+        const response = await fetch(`${BASE_URL}/api/communications/grievances`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(grievanceData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            console.log('✅ Grievance submitted successfully:', data);
+            
+            // Close report modal
+            closeReportModal();
+            
+            // Show success modal with ticket ID
+            showReportSuccessModal(data.grievance);
+            
+            // Reset form
+            form.reset();
+        } else {
+            throw new Error(data.message || 'Failed to submit grievance');
+        }
+    } catch (error) {
+        console.error('❌ Error submitting grievance:', error);
+        showError(error.message || 'Failed to submit your report. Please try again.');
+    } finally {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
+        }
+    }
+}
+
+// Show Report Success Modal
+function showReportSuccessModal(grievance) {
+    const modal = document.getElementById('report-success-modal');
+    const ticketIdDisplay = document.getElementById('ticket-id-value');
+    
+    if (!modal) return;
+    
+    // Generate readable ticket ID
+    const ticketId = grievance.ticketId || grievance._id || 'N/A';
+    
+    if (ticketIdDisplay) {
+        ticketIdDisplay.textContent = ticketId;
+    }
+    
+    modal.style.display = 'flex';
+    
+    console.log('🎟️ Ticket created:', ticketId);
+}
+

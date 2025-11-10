@@ -1584,20 +1584,13 @@ async function setupActualToggleHandlers(gymId) {
       });
       
       if (response.ok) {
-        // Check if response is actually JSON
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const result = await response.json();
-          const is2FAEnabled = result.data?.enabled !== false; // Default to enabled
-          twoFactorToggle.checked = is2FAEnabled;
-          
-          // Also save to localStorage for backup
-          setGymSpecificSetting(`twoFactorEnabled_${gymId}`, is2FAEnabled.toString());
-          console.log(`📱 2FA toggle loaded from API: ${is2FAEnabled}`);
-        } else {
-          // Response is not JSON, probably an HTML error page
-          throw new Error('API returned non-JSON response (likely HTML error page)');
-        }
+        const result = await response.json();
+        const is2FAEnabled = result.data?.enabled !== false; // Default to enabled
+        twoFactorToggle.checked = is2FAEnabled;
+        
+        // Also save to localStorage for backup
+        setGymSpecificSetting(`twoFactorEnabled_${gymId}`, is2FAEnabled.toString());
+        console.log(`📱 2FA toggle loaded from API: ${is2FAEnabled}`);
       } else {
         // Fallback to localStorage
         const saved2FAState = getGymSpecificSetting(`twoFactorEnabled_${gymId}`);
@@ -8055,13 +8048,13 @@ class SessionTimeoutManager {
       
       // Redirect to login
       setTimeout(() => {
-        window.location.href = '../public/admin-login.html';
+        window.location.href = '/frontend/public/admin-login.html';
       }, 2000);
       
     } catch (error) {
       console.error('Error during logout:', error);
       // Force redirect even if API call fails
-      window.location.href = '../public/admin-login.html';
+      window.location.href = '/frontend/public/admin-login.html';
     }
   }
 
@@ -8258,7 +8251,7 @@ if (initialSetupResult && window.securityManagersInitialized) {
   console.log('🔧 Security managers initialized successfully, setting up pending toggles...');
   
   // Check if there's a pending gym ID for security toggle setup
-  const currentGymId = window.GymIdManager ? window.GymIdManager.getCurrentGymId() : (window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId')));
+  const currentGymId = window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId'));
   if (currentGymId && !window.securityToggleHandlersSetup) {
     console.log('🔄 Setting up security toggles for gym:', currentGymId);
     setTimeout(() => {
@@ -8278,7 +8271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // If initialization successful, try to set up pending toggles
     if (result && window.securityManagersInitialized) {
-      const currentGymId = window.GymIdManager ? window.GymIdManager.getCurrentGymId() : (window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId')));
+      const currentGymId = window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId'));
       if (currentGymId && !window.securityToggleHandlersSetup) {
         console.log('🔄 Setting up security toggles after DOMContentLoaded initialization...');
         setTimeout(() => {
@@ -8700,7 +8693,7 @@ window.testToggleFunctionality = async function() {
         console.log('✅ Final initialization successful');
         
         // Try to set up any pending security toggles
-        const currentGymId = window.GymIdManager ? window.GymIdManager.getCurrentGymId() : (window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId')));
+        const currentGymId = window.getGymId ? window.getGymId() : (sessionStorage.getItem('currentGymId') || localStorage.getItem('currentGymId'));
         if (currentGymId && !window.securityToggleHandlersSetup) {
           console.log('🔄 Setting up pending security toggles after final initialization...');
           setTimeout(() => {
@@ -9488,30 +9481,6 @@ window.testAllTogglesFinal = function() {
   return elements;
 };
 
-// ===== COMPREHENSIVE FIX SUMMARY =====
-/*
-FIXES IMPLEMENTED:
-
-1. PASSKEY DISABLE CONFIRMATION DIALOG:
-   - Fixed disablePasskey() method in payment.js to show styled dialog instead of confirm()
-   - Added proper event listener setup with element cloning to prevent duplicates
-   - Dialog matches design of other application modals
-
-2. SECURITY TOGGLES NOT WORKING:
-   - Added setupSimplifiedSecurityToggles() function for reliable toggle setup
-   - Fixed event listener duplication by cloning elements
-   - Added fallback API calls with local storage backup
-   - Proper gym-specific settings isolation
-
-3. DEBUGGING UTILITIES:
-   - Added testSecurityToggles() for manual testing
-   - Added fixSecurityTogglesAndPasskey() for comprehensive fixes
-
-4. ENHANCED TOGGLE SWITCH UNIVERSAL FIX:
-   - Added fixAllEnhancedToggleSwitches() to fix clicking on slider elements
-   - Ensures all enhanced-toggle-switch elements respond to clicks properly
-   - Handles both slider clicks and wrapper clicks
-*/
 
 // ===== ENHANCED TOGGLE SWITCH UNIVERSAL FIX =====
 function fixAllEnhancedToggleSwitches() {
@@ -9658,25 +9627,3 @@ window.checkEmailConfig = async function() {
   }
 };
 
-/*
-ENHANCED TOGGLE SWITCHES IMPLEMENTATION:
-
-   - Created test page at /test-security-toggles.html
-   - Auto-initialization after page load
-
-USAGE:
-- Security toggles should work automatically after page load
-- If issues persist, run: window.fixSecurityTogglesAndPasskey()
-- For testing: window.testSecurityToggles()
-- Test page available at: http://localhost:5000/test-security-toggles.html
-
-API ENDPOINTS USED:
-- /api/security/toggle-2fa (POST) - for 2FA toggle
-- /api/security/2fa-status (GET) - for 2FA status
-- /api/security/toggle-login-notifications (POST) - for login notifications
-
-STORAGE KEYS:
-- twoFactorEnabled_{gymId} - stores 2FA preference
-- loginNotifications_{gymId} - stores login notifications preference
-- gymAdminPasskey_{gymId} - stores admin passkey for payments
-*/

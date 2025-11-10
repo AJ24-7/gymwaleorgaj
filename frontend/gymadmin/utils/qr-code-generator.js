@@ -107,26 +107,33 @@ class QRCodeGenerator {
     }
 
     bindEvents() {
-        // Open QR Generator Modal
-        const generateBtn = document.getElementById('generateQRCodeBtn');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => {
-                console.log('QR Code generator button clicked');
-                this.openQRCodeModal();
+        // Note: The main generateQRCodeBtn click handler is in gymadmin.js
+        // We only bind modal-specific events here
+        
+        console.log('🔧 Binding QR modal events...');
+        
+        // Close Modal
+        const closeBtn = document.getElementById('closeQRCodeModal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                console.log('Close button clicked');
+                this.closeQRCodeModal();
             });
         } else {
-            console.error('Generate QR Code button not found');
+            console.error('❌ Close QR modal button not found');
         }
 
-        // Close Modal
-        document.getElementById('closeQRCodeModal')?.addEventListener('click', () => {
-            this.closeQRCodeModal();
-        });
-
-        // Generate QR Code
-        document.getElementById('generateQRBtn')?.addEventListener('click', () => {
-            this.generateQRCode();
-        });
+        // Generate QR Code (INSIDE modal)
+        const generateBtn = document.getElementById('generateQRBtn');
+        if (generateBtn) {
+            console.log('✅ Generate QR button found, attaching listener');
+            generateBtn.addEventListener('click', () => {
+                console.log('🎯 Generate QR button clicked (inside modal)');
+                this.generateQRCode();
+            });
+        } else {
+            console.error('❌ Generate QR button not found in modal');
+        }
 
         // Action Buttons
         document.getElementById('downloadQRBtn')?.addEventListener('click', () => {
@@ -154,10 +161,17 @@ class QRCodeGenerator {
     }
 
     setDefaultExpiryDate() {
+        const expiryInput = document.getElementById('qrExpiryDate');
+        if (!expiryInput) {
+            console.warn('⚠️ Expiry date input not found');
+            return;
+        }
+        
         const now = new Date();
         now.setDate(now.getDate() + 7); // Default 7 days from now
         const isoString = now.toISOString().slice(0, 16); // Format for datetime-local
-        document.getElementById('qrExpiryDate').value = isoString;
+        expiryInput.value = isoString;
+        console.log('✅ Default expiry date set:', isoString);
     }
 
     openQRCodeModal() {
@@ -187,10 +201,15 @@ class QRCodeGenerator {
     }
 
     async generateQRCode() {
+        console.log('🚀 generateQRCode() method called');
+        
         if (!this.isQRLibraryReady) {
+            console.error('❌ QR library not ready');
             this.showNotification('QR Code library is still loading. Please try again in a moment.', 'error');
             return;
         }
+
+        console.log('✅ QR library is ready');
 
         // Re-verify gym ID before generating QR code
         if (!this.currentGymId) {
@@ -199,6 +218,7 @@ class QRCodeGenerator {
         }
         
         if (!this.currentGymId) {
+            console.error('❌ No gym ID found after refresh');
             this.showNotification('Unable to determine gym ID. Please refresh the page and try again.', 'error');
             return;
         }
@@ -207,32 +227,44 @@ class QRCodeGenerator {
 
         try {
             const button = document.getElementById('generateQRBtn');
+            if (!button) {
+                console.error('❌ Generate button not found');
+                return;
+            }
+            
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             button.disabled = true;
 
+            console.log('📝 Collecting form data...');
+
             // Get form data
             const qrData = {
                 gymId: this.currentGymId,
-                registrationType: document.getElementById('qrRegistrationType').value,
-                defaultPlan: document.getElementById('qrDefaultPlan').value,
-                usageLimit: document.getElementById('qrUsageLimit').value,
-                expiryDate: document.getElementById('qrExpiryDate').value,
-                specialOffer: document.getElementById('qrSpecialOffer').value,
+                registrationType: document.getElementById('qrRegistrationType')?.value || 'standard',
+                defaultPlan: document.getElementById('qrDefaultPlan')?.value || '',
+                usageLimit: document.getElementById('qrUsageLimit')?.value || '1',
+                expiryDate: document.getElementById('qrExpiryDate')?.value || '',
+                specialOffer: document.getElementById('qrSpecialOffer')?.value || '',
                 createdAt: new Date().toISOString()
             };
+
+            console.log('📋 Form data collected:', qrData);
 
             // Create unique token
             const token = this.generateUniqueToken();
             qrData.token = token;
+            console.log('🔑 Generated token:', token);
 
-            // Create registration URL
+            // Create registration URL - Fixed to point to correct frontend path
             const baseUrl = window.location.origin;
-            const registrationUrl = `${baseUrl}/register?gym=${this.currentGymId}&token=${token}`;
+            const registrationUrl = `${baseUrl}/frontend/register.html?gym=${this.currentGymId}&token=${token}`;
             console.log('🔗 Generated QR URL for gym:', this.currentGymId, 'URL:', registrationUrl);
 
             // Save QR code data to backend
+            console.log('💾 Saving QR code data...');
             await this.saveQRCodeData(qrData);
+            console.log('✅ QR data saved');
 
             // Verify the QR data is for this gym
             if (qrData.gymId !== this.currentGymId) {
@@ -240,10 +272,20 @@ class QRCodeGenerator {
                 throw new Error('QR code gym ID mismatch');
             }
 
+            console.log('🎨 Generating QR code image...');
+            
+            // Check if qrcode library is available
+            if (typeof qrcode === 'undefined') {
+                console.error('❌ qrcode library is not defined');
+                throw new Error('QR code library not loaded');
+            }
+
             // Generate QR Code using qrcode-generator library
             const qr = qrcode(0, 'M');
             qr.addData(registrationUrl);
             qr.make();
+            
+            console.log('✅ QR data encoded, creating canvas...');
             
             // Create canvas and draw QR code
             const canvas = document.createElement('canvas');
@@ -273,6 +315,8 @@ class QRCodeGenerator {
                 }
             }
 
+            console.log('✅ QR code canvas created');
+
             // Display QR Code
             this.displayQRCode(canvas, registrationUrl, qrData);
 
@@ -283,14 +327,18 @@ class QRCodeGenerator {
             this.loadActiveQRCodes();
 
             this.showNotification('QR Code generated successfully!', 'success');
+            console.log('🎉 QR code generation complete!');
 
         } catch (error) {
-            console.error('Error generating QR code:', error);
-            this.showNotification('Failed to generate QR code', 'error');
+            console.error('❌ Error generating QR code:', error);
+            console.error('Error stack:', error.stack);
+            this.showNotification('Failed to generate QR code: ' + error.message, 'error');
             
             const button = document.getElementById('generateQRBtn');
-            button.innerHTML = '<i class="fas fa-magic"></i> Generate QR Code';
-            button.disabled = false;
+            if (button) {
+                button.innerHTML = '<i class="fas fa-magic"></i> Generate QR Code';
+                button.disabled = false;
+            }
         }
     }
 
@@ -472,7 +520,7 @@ class QRCodeGenerator {
 
             // Generate QR Code using qrcode-generator library
             const baseUrl = window.location.origin;
-            const registrationUrl = `${baseUrl}/register?gym=${this.currentGymId}&token=${token}`;
+            const registrationUrl = `${baseUrl}/frontend/register.html?gym=${this.currentGymId}&token=${token}`;
             console.log('Regenerated QR URL for gym:', this.currentGymId, 'URL:', registrationUrl);
             
             const qr = qrcode(0, 'M');

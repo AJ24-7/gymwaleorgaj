@@ -1,13 +1,19 @@
 @echo off
 :: Enhanced Fitverse Biometric Agent Installer
 :: Production-ready installation with comprehensive error handling
-:: Version 2.0
+:: Version 3.0 - Fully Automated
 
 setlocal EnableDelayedExpansion
 
+:: Set console mode to support colors
+chcp 65001 >nul 2>&1
+
+title Fitverse Biometric Agent Installer v3.0
+
 echo.
 echo ================================================================
-echo       Enhanced Fitverse Biometric Agent Installer v2.0
+echo       Enhanced Fitverse Biometric Agent Installer v3.0
+echo                    FULLY AUTOMATED SETUP
 echo ================================================================
 echo.
 
@@ -16,9 +22,11 @@ set "SERVICE_NAME=FitverseBiometricAgent"
 set "INSTALL_DIR=%~dp0"
 set "LOG_FILE=%INSTALL_DIR%installation.log"
 set "ERROR_COUNT=0"
+set "CRITICAL_ERROR=0"
 
 :: Initialize log file
 echo [%date% %time%] Starting Enhanced Biometric Agent Installation > "%LOG_FILE%"
+echo [%date% %time%] Installation Directory: %INSTALL_DIR% >> "%LOG_FILE%"
 
 :: Function to log messages
 :LOG
@@ -129,30 +137,90 @@ for %%F in (%REQUIRED_FILES%) do (
         call :LOG "ERROR: Required file missing: %%F"
         echo ❌ Required file not found: %%F
         echo Please ensure all files are in the installation directory.
-        pause
-        exit /b 1
+        set "CRITICAL_ERROR=1"
+        goto :ERROR_EXIT
     )
     call :LOG "✅ Found: %%F"
+)
+
+:: Ensure package.json exists (merge enhanced-package.json if needed)
+call :LOG "Checking package.json..."
+if not exist "%INSTALL_DIR%package.json" (
+    if exist "%INSTALL_DIR%enhanced-package.json" (
+        call :LOG "Copying enhanced-package.json to package.json..."
+        echo 📋 Setting up package configuration...
+        copy /Y "%INSTALL_DIR%enhanced-package.json" "%INSTALL_DIR%package.json" >nul 2>&1
+        if !errorLevel! equ 0 (
+            call :LOG "✅ package.json created successfully"
+        ) else (
+            call :LOG "ERROR: Could not create package.json"
+            echo ❌ Failed to setup package configuration
+            set "CRITICAL_ERROR=1"
+            goto :ERROR_EXIT
+        )
+    ) else (
+        call :LOG "ERROR: No package.json or enhanced-package.json found"
+        echo ❌ package.json not found
+        set "CRITICAL_ERROR=1"
+        goto :ERROR_EXIT
+    )
+) else (
+    call :LOG "✅ package.json exists"
 )
 
 :: Install npm dependencies
 call :LOG "Installing npm dependencies..."
 echo.
-echo 📦 Installing npm dependencies...
-echo This may take a few minutes...
+echo 📦 Installing npm dependencies (this may take 2-3 minutes)...
+echo    Please wait, do not close this window...
 
 cd /d "%INSTALL_DIR%"
-npm install --production 2>&1 | findstr /V "npm WARN" 
-if %errorLevel% neq 0 (
-    call :LOG "ERROR: npm install failed"
+
+:: Clean install to avoid conflicts
+if exist "%INSTALL_DIR%node_modules" (
+    call :LOG "Cleaning old node_modules..."
+    echo 🧹 Cleaning previous installation...
+    rmdir /S /Q "%INSTALL_DIR%node_modules" >nul 2>&1
+)
+
+:: Perform npm install with detailed output
+call :LOG "Running npm install..."
+npm install --production --loglevel=error 2>&1 | findstr /V "npm WARN deprecated" >> "%LOG_FILE%"
+
+if !errorLevel! neq 0 (
+    call :LOG "ERROR: npm install failed with error code: !errorLevel!"
     echo.
     echo ❌ Failed to install npm dependencies.
-    echo Check the log file for details: %LOG_FILE%
     echo.
-    pause
-    exit /b 1
+    echo 💡 Common solutions:
+    echo    1. Ensure you have a stable internet connection
+    echo    2. Try running 'npm cache clean --force'
+    echo    3. Check if npm registry is accessible
+    echo.
+    echo 📄 Full error log: %LOG_FILE%
+    echo.
+    set "CRITICAL_ERROR=1"
+    goto :ERROR_EXIT
 )
-call :LOG "✅ npm dependencies installed successfully"
+
+:: Verify critical dependencies
+call :LOG "Verifying installed dependencies..."
+if not exist "%INSTALL_DIR%node_modules\express" (
+    call :LOG "ERROR: express module not installed properly"
+    echo ❌ Critical dependency 'express' not found
+    set "CRITICAL_ERROR=1"
+    goto :ERROR_EXIT
+)
+
+if not exist "%INSTALL_DIR%node_modules\node-windows" (
+    call :LOG "ERROR: node-windows module not installed properly"
+    echo ❌ Critical dependency 'node-windows' not found
+    set "CRITICAL_ERROR=1"
+    goto :ERROR_EXIT
+)
+
+call :LOG "✅ npm dependencies installed and verified successfully"
+echo ✅ Dependencies installed successfully!
 
 :: Install Windows service
 call :LOG "Installing Windows service..."
@@ -337,16 +405,53 @@ echo.
 echo ================================================================
 call :LOG "Installation process completed"
 
-:: Ask to open agent interface
+:: Auto-open agent interface after 3 seconds
 echo.
-set /p "OPEN_INTERFACE=Open agent web interface now? (y/N): "
-if /i "!OPEN_INTERFACE!"=="y" (
-    start http://localhost:5001
-    call :LOG "Opened agent web interface"
-)
+echo 🌐 Opening agent web interface in 3 seconds...
+call :LOG "Auto-opening agent web interface"
+timeout /t 3 /nobreak >nul
+start http://localhost:5001
 
 echo.
-echo Installation log saved to: %LOG_FILE%
+echo 💾 Installation log saved to: %LOG_FILE%
 echo.
-pause
-exit /b %ERROR_COUNT%
+echo ✨ Setup completed! The window will close in 10 seconds...
+echo    (Press any key to close now)
+echo.
+timeout /t 10
+exit /b 0
+
+:ERROR_EXIT
+:: Error handling section
+echo.
+echo ================================================================
+echo                      INSTALLATION FAILED
+echo ================================================================
+echo.
+echo ❌ The installation encountered critical errors and cannot continue.
+echo.
+echo 📄 Log File: %LOG_FILE%
+echo.
+echo 💡 Troubleshooting Steps:
+echo    1. Ensure Node.js is installed (download from nodejs.org)
+echo    2. Run this installer as Administrator
+echo    3. Check your internet connection for npm downloads
+echo    4. Disable antivirus temporarily during installation
+echo    5. Ensure port 5001 is not blocked by firewall
+echo.
+echo 🔍 Common Issues:
+echo    - Missing Node.js: Install from https://nodejs.org
+echo    - Permission denied: Run as Administrator
+echo    - Port in use: Close any apps using port 5001
+echo    - Network issues: Check firewall/proxy settings
+echo.
+call :LOG "Installation failed with critical errors"
+echo ================================================================
+echo.
+echo Press any key to view the log file...
+pause >nul
+type "%LOG_FILE%"
+echo.
+echo Press any key to exit...
+pause >nul
+exit /b 1

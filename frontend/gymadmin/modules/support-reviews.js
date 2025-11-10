@@ -12,6 +12,8 @@ class SupportReviewsManager {
         this.currentGymId = null;
         this.gymProfile = null;
         this.BASE_URL = 'http://localhost:5000';
+        this.autoRefreshInterval = null;
+        this.activeChatId = null;
         this.stats = {
             notifications: { total: 0, unread: 0, system: 0, priority: 0 },
             reviews: { total: 0, average: 0, pending: 0, recent: 0 },
@@ -22,16 +24,81 @@ class SupportReviewsManager {
     }
 
     init() {
-        console.log('🚀 Initializing Enhanced Support & Reviews Manager');
         this.bindEvents();
         this.fetchGymId();
         this.initializeModalEnhancements();
         this.performSystemDiagnostics();
+        this.setupUnifiedNotificationSync();
+    }
+    
+    // Setup synchronization with unified notification system
+    setupUnifiedNotificationSync() {
+        // Check if unified notification system is available
+        if (window.unifiedNotificationSystem) {
+            
+            // Initial sync
+            this.syncWithUnifiedNotifications();
+            
+            // Setup periodic sync every 30 seconds
+            setInterval(() => {
+                this.syncWithUnifiedNotifications();
+            }, 30000);
+            
+            // Listen for new notifications from unified system
+            document.addEventListener('newUnifiedNotification', (event) => {
+                this.handleNewUnifiedNotification(event.detail);
+            });
+        } else {
+            console.warn('⚠️ Unified notification system not available');
+        }
+    }
+    
+    // Sync notifications with unified system
+    syncWithUnifiedNotifications() {
+        if (!window.unifiedNotificationSystem) return;
+        
+        const unifiedNotifications = window.unifiedNotificationSystem.notifications || [];
+        
+        // Only sync if there are new notifications
+        if (unifiedNotifications.length > this.notifications.length) {
+            this.loadNotifications();
+            
+            // Update UI if we're on the notifications tab
+            if (this.currentTab === 'notifications') {
+                this.renderNotifications();
+            }
+        }
+    }
+    
+    // Handle new notification from unified system
+    handleNewUnifiedNotification(notification) {
+        // Convert to support tab format
+        const supportNotification = {
+            _id: notification.id,
+            id: notification.id,
+            type: notification.type || 'system',
+            title: notification.title,
+            message: notification.message,
+            priority: this.determinePriority(notification.type),
+            read: notification.read || false,
+            createdAt: notification.timestamp,
+            metadata: notification.metadata || {}
+        };
+        
+        // Add to beginning of notifications array
+        this.notifications.unshift(supportNotification);
+        
+        // Update stats and UI
+        this.updateNotificationStats();
+        
+        // Re-render if we're on notifications tab
+        if (this.currentTab === 'notifications') {
+            this.renderNotifications();
+        }
     }
 
     // System diagnostics to identify issues
     async performSystemDiagnostics() {
-        console.log('🔍 Performing system diagnostics...');
         
         const diagnostics = {
             tokenStatus: 'checking',
@@ -48,11 +115,9 @@ class SupportReviewsManager {
         };
         
         diagnostics.tokenStatus = Object.values(tokens).some(t => t) ? 'available' : 'missing';
-        console.log('🔐 Token status:', diagnostics.tokenStatus, tokens);
         
         // Check enhanced integration
         diagnostics.enhancedIntegrationStatus = window.enhancedSupportIntegration ? 'available' : 'missing';
-        console.log('🔧 Enhanced integration:', diagnostics.enhancedIntegrationStatus);
         
         // Check API connectivity
         try {
@@ -68,7 +133,6 @@ class SupportReviewsManager {
             diagnostics.apiConnectivity = `network_error: ${error.message}`;
         }
         
-        console.log('🏥 System Diagnostics Report:', diagnostics);
         
         // Show status in UI if there are issues
         if (diagnostics.tokenStatus === 'missing' || 
@@ -112,7 +176,6 @@ class SupportReviewsManager {
                     }
                 });
                 
-                console.log(`✅ Enhanced modal: ${modalId}`);
             }
         });
     }
@@ -130,7 +193,6 @@ class SupportReviewsManager {
             }
 
             // Enhanced token validation with detailed logging
-            console.log('🔐 Using token for gym profile fetch');
             const response = await fetch(`${this.BASE_URL}/api/gyms/profile/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -142,8 +204,6 @@ class SupportReviewsManager {
                 const data = await response.json();
                 this.gymProfile = data;
                 this.currentGymId = data._id;
-                console.log('✅ Gym profile fetched:', this.gymProfile.name || this.gymProfile.gymName);
-                console.log('🏢 Gym ID:', this.currentGymId);
                 this.loadInitialData();
             } else {
                 console.error('❌ Failed to fetch gym profile:', response.status, response.statusText);
@@ -157,7 +217,6 @@ class SupportReviewsManager {
 
     async tryAlternativeAuth(token) {
         try {
-            console.log('🔄 Trying alternative gym authentication...');
             const response = await fetch(`${this.BASE_URL}/api/gym/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -169,7 +228,6 @@ class SupportReviewsManager {
                 const data = await response.json();
                 this.gymProfile = data;
                 this.currentGymId = data._id || data.id;
-                console.log('✅ Gym profile fetched via alternative route:', this.gymProfile.name || this.gymProfile.gymName);
                 this.loadInitialData();
             } else {
                 console.error('❌ Alternative auth also failed:', response.status);
@@ -194,7 +252,6 @@ class SupportReviewsManager {
     }
 
     bindEvents() {
-        console.log('🔗 Binding support tab events');
         
         // Tab navigation - Enhanced with better event handling and debugging
         document.addEventListener('click', (e) => {
@@ -203,7 +260,6 @@ class SupportReviewsManager {
                 e.stopPropagation();
                 const tabBtn = e.target.closest('.support-tab-btn') || e.target;
                 const tabName = tabBtn.dataset.tab;
-                console.log(`🎯 Tab clicked: ${tabName}, current: ${this.currentTab}`);
                 if (tabName && this.currentTab !== tabName) {
                     this.switchTab(tabName);
                 }
@@ -227,6 +283,23 @@ class SupportReviewsManager {
                 e.preventDefault();
                 e.stopPropagation();
                 this.openStartCommunicationModal();
+            }
+            
+            // Stat card clicks - Navigate to respective tabs
+            const statCard = e.target.closest('.stat-card[id^="support"]');
+            if (statCard) {
+                const cardId = statCard.id;
+                let targetTab = '';
+                
+                if (cardId === 'supportNotificationsStatCard') targetTab = 'notifications';
+                else if (cardId === 'supportReviewsStatCard') targetTab = 'reviews';
+                else if (cardId === 'supportGrievancesStatCard') targetTab = 'grievances';
+                else if (cardId === 'supportChatsStatCard') targetTab = 'communications';
+                
+                if (targetTab && this.currentTab !== targetTab) {
+                    console.log('📊 Stat card clicked, navigating to:', targetTab);
+                    this.switchTab(targetTab);
+                }
             }
         });
 
@@ -365,7 +438,6 @@ class SupportReviewsManager {
     switchTab(tabName) {
         if (!tabName || this.currentTab === tabName) return;
         
-        console.log(`🔄 Switching from ${this.currentTab} to ${tabName} tab`);
         
         // Update tab buttons with forced refresh
         document.querySelectorAll('.support-tab-btn').forEach(btn => {
@@ -396,11 +468,9 @@ class SupportReviewsManager {
         this.currentTab = tabName;
         this.loadTabData(tabName);
         
-        console.log(`✅ Successfully switched to ${tabName} tab`);
     }
 
     async loadInitialData() {
-        console.log('📊 Loading initial data for Support & Reviews');
         await Promise.all([
             this.loadNotifications(),
             this.loadReviews(),
@@ -410,10 +480,12 @@ class SupportReviewsManager {
         this.updateStats();
         // Ensure notifications tab is active by default
         this.switchTab('notifications');
-        console.log('📊 Initial data loaded successfully');
     }
 
     async loadTabData(tabName) {
+        // Stop auto-refresh when switching tabs
+        this.stopAutoRefresh();
+        
         switch (tabName) {
             case 'notifications':
                 this.renderNotifications();
@@ -426,12 +498,78 @@ class SupportReviewsManager {
                 break;
             case 'communications':
                 this.renderCommunications();
+                // Start auto-refresh for communications
+                this.startAutoRefresh();
                 break;
+        }
+    }
+
+    startAutoRefresh() {
+        
+        // Clear any existing interval
+        this.stopAutoRefresh();
+        
+        // Refresh every 10 seconds
+        this.autoRefreshInterval = setInterval(async () => {
+            if (this.currentTab !== 'communications') return;
+
+            // If user is typing in chat input, skip this refresh cycle to avoid losing focus/content
+            const activeEl = document.activeElement;
+            const isTyping = activeEl && activeEl.id === 'chatReplyInput';
+            if (isTyping) {
+                return;
+            }
+
+
+            const messageArea = document.querySelector('.chat-messages');
+            const wasAtBottom = messageArea ? (messageArea.scrollTop + messageArea.clientHeight >= messageArea.scrollHeight - 10) : true;
+            const prevScrollTop = messageArea ? messageArea.scrollTop : 0;
+
+            // Reload communications WITHOUT re-rendering the entire layout
+            await this.loadCommunications({ skipRender: true });
+
+            // If there's an active chat, refresh only its messages to preserve the UI
+            if (this.activeChatId) {
+                this.refreshActiveChatMessages(this.activeChatId, { preserveScrollTop: !wasAtBottom, prevScrollTop });
+            } else {
+                // No active chat, safe to re-render the conversations list
+                this.renderCommunications();
+            }
+        }, 10000); // 10 seconds
+    }
+
+    stopAutoRefresh() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
         }
     }
 
     async loadNotifications() {
         try {
+            // First, check if unified notification system is available
+            if (window.unifiedNotificationSystem) {
+                const unifiedNotifications = window.unifiedNotificationSystem.notifications || [];
+                
+                // Convert unified notifications to support tab format
+                this.notifications = unifiedNotifications.map(notif => ({
+                    _id: notif.id,
+                    id: notif.id,
+                    type: notif.type || 'system',
+                    title: notif.title,
+                    message: notif.message,
+                    priority: this.determinePriority(notif.type),
+                    read: notif.read || false,
+                    createdAt: notif.timestamp,
+                    metadata: notif.metadata || {}
+                }));
+                
+                this.updateNotificationStats();
+                this.renderNotifications();
+                return;
+            }
+            
+            // Fallback to API fetch
             const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
             const response = await fetch(`${this.BASE_URL}/api/gym/notifications`, {
                 headers: {
@@ -444,17 +582,30 @@ class SupportReviewsManager {
                 const data = await response.json();
                 this.notifications = data.notifications || [];
                 this.updateNotificationStats();
-                console.log('✅ Notifications loaded:', this.notifications.length);
             } else {
                 console.error('Failed to load notifications:', response.status);
                 this.notifications = this.getMockNotifications();
                 this.updateNotificationStats();
             }
+            this.renderNotifications();
         } catch (error) {
             console.error('Error loading notifications:', error);
             this.notifications = this.getMockNotifications();
             this.updateNotificationStats();
+            this.renderNotifications();
         }
+    }
+    
+    // Helper method to determine priority based on notification type
+    determinePriority(type) {
+        const highPriorityTypes = ['payment_failed', 'alert', 'error', 'admin_action', 'membership_expiry'];
+        const urgentPriorityTypes = ['admin', 'system'];
+        const normalPriorityTypes = ['payment_pending', 'warning', 'trial_booking'];
+        
+        if (urgentPriorityTypes.includes(type)) return 'urgent';
+        if (highPriorityTypes.includes(type)) return 'high';
+        if (normalPriorityTypes.includes(type)) return 'normal';
+        return 'low';
     }
 
     async loadReviews() {
@@ -481,25 +632,12 @@ class SupportReviewsManager {
                 // Enhanced debugging: Log the first review with better formatting
                 if (this.reviews.length > 0) {
                     const firstReview = this.reviews[0];
-                    console.log('🔍 First review data structure:', {
-                        reviewId: firstReview._id || firstReview.id,
-                        user: firstReview.user,
-                        userId: firstReview.userId,
-                        reviewerName: firstReview.reviewerName,
-                        userImagePath: this.getUserImage(firstReview),
-                        userName: this.getUserName(firstReview)
-                    });
+                  
                     
-                    console.log('🔍 Profile image check:', {
-                        hasUser: !!firstReview.user,
-                        hasUserProfileImage: !!(firstReview.user?.profileImage),
-                        userProfileImage: firstReview.user?.profileImage,
-                        finalImageUrl: this.getUserImage(firstReview)
-                    });
+                  
                 }
                 
                 this.updateReviewStats();
-                console.log('✅ Reviews loaded successfully:', this.reviews.length);
             } else {
                 console.error('Failed to load reviews:', response.status, response.statusText);
                 const errorData = await response.text();
@@ -517,7 +655,6 @@ class SupportReviewsManager {
     async loadGrievances() {
         try {
             const token = this.getAuthToken();
-            console.log('📋 Loading grievances for gym:', this.currentGymId);
             
             // First try to load from integrated support system
             if (window.enhancedSupportIntegration) {
@@ -539,13 +676,18 @@ class SupportReviewsManager {
                         metadata: ticket.metadata || {}
                     }));
                     this.updateGrievanceStats();
-                    console.log('✅ Grievances loaded from integrated system:', this.grievances.length);
+                    // Update grievance handler if available
+                    if (window.grievanceHandler) {
+                        window.grievanceHandler.updateGrievances(this.grievances);
+                    }
+                    console.log('✅ Loaded grievances from enhanced support:', this.grievances.length);
                     return;
                 }
             }
             
             // Try gym communication routes first
             try {
+                console.log('📡 Fetching grievances from:', `${this.BASE_URL}/api/gym/communication/grievances/${this.currentGymId}`);
                 const commResponse = await fetch(`${this.BASE_URL}/api/gym/communication/grievances/${this.currentGymId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -555,16 +697,24 @@ class SupportReviewsManager {
                 
                 if (commResponse.ok) {
                     const data = await commResponse.json();
+                    console.log('✅ Grievances response:', data);
                     this.grievances = data.grievances || data.tickets || [];
                     this.updateGrievanceStats();
-                    console.log('✅ Grievances loaded from gym communication API:', this.grievances.length);
+                    // Update grievance handler if available
+                    if (window.grievanceHandler) {
+                        window.grievanceHandler.updateGrievances(this.grievances);
+                    }
+                    console.log('✅ Loaded grievances from gym communication:', this.grievances.length);
                     return;
+                } else {
+                    console.warn('⚠️ Gym communication API returned:', commResponse.status, commResponse.statusText);
                 }
             } catch (commError) {
-                console.log('ℹ️ Gym communication API not available, trying support API');
+                console.error('❌ Error with gym communication API:', commError);
             }
             
             // Fallback to direct support API call
+            console.log('📡 Trying fallback support API');
             const response = await fetch(`${this.BASE_URL}/api/support/grievances/gym/${this.currentGymId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -576,7 +726,11 @@ class SupportReviewsManager {
                 const data = await response.json();
                 this.grievances = data.tickets || data.grievances || [];
                 this.updateGrievanceStats();
-                console.log('✅ Grievances loaded from support API:', this.grievances.length);
+                // Update grievance handler if available
+                if (window.grievanceHandler) {
+                    window.grievanceHandler.updateGrievances(this.grievances);
+                }
+                console.log('✅ Loaded grievances from support API:', this.grievances.length);
             } else if (response.status === 401) {
                 console.warn('⚠️ Authentication failed for grievances, using mock data');
                 this.grievances = this.getMockGrievances();
@@ -593,33 +747,12 @@ class SupportReviewsManager {
         }
     }
 
-    async loadCommunications() {
+    async loadCommunications(options = {}) {
         try {
             const token = this.getAuthToken();
-            console.log('💬 Loading communications for gym:', this.currentGymId);
             
-            // Try enhanced gym communication endpoint first
-            try {
-                const response = await fetch(`${this.BASE_URL}/api/gym/communication/messages/${this.currentGymId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    this.communications = data.messages || data.communications || [];
-                    this.updateCommunicationStats();
-                    console.log('✅ Communications loaded via gym communication API:', this.communications.length);
-                    return;
-                }
-            } catch (commError) {
-                console.log('ℹ️ Gym communication API not available, trying support API');
-            }
-            
-            // Fallback to support API
-            const response = await fetch(`${this.BASE_URL}/api/support/gym/${this.currentGymId}`, {
+            // Use the new gym-specific chat endpoint
+            const response = await fetch(`${this.BASE_URL}/api/chat/gym/conversations`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -628,26 +761,25 @@ class SupportReviewsManager {
 
             if (response.ok) {
                 const data = await response.json();
-                this.communications = data.tickets || data.communications || [];
+                this.communications = data.conversations || [];
                 this.updateCommunicationStats();
-                console.log('✅ Communications loaded via support API:', this.communications.length);
+                if (!options.skipRender) this.renderCommunications();
             } else if (response.status === 401) {
-                console.warn('⚠️ Authentication failed for communications, using mock data');
-                this.communications = this.getMockCommunications();
+                console.warn('⚠️ Authentication failed for communications');
+                this.communications = [];
                 this.updateCommunicationStats();
-            } else if (response.status === 500) {
-                console.error('❌ Server error loading communications (500), using mock data');
-                this.communications = this.getMockCommunications();
-                this.updateCommunicationStats();
+                if (!options.skipRender) this.renderCommunications();
             } else {
                 console.error('Failed to load communications:', response.status, response.statusText);
-                this.communications = this.getMockCommunications();
+                this.communications = [];
                 this.updateCommunicationStats();
+                if (!options.skipRender) this.renderCommunications();
             }
         } catch (error) {
             console.error('❌ Error loading communications:', error);
-            this.communications = this.getMockCommunications();
+            this.communications = [];
             this.updateCommunicationStats();
+            if (!options.skipRender) this.renderCommunications();
         }
     }
 
@@ -659,7 +791,10 @@ class SupportReviewsManager {
     }
 
     updateStats() {
-        // Update tab counters only (stats cards removed as requested)
+        // Update stat cards
+        this.updateStatCards();
+        
+        // Update tab counters only
         const notificationCounter = document.querySelector('[data-tab="notifications"] .tab-counter');
         const reviewCounter = document.querySelector('[data-tab="reviews"] .tab-counter');
         const grievanceCounter = document.querySelector('[data-tab="grievances"] .tab-counter');
@@ -671,11 +806,117 @@ class SupportReviewsManager {
         if (communicationCounter) communicationCounter.textContent = this.stats.communications.unread;
     }
 
+    updateStatCards() {
+        // Update Notifications Stat Card
+        const notificationsCard = document.getElementById('supportNotificationsStatCard');
+        if (notificationsCard) {
+            const valueEl = notificationsCard.querySelector('.stat-number');
+            const totalEl = notificationsCard.querySelector('#supportNotificationsTotal');
+            const changeEl = notificationsCard.querySelector('.stat-change');
+            
+            if (valueEl) valueEl.textContent = this.stats.notifications.unread;
+            if (totalEl) totalEl.textContent = `${this.stats.notifications.total} Total`;
+            
+            // Update change indicator based on priority
+            if (changeEl) {
+                if (this.stats.notifications.priority > 0) {
+                    changeEl.className = 'stat-change negative';
+                    changeEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${this.stats.notifications.priority} High Priority</span>`;
+                } else {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-inbox"></i> <span>${this.stats.notifications.total} Total</span>`;
+                }
+            }
+        }
+
+        // Update Reviews Stat Card
+        const reviewsCard = document.getElementById('supportReviewsStatCard');
+        if (reviewsCard) {
+            const valueEl = reviewsCard.querySelector('.stat-number');
+            const totalEl = reviewsCard.querySelector('#supportReviewsTotal');
+            const changeEl = reviewsCard.querySelector('.stat-change');
+            
+            // Display average rating as the main value
+            const avgRating = this.stats.reviews.average.toFixed(1);
+            if (valueEl) valueEl.textContent = avgRating;
+            
+            // Display reviewer count in the total
+            if (totalEl) totalEl.textContent = `${this.stats.reviews.total} Reviewers`;
+            
+            // Update change indicator based on rating quality
+            if (changeEl) {
+                const rating = parseFloat(avgRating);
+                if (rating >= 4.0) {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-star"></i> <span>Excellent Rating</span>`;
+                } else if (rating >= 3.0) {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-star-half-alt"></i> <span>Good Rating</span>`;
+                } else if (rating > 0) {
+                    changeEl.className = 'stat-change negative';
+                    changeEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>Needs Attention</span>`;
+                } else {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-users"></i> <span>No Reviews Yet</span>`;
+                }
+            }
+        }
+
+        // Update Grievances Stat Card
+        const grievancesCard = document.getElementById('supportGrievancesStatCard');
+        if (grievancesCard) {
+            const valueEl = grievancesCard.querySelector('.stat-number');
+            const totalEl = grievancesCard.querySelector('#supportGrievancesTotal');
+            const changeEl = grievancesCard.querySelector('.stat-change');
+            
+            if (valueEl) valueEl.textContent = this.stats.grievances.open;
+            if (totalEl) totalEl.textContent = `${this.stats.grievances.total} Total`;
+            
+            // Update change indicator based on urgent grievances
+            if (changeEl) {
+                if (this.stats.grievances.urgent > 0) {
+                    changeEl.className = 'stat-change negative';
+                    changeEl.innerHTML = `<i class="fas fa-fire"></i> <span>${this.stats.grievances.urgent} Urgent</span>`;
+                } else {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-check-circle"></i> <span>${this.stats.grievances.resolved} Resolved</span>`;
+                }
+            }
+        }
+
+        // Update Chats Stat Card
+        const chatsCard = document.getElementById('supportChatsStatCard');
+        if (chatsCard) {
+            const valueEl = chatsCard.querySelector('.stat-number');
+            const totalEl = chatsCard.querySelector('#supportChatsTotal');
+            const changeEl = chatsCard.querySelector('.stat-change');
+            
+            if (valueEl) valueEl.textContent = this.stats.communications.unread;
+            if (totalEl) totalEl.textContent = `${this.stats.communications.total} Total`;
+            
+            // Update change indicator with active chats
+            if (changeEl) {
+                if (this.stats.communications.unread > 0) {
+                    changeEl.className = 'stat-change negative';
+                    changeEl.innerHTML = `<i class="fas fa-reply"></i> <span>${this.stats.communications.unread} Need Reply</span>`;
+                } else {
+                    changeEl.className = 'stat-change positive';
+                    changeEl.innerHTML = `<i class="fas fa-check"></i> <span>All Replied</span>`;
+                }
+            }
+        }
+
+        console.log('📊 Stat cards updated:', this.stats);
+    }
+
     updateNotificationStats() {
         this.stats.notifications.total = this.notifications.length;
         this.stats.notifications.unread = this.notifications.filter(n => !n.read).length;
         this.stats.notifications.system = this.notifications.filter(n => n.type === 'system').length;
         this.stats.notifications.priority = this.notifications.filter(n => n.priority === 'high' || n.priority === 'urgent').length;
+        
+        // Update stat card immediately
+        this.updateStatCards();
     }
 
     updateReviewStats() {
@@ -686,6 +927,9 @@ class SupportReviewsManager {
         this.stats.reviews.pending = this.reviews.filter(r => !r.adminReply).length;
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         this.stats.reviews.recent = this.reviews.filter(r => new Date(r.createdAt) > weekAgo).length;
+        
+        // Update stat card immediately
+        this.updateStatCards();
     }
 
     updateGrievanceStats() {
@@ -693,6 +937,9 @@ class SupportReviewsManager {
         this.stats.grievances.open = this.grievances.filter(g => g.status === 'open' || g.status === 'in-progress').length;
         this.stats.grievances.resolved = this.grievances.filter(g => g.status === 'resolved').length;
         this.stats.grievances.urgent = this.grievances.filter(g => g.priority === 'urgent').length;
+        
+        // Update stat card immediately
+        this.updateStatCards();
     }
 
     updateCommunicationStats() {
@@ -700,6 +947,9 @@ class SupportReviewsManager {
         this.stats.communications.unread = this.communications.filter(c => c.unreadCount > 0).length;
         this.stats.communications.active = this.communications.filter(c => c.status === 'active').length;
         this.stats.communications.responseTime = 2; // Mock average response time
+        
+        // Update stat card immediately
+        this.updateStatCards();
     }
 
     renderNotifications() {
@@ -712,23 +962,28 @@ class SupportReviewsManager {
         }
 
         container.innerHTML = this.notifications.map(notification => `
-            <div class="notification-item ${notification.read ? '' : 'unread'}" data-notification-id="${notification._id || notification.id}">
+            <div class="notification-item ${notification.read ? '' : 'unread'}" 
+                 data-notification-id="${notification._id || notification.id}"
+                 data-type="${notification.type}"
+                 onclick="window.supportManager.openNotificationDetailsModal('${notification._id || notification.id}')"
+                 style="cursor: pointer;">
                 <div class="notification-header">
                     <div class="notification-title-section">
-                        <div class="notification-icon">
-                            <i class="fas ${this.getNotificationIcon(notification.type, notification.priority)}"></i>
-                        </div>
-                        <div class="notification-title-content">
-                            <h4 class="notification-title">
-                                ${notification.title}
-                                ${notification.metadata?.ticketId ? `<span class="ticket-id">#${notification.metadata.ticketId}</span>` : ''}
-                            </h4>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="notification-icon">
+                                <i class="fas ${this.getNotificationIcon(notification.type, notification.priority)}"></i>
+                            </div>
+                            <div class="notification-title-content">
+                                <h4 class="notification-title">
+                                    ${notification.title}
+                                    ${notification.metadata?.ticketId ? `<span class="ticket-id">#${notification.metadata.ticketId}</span>` : ''}
+                                </h4>
+                            </div>
                         </div>
                     </div>
                     <div class="notification-meta">
-                        ${notification.type !== 'grievance-reply' ? `<span class="notification-badge ${notification.type} ${notification.priority}">${notification.type}</span>` : ''}
                         <span class="notification-priority priority-${notification.priority}">${notification.priority}</span>
-                        <span class="notification-time">${this.formatDate(notification.createdAt)}</span>
+                        <span class="notification-time"><i class="fas fa-clock"></i> ${this.formatDate(notification.createdAt)}</span>
                     </div>
                 </div>
                 ${notification.metadata?.adminMessage ? `
@@ -736,19 +991,16 @@ class SupportReviewsManager {
                 ` : `
                     <p class="notification-message">${notification.message}</p>
                 `}
-                <div class="notification-actions">
-                    ${!notification.read ? `<button class="notification-action primary" data-action="mark-read">
+                <div class="notification-actions" onclick="event.stopPropagation();">
+                    ${!notification.read ? `<button class="notification-action primary" data-action="mark-read" onclick="event.stopPropagation(); window.supportManager.handleNotificationAction('mark-read', '${notification._id || notification.id}')">
                         <i class="fas fa-check"></i> Mark as Read
                     </button>` : ''}
-                    ${this.canReplyToNotification(notification) ? `<button class="notification-action reply" data-action="reply">
+                    ${this.canReplyToNotification(notification) ? `<button class="notification-action reply" data-action="reply" onclick="event.stopPropagation(); window.supportManager.openNotificationReplyModal('${notification._id || notification.id}')">
                         <i class="fas fa-reply"></i> Reply
                     </button>` : ''}
-                    ${notification.priority === 'high' || notification.priority === 'urgent' ? `<button class="notification-action urgent" data-action="respond">
+                    ${notification.priority === 'high' || notification.priority === 'urgent' ? `<button class="notification-action urgent" data-action="respond" onclick="event.stopPropagation(); window.supportManager.openNotificationResponseModal('${notification._id || notification.id}')">
                         <i class="fas fa-exclamation-triangle"></i> Respond
                     </button>` : ''}
-                    <button class="notification-action view" data-action="view-details">
-                        <i class="fas fa-eye"></i> View Details
-                    </button>
                 </div>
             </div>
         `).join('');
@@ -797,62 +1049,95 @@ class SupportReviewsManager {
     }
 
     renderGrievances() {
+        console.log('🎨 Rendering grievances, count:', this.grievances.length);
         const container = document.querySelector('#grievancesSection .grievances-list');
-        if (!container) return;
-
-        if (this.grievances.length === 0) {
-            container.innerHTML = this.getEmptyState('grievances', 'No grievances', 'Member grievances will be listed here');
+        if (!container) {
+            console.error('❌ Grievances container not found!');
             return;
         }
 
-        container.innerHTML = this.grievances.map(grievance => `
+        if (this.grievances.length === 0) {
+            console.log('ℹ️ No grievances to display, showing empty state');
+            container.innerHTML = this.getEmptyState('grievances', 'No grievances yet', 'Member grievances and complaints will appear here');
+            return;
+        }
+
+        console.log('✅ Rendering', this.grievances.length, 'grievances');
+        container.innerHTML = this.grievances.map(grievance => {
+            const ticketId = grievance.ticketId || grievance._id || grievance.id;
+            const categoryIcons = {
+                equipment: 'fa-dumbbell',
+                cleanliness: 'fa-broom',
+                staff: 'fa-user-tie',
+                safety: 'fa-shield-alt',
+                billing: 'fa-credit-card',
+                facilities: 'fa-building',
+                timing: 'fa-clock',
+                complaint: 'fa-exclamation-circle',
+                general: 'fa-comment',
+                other: 'fa-question-circle'
+            };
+            
+            return `
             <div class="grievance-item ${grievance.status === 'escalated' ? 'escalated' : ''}" data-grievance-id="${grievance._id || grievance.id}">
                 <div class="grievance-header">
-                    <h4 class="grievance-title">${grievance.title}</h4>
+                    <div class="grievance-title-section">
+                        <div class="category-icon ${grievance.category || 'other'}">
+                            <i class="fas ${categoryIcons[grievance.category] || categoryIcons.other}"></i>
+                        </div>
+                        <div>
+                            <h4 class="grievance-title">${grievance.subject || grievance.title || 'No subject'}</h4>
+                            <span class="ticket-id">Ticket: ${ticketId}</span>
+                        </div>
+                    </div>
                     <div class="grievance-meta">
-                        <span class="grievance-priority ${grievance.priority}">${grievance.priority}</span>
-                        <span class="grievance-status ${grievance.status}">${grievance.status}</span>
-                        ${grievance.metadata?.escalationLevel ? `<span class="escalation-badge">${grievance.metadata.escalationLevel}</span>` : ''}
+                        <span class="priority-badge ${grievance.priority || 'normal'}">${grievance.priority || 'normal'}</span>
+                        <span class="grievance-status ${grievance.status || 'open'}">${grievance.status || 'open'}</span>
                     </div>
                 </div>
-                <p class="grievance-description">${grievance.description}</p>
-                ${grievance.escalationReason ? `
-                    <div class="escalation-info">
-                        <strong>Escalation Reason:</strong> ${grievance.escalationReason}
+                
+                <p class="grievance-description">${grievance.description || 'No description'}</p>
+                
+                ${grievance.responses && grievance.responses.length > 0 ? `
+                    <div class="grievance-responses">
+                        <strong><i class="fas fa-reply"></i> ${grievance.responses.length} Response(s)</strong>
                     </div>
                 ` : ''}
+                
                 <div class="grievance-footer">
                     <div class="grievance-details">
-                        <span>By ${grievance.member?.name || 'Anonymous'}</span>
-                        <span>${this.formatDate(grievance.createdAt)}</span>
-                        ${grievance.escalatedAt ? `<span>Escalated: ${this.formatDate(grievance.escalatedAt)}</span>` : ''}
+                        <span><i class="fas fa-user"></i> ${grievance.userName || grievance.member?.name || 'Anonymous'}</span>
+                        <span><i class="fas fa-calendar"></i> ${this.formatDate(grievance.createdAt)}</span>
+                        ${grievance.userPhone || grievance.contactNumber ? `<span><i class="fas fa-phone"></i> ${grievance.userPhone || grievance.contactNumber}</span>` : ''}
+                        ${grievance.userEmail || grievance.email ? `<span><i class="fas fa-envelope"></i> ${grievance.userEmail || grievance.email}</span>` : ''}
                     </div>
+                    
                     <div class="grievance-actions">
-                        <button class="grievance-action primary" data-action="view-details">
-                            <i class="fas fa-eye"></i> View Details
+                        <button class="grievance-quick-reply-btn" data-grievance-id="${grievance._id || grievance.id}" title="Quick Reply">
+                            <i class="fas fa-bolt"></i> Quick Reply
                         </button>
-                        ${grievance.status !== 'escalated' && grievance.status !== 'resolved' && grievance.status !== 'closed' ? `
-                            <button class="grievance-action escalate" data-action="escalate">
-                                <i class="fas fa-arrow-up"></i> Escalate to Admin
-                            </button>
-                        ` : ''}
-                        ${grievance.status === 'open' ? `
-                            <button class="grievance-action update" data-action="update-status" data-status="in-progress">
-                                <i class="fas fa-play"></i> Start Processing
-                            </button>
-                        ` : ''}
-                        ${(grievance.status === 'in-progress' || grievance.status === 'open') ? `
-                            <button class="grievance-action resolve" data-action="update-status" data-status="resolved">
-                                <i class="fas fa-check"></i> Mark Resolved
+                        <button class="grievance-details-btn" data-grievance-id="${grievance._id || grievance.id}" title="View Details">
+                            <i class="fas fa-eye"></i> Details
+                        </button>
+                        <button class="grievance-chat-btn" data-grievance-id="${grievance._id || grievance.id}" title="Start Chat">
+                            <i class="fas fa-comments"></i> Chat
+                        </button>
+                        ${(grievance.status === 'open' || grievance.status === 'in-progress') ? `
+                            <button class="grievance-resolve-btn" data-grievance-id="${grievance._id || grievance.id}" title="Mark as Resolved">
+                                <i class="fas fa-check"></i> Resolve
                             </button>
                         ` : ''}
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
-        // Bind escalation action handlers
-        container.addEventListener('click', this.handleGrievanceActions.bind(this));
+        // Update grievance handler's data
+        if (window.grievanceHandler) {
+            window.grievanceHandler.updateGrievances(this.grievances);
+            window.grievanceHandler.setGymId(this.currentGymId);
+        }
     }
 
     async handleGrievanceActions(event) {
@@ -969,50 +1254,840 @@ class SupportReviewsManager {
         const container = document.querySelector('#communicationsSection .communications-layout');
         if (!container) return;
 
-        if (this.communications.length === 0) {
+        // Filter for chat messages only
+        const chatMessages = this.communications.filter(comm => 
+            comm.category === 'chat' || comm.metadata?.isChat
+        );
+
+        if (chatMessages.length === 0) {
             container.innerHTML = `
-                <div class="conversations-sidebar">
-                    <div class="conversations-list">
-                        ${this.getEmptyState('communications', 'No conversations', 'Start communicating with members')}
-                    </div>
-                </div>
-                <div class="chat-main">
-                    <div class="chat-container">
-                        <div class="chat-placeholder">
-                            <i class="fas fa-comments"></i>
-                            <h3>Select a conversation</h3>
-                            <p>Choose a conversation from the sidebar to view messages</p>
-                        </div>
+                <div class="chat-empty-state">
+                    <div class="empty-state-content">
+                        <i class="fas fa-comments"></i>
+                        <h3>No Chat Messages Yet</h3>
+                        <p>User chat messages will appear here when they contact your gym</p>
                     </div>
                 </div>
             `;
             return;
         }
 
+        // Sort by most recent message
+        chatMessages.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
         container.innerHTML = `
-            <div class="conversations-sidebar">
+            <div class="chat-conversations-sidebar">
+                <div class="conversations-header">
+                    <h3><i class="fas fa-inbox"></i> Conversations</h3>
+                    <span class="conversation-count">${chatMessages.length}</span>
+                </div>
                 <div class="conversations-list">
-                    ${this.communications.map(comm => `
-                        <div class="conversation-item ${comm.unreadCount > 0 ? 'unread' : ''}" data-conversation-id="${comm._id}">
-                            <div class="conversation-header">
-                                <span class="conversation-name">${comm.member?.name || 'Unknown Member'}</span>
-                                <span class="conversation-time">${this.formatTime(comm.lastMessage?.createdAt)}</span>
+                    ${chatMessages.map(comm => {
+                        const lastMessage = comm.messages && comm.messages.length > 0 
+                            ? comm.messages[comm.messages.length - 1] 
+                            : null;
+                        const userAvatar = comm.metadata?.userProfileImage || '/uploads/profile-pics/default.png';
+                        const userName = comm.userName || 'Unknown User';
+                        const unreadCount = comm.messages?.filter(m => m.sender === 'user' && !m.read).length || 0;
+                        
+                        return `
+                            <div class="conversation-card ${unreadCount > 0 ? 'has-unread' : ''}" 
+                                 data-conversation-id="${comm._id}"
+                                 onclick="supportManager.openChatConversation('${comm._id}')">
+                                <div class="conversation-avatar">
+                                    <img src="${this.BASE_URL}${userAvatar}" 
+                                         alt="${userName}"
+                                         onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'">
+                                    ${unreadCount > 0 ? `<span class="avatar-badge">${unreadCount}</span>` : ''}
+                                </div>
+                                <div class="conversation-details">
+                                    <div class="conversation-top">
+                                        <h4 class="conversation-name">${userName}</h4>
+                                        <span class="conversation-time">${this.formatTime(comm.updatedAt || comm.createdAt)}</span>
+                                    </div>
+                                    <div class="conversation-bottom">
+                                        <p class="conversation-preview">${lastMessage ? lastMessage.message.substring(0, 50) + (lastMessage.message.length > 50 ? '...' : '') : 'Start conversation'}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="conversation-preview">${comm.lastMessage?.content || 'No messages yet'}</div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
-            <div class="chat-main">
-                <div class="chat-container">
-                    <div class="chat-placeholder">
-                        <i class="fas fa-comments"></i>
-                        <h3>Select a conversation</h3>
-                        <p>Choose a conversation from the sidebar to view messages</p>
-                    </div>
+            <div class="chat-conversation-area">
+                <div class="chat-placeholder-content">
+                    <i class="fas fa-comment-dots"></i>
+                    <h3>Select a Conversation</h3>
+                    <p>Choose a conversation from the sidebar to view and reply to messages</p>
                 </div>
             </div>
         `;
+
+        // Add enhanced CSS for new design
+        this.addEnhancedChatStyles();
+    }
+
+    // Open chat conversation and display messages with reply interface
+    async openChatConversation(conversationId) {
+        
+        // Set active chat ID for auto-refresh
+        this.activeChatId = conversationId;
+        
+        const conversation = this.communications.find(c => c._id === conversationId);
+        if (!conversation) {
+            console.error('❌ Conversation not found');
+            return;
+        }
+
+        const chatContainer = document.querySelector('.chat-conversation-area');
+        if (!chatContainer) return;
+
+        // Highlight selected conversation
+        document.querySelectorAll('.conversation-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`[data-conversation-id="${conversationId}"]`)?.classList.add('active');
+
+    const userAvatar = conversation.metadata?.userProfileImage || '/uploads/profile-pics/default.png';
+        const userName = conversation.userName || 'Unknown User';
+        const userEmail = conversation.userEmail || '';
+    // Resolve gym admin logo URL
+    const gymLogoUrl = this.getGymLogoUrl();
+
+        // Render chat interface
+        chatContainer.innerHTML = `
+            <div class="chat-header">
+                <div class="chat-header-user">
+                    <img src="${this.BASE_URL}${userAvatar}" 
+                         alt="${userName}"
+                         class="chat-user-avatar"
+                         onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'">
+                    <div class="chat-user-info">
+                        <h3>${userName}</h3>
+                        <p>${userEmail}</p>
+                    </div>
+                </div>
+                <button class="chat-close-btn" onclick="supportManager.closeChatConversation()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                ${conversation.messages && conversation.messages.length > 0 
+                    ? conversation.messages.map(msg => `
+                        <div class="chat-message ${msg.sender === 'user' ? 'message-user' : 'message-admin'}">
+                            <div class="message-avatar">
+                          <img src="${msg.sender === 'user' ? (this.BASE_URL + (userAvatar.startsWith('/') ? userAvatar : '/' + userAvatar)) : gymLogoUrl}" 
+                              alt="${msg.senderName || msg.sender}"
+                              onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'">
+                            </div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-sender">${msg.senderName || (msg.sender === 'user' ? userName : 'You')}</span>
+                                    <span class="message-time">${new Date(msg.timestamp).toLocaleString('en-IN', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit',
+                                        day: 'numeric',
+                                        month: 'short'
+                                    })}</span>
+                                </div>
+                                <div class="message-text">${msg.message}</div>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="no-messages">No messages yet</div>'
+                }
+            </div>
+            
+            <div class="chat-input-area">
+                <button class="chat-quick-msg-btn" onclick="supportManager.openQuickMessageModal('${conversationId}')" title="Quick Messages">
+                    <i class="fas fa-bolt"></i>
+                </button>
+                <textarea 
+                    id="chatReplyInput" 
+                    placeholder="Type your message here..."
+                    rows="3"
+                ></textarea>
+                <button class="chat-send-btn" onclick="supportManager.sendChatReply('${conversationId}')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        `;
+
+        // Scroll to bottom of messages
+        const messagesContainer = document.getElementById('chatMessages');
+        if (messagesContainer) {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+
+        // Mark messages as read
+        await this.markChatMessagesAsRead(conversationId);
+    }
+
+    // Update only the active chat's messages without re-rendering the container
+    refreshActiveChatMessages(conversationId, options = {}) {
+        const conversation = this.communications.find(c => (c._id || c.id) === conversationId);
+        const chatMessagesEl = document.getElementById('chatMessages');
+        const replyInput = document.getElementById('chatReplyInput');
+        if (!conversation || !chatMessagesEl) return;
+
+        const userAvatar = conversation.metadata?.userProfileImage || '/uploads/profile-pics/default.png';
+        const userName = conversation.userName || 'Unknown User';
+        const gymLogoUrl = this.getGymLogoUrl();
+
+        const preserveScrollTop = options.preserveScrollTop;
+        const prevScrollTop = options.prevScrollTop || 0;
+
+        const wasAtBottom = chatMessagesEl.scrollTop + chatMessagesEl.clientHeight >= chatMessagesEl.scrollHeight - 10;
+
+        chatMessagesEl.innerHTML = (conversation.messages && conversation.messages.length > 0)
+            ? conversation.messages.map(msg => `
+                <div class="chat-message ${msg.sender === 'user' ? 'message-user' : 'message-admin'}">
+                    <div class="message-avatar">
+                    <img src="${msg.sender === 'user' ? (this.BASE_URL + (userAvatar.startsWith('/') ? userAvatar : '/' + userAvatar)) : gymLogoUrl}" 
+                        alt="${msg.senderName || msg.sender}"
+                        onerror="this.src='${this.BASE_URL}/uploads/profile-pics/default.png'">
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-sender">${msg.senderName || (msg.sender === 'user' ? userName : 'You')}</span>
+                            <span class="message-time">${new Date(msg.timestamp).toLocaleString('en-IN', { 
+                                hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short'
+                            })}</span>
+                        </div>
+                        <div class="message-text">${msg.message}</div>
+                    </div>
+                </div>
+            `).join('') : '<div class="no-messages">No messages yet</div>';
+
+        // Restore scroll position intelligently
+        if (preserveScrollTop) {
+            chatMessagesEl.scrollTop = prevScrollTop;
+        } else if (wasAtBottom) {
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        }
+
+        // Preserve focus in reply input if it existed
+        if (replyInput && document.activeElement !== replyInput) {
+            // do nothing; keep current focus
+        }
+    }
+
+    closeChatConversation() {
+        // Clear active chat ID
+        this.activeChatId = null;
+        
+        const chatContainer = document.querySelector('.chat-conversation-area');
+        if (chatContainer) {
+            chatContainer.innerHTML = `
+                <div class="chat-placeholder-content">
+                    <i class="fas fa-comment-dots"></i>
+                    <h3>Select a Conversation</h3>
+                    <p>Choose a conversation from the sidebar to view and reply to messages</p>
+                </div>
+            `;
+        }
+
+        // Remove active state from conversations
+        document.querySelectorAll('.conversation-card').forEach(card => {
+            card.classList.remove('active');
+        });
+    }
+
+    async sendChatReply(conversationId) {
+        const replyInput = document.getElementById('chatReplyInput');
+        if (!replyInput) return;
+
+        const message = replyInput.value.trim();
+        if (!message) {
+            alert('Please enter a message');
+            return;
+        }
+
+        try {
+            const token = this.getAuthToken();
+            
+            // Send reply via new gym chat API
+            const response = await fetch(`${this.BASE_URL}/api/chat/gym/reply/${conversationId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+
+            if (response.ok) {
+                replyInput.value = '';
+                
+                // Reload communications to show new message
+                await this.loadCommunications();
+                await this.openChatConversation(conversationId);
+                
+                // Show success message
+                if (window.unifiedNotificationSystem) {
+                    window.unifiedNotificationSystem.showToast('Reply sent successfully', 'success');
+                }
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to send reply');
+            }
+        } catch (error) {
+            console.error('❌ Error sending reply:', error);
+            if (window.unifiedNotificationSystem) {
+                window.unifiedNotificationSystem.showToast(error.message || 'Failed to send reply', 'error');
+            } else {
+                alert(error.message || 'Failed to send reply');
+            }
+        }
+    }
+
+    async markChatMessagesAsRead(conversationId) {
+        // Mark all user messages as read in this conversation
+        const conversation = this.communications.find(c => c._id === conversationId);
+        if (!conversation) return;
+
+        conversation.messages?.forEach(msg => {
+            if (msg.sender === 'user') {
+                msg.read = true;
+            }
+        });
+
+        // Update stats
+        this.updateCommunicationStats();
+        this.updateStats();
+    }
+
+    addChatStyles() {
+        // Legacy method - now calls addEnhancedChatStyles
+        this.addEnhancedChatStyles();
+    }
+
+    addEnhancedChatStyles() {
+        // Add custom styles for chat interface if not already added
+        if (document.getElementById('enhancedChatInterfaceStyles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'enhancedChatInterfaceStyles';
+        style.textContent = `
+            /* Communications Layout */
+            .communications-layout {
+                display: grid;
+                grid-template-columns: 380px 1fr;
+                height: calc(100vh - 250px);
+                min-height: 600px;
+                background: #fff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            }
+
+            /* Empty State */
+            .chat-empty-state {
+                grid-column: 1 / -1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+            }
+
+            .empty-state-content {
+                text-align: center;
+                color: #64748b;
+            }
+
+            .empty-state-content i {
+                font-size: 64px;
+                color: #cbd5e1;
+                margin-bottom: 20px;
+            }
+
+            .empty-state-content h3 {
+                font-size: 20px;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: #475569;
+            }
+
+            .empty-state-content p {
+                font-size: 14px;
+                color: #94a3b8;
+            }
+
+            /* Conversations Sidebar */
+            .chat-conversations-sidebar {
+                background: #f8fafc;
+                border-right: 1px solid #e2e8f0;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .conversations-header {
+                padding: 20px;
+                border-bottom: 1px solid #e2e8f0;
+                background: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .conversations-header h3 {
+                font-size: 18px;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin: 0;
+            }
+
+            .conversations-header i {
+                color: #3b82f6;
+            }
+
+            .conversation-count {
+                background: #3b82f6;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .conversations-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+            }
+
+            /* Conversation Card */
+            .conversation-card {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px;
+                background: white;
+                border-radius: 10px;
+                margin-bottom: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                border: 2px solid transparent;
+            }
+
+            .conversation-card:hover {
+                background: #f1f5f9;
+                transform: translateX(4px);
+            }
+
+            .conversation-card.active {
+                background: #eff6ff;
+                border-color: #3b82f6;
+            }
+
+            .conversation-card.has-unread {
+                background: #fef3c7;
+            }
+
+            .conversation-card.has-unread:hover {
+                background: #fef08a;
+            }
+
+            .conversation-avatar {
+                position: relative;
+                flex-shrink: 0;
+            }
+
+            .conversation-avatar img {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #e2e8f0;
+            }
+
+            .avatar-badge {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                background: #ef4444;
+                color: white;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 18px;
+                text-align: center;
+            }
+
+            .conversation-details {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .conversation-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+            }
+
+            .conversation-name {
+                font-size: 15px;
+                font-weight: 600;
+                color: #1e293b;
+                margin: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .conversation-time {
+                font-size: 12px;
+                color: #94a3b8;
+                flex-shrink: 0;
+                margin-left: 8px;
+            }
+
+            .conversation-bottom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .conversation-preview {
+                font-size: 13px;
+                color: #64748b;
+                margin: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex: 1;
+            }
+
+            .unread-indicator {
+                background: #ef4444;
+                color: white;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 2px 8px;
+                border-radius: 10px;
+                flex-shrink: 0;
+                margin-left: 8px;
+            }
+
+            /* Chat Conversation Area */
+            .chat-conversation-area {
+                display: flex;
+                flex-direction: column;
+                background: white;
+                overflow: hidden;
+            }
+
+            .chat-placeholder-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #94a3b8;
+            }
+
+            .chat-placeholder-content i {
+                font-size: 64px;
+                color: #cbd5e1;
+                margin-bottom: 20px;
+            }
+
+            .chat-placeholder-content h3 {
+                font-size: 20px;
+                font-weight: 600;
+                color: #475569;
+                margin-bottom: 8px;
+            }
+
+            .chat-placeholder-content p {
+                font-size: 14px;
+                color: #94a3b8;
+            }
+
+            /* Chat Header */
+            .chat-header {
+                padding: 20px;
+                border-bottom: 1px solid #e2e8f0;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .chat-header-user {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+
+            .chat-user-avatar {
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #e2e8f0;
+            }
+
+            .chat-user-info h3 {
+                font-size: 17px;
+                font-weight: 600;
+                color: #1e293b;
+                margin: 0 0 4px 0;
+            }
+
+            .chat-user-info p {
+                font-size: 13px;
+                color: #64748b;
+                margin: 0;
+            }
+
+            .chat-close-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                border: none;
+                background: #f1f5f9;
+                color: #64748b;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
+
+            .chat-close-btn:hover {
+                background: #fee2e2;
+                color: #ef4444;
+            }
+
+            /* Chat Messages */
+            .chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 24px;
+                background: #f8fafc;
+            }
+
+            .chat-message {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 20px;
+                animation: messageSlideIn 0.3s ease;
+            }
+
+            @keyframes messageSlideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .message-admin {
+                flex-direction: row-reverse;
+            }
+
+            .message-avatar {
+                flex-shrink: 0;
+            }
+
+            .message-avatar img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid white;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+            .message-content {
+                max-width: 65%;
+            }
+
+            .message-admin .message-content {
+                text-align: right;
+            }
+
+            .message-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 6px;
+                font-size: 12px;
+            }
+
+            .message-admin .message-header {
+                justify-content: flex-end;
+            }
+
+            .message-sender {
+                font-weight: 600;
+                color: #475569;
+            }
+
+            .message-time {
+                color: #94a3b8;
+            }
+
+            .message-text {
+                background: white;
+                padding: 12px 16px;
+                border-radius: 12px;
+                color: #1e293b;
+                line-height: 1.5;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                word-wrap: break-word;
+            }
+
+            .message-admin .message-text {
+                background: #3b82f6;
+                color: white;
+            }
+
+            .no-messages {
+                text-align: center;
+                color: #94a3b8;
+                padding: 40px;
+                font-size: 14px;
+            }
+
+            /* Chat Input Area */
+            .chat-input-area {
+                padding: 20px;
+                border-top: 1px solid #e2e8f0;
+                background: white;
+                display: flex;
+                gap: 12px;
+                align-items: flex-end;
+            }
+
+            #chatReplyInput {
+                flex: 1;
+                padding: 12px 16px;
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 14px;
+                font-family: inherit;
+                resize: none;
+                transition: all 0.2s;
+            }
+
+            #chatReplyInput:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            .chat-send-btn {
+                padding: 12px 24px;
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.2s;
+                height: fit-content;
+            }
+
+            .chat-send-btn:hover {
+                background: #2563eb;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+            .chat-send-btn:active {
+                transform: translateY(0);
+            }
+
+            /* Quick Message Button */
+            .chat-quick-msg-btn {
+                padding: 12px 16px;
+                background: #f59e0b;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                transition: all 0.2s;
+                height: fit-content;
+                min-width: 48px;
+            }
+
+            .chat-quick-msg-btn:hover {
+                background: #d97706;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            }
+
+            .chat-quick-msg-btn:active {
+                transform: translateY(0);
+            }
+
+            .chat-quick-msg-btn i {
+                font-size: 16px;
+            }
+
+            /* Responsive Design */
+            @media (max-width: 968px) {
+                .communications-layout {
+                    grid-template-columns: 1fr;
+                }
+
+                .chat-conversations-sidebar {
+                    display: none;
+                }
+
+                .chat-conversation-area {
+                    display: flex !important;
+                }
+            }
+
+            /* Scrollbar Styling */
+            .conversations-list::-webkit-scrollbar,
+            .chat-messages::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .conversations-list::-webkit-scrollbar-track,
+            .chat-messages::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .conversations-list::-webkit-scrollbar-thumb,
+            .chat-messages::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+
+            .conversations-list::-webkit-scrollbar-thumb:hover,
+            .chat-messages::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
 
     // Modal Functions - Enhanced with consistent styling
@@ -1224,13 +2299,11 @@ class SupportReviewsManager {
 
                 if (response.ok) {
                     this.showSuccessMessage('Notification sent to main admin successfully!');
-                    console.log('✅ Notification sent to main admin');
                 } else {
                     throw new Error('Failed to send notification to main admin');
                 }
             } else {
                 // Send to gym members/trainers (existing logic)
-                console.log('Sending notification to gym users:', notificationData);
                 this.showSuccessMessage('Notification sent successfully!');
             }
             
@@ -1267,7 +2340,6 @@ class SupportReviewsManager {
         };
 
         try {
-            console.log('📝 Creating grievance:', grievanceData);
             
             // Use integrated support system if available
             if (window.enhancedSupportIntegration) {
@@ -1292,7 +2364,6 @@ class SupportReviewsManager {
                     form.reset();
                     this.renderGrievances();
                     this.updateStats();
-                    console.log('✅ Grievance created through integrated system');
                     return { success: true, grievanceData, ticket };
                 }
             }
@@ -1312,7 +2383,6 @@ class SupportReviewsManager {
                 if (response.ok) {
                     const result = await response.json();
                     this.showSuccessMessage('Grievance raised and sent to main admin successfully!');
-                    console.log('✅ Grievance created via gym communication API:', result);
                     
                     // Add to local grievances list
                     this.grievances.unshift({
@@ -1357,7 +2427,6 @@ class SupportReviewsManager {
             if (response.ok) {
                 const ticket = await response.json();
                 this.showSuccessMessage('Grievance raised successfully!');
-                console.log('✅ Grievance created via fallback API:', ticket);
                 
                 // Add to local grievances list
                 this.grievances.unshift({
@@ -1376,7 +2445,6 @@ class SupportReviewsManager {
                 form.reset();
                 this.renderGrievances();
                 this.updateStats();
-                console.log('✅ Grievance created via API');
                 return { success: true, grievanceData, ticket };
             } else {
                 throw new Error('Failed to create grievance');
@@ -1406,7 +2474,6 @@ class SupportReviewsManager {
                     this.showSuccessMessage('Grievance escalated to main admin successfully!');
                     this.renderGrievances();
                     this.updateStats();
-                    console.log('✅ Grievance escalated successfully');
                     return true;
                 }
             }
@@ -1427,7 +2494,7 @@ class SupportReviewsManager {
             });
 
             if (response.ok) {
-                const updatedTicket = await response.json();
+                await response.json(); // data not currently used; discard to avoid unused variable
                 const grievance = this.grievances.find(g => (g._id || g.id) === grievanceId);
                 if (grievance) {
                     grievance.status = 'escalated';
@@ -1458,7 +2525,6 @@ class SupportReviewsManager {
 
         try {
             // API call would go here
-            console.log('Replying to review:', reviewId, replyData);
             
             // Mock success - update the review with reply
             const review = this.reviews.find(r => (r._id || r.id) === reviewId);
@@ -1487,35 +2553,37 @@ class SupportReviewsManager {
             if (!notification) return;
 
             switch (action) {
-                case 'mark-read':
-                    const response = await fetch(`${this.BASE_URL}/api/gym/notifications/${notificationId}/read`, {
+                case 'mark-read': {
+                    const resp = await fetch(`${this.BASE_URL}/api/gym/notifications/${notificationId}/read`, {
                         method: 'PUT',
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         }
                     });
-                    
-                    if (response.ok) {
+                    if (resp.ok) {
                         notification.read = true;
-                        console.log('✅ Notification marked as read');
                         this.showSuccessMessage('Notification marked as read');
                     } else {
                         this.showErrorMessage('Failed to mark notification as read');
                     }
                     break;
+                }
                     
-                case 'reply':
+                case 'reply': {
                     this.openNotificationReplyModal(notificationId);
                     return; // Don't re-render yet
+                }
                     
-                case 'respond':
+                case 'respond': {
                     this.openNotificationResponseModal(notificationId);
                     return; // Don't re-render yet
+                }
                     
-                case 'view-details':
+                case 'view-details': {
                     this.openNotificationDetailsModal(notificationId);
                     return; // Don't re-render yet
+                }
             }
 
             this.renderNotifications();
@@ -1527,49 +2595,7 @@ class SupportReviewsManager {
         }
     }
 
-    async handleReplySubmission(form) {
-        const formData = new FormData(form);
-        const reviewId = form.dataset.reviewId;
-        const replyData = {
-            message: formData.get('message'),
-            isPublic: formData.get('isPublic') === 'on'
-        };
-
-        try {
-            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
-            const response = await fetch(`${this.BASE_URL}/api/reviews/${reviewId}/reply`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(replyData)
-            });
-
-            if (response.ok) {
-                // Update the review with reply
-                const review = this.reviews.find(r => (r._id || r.id) === reviewId);
-                if (review) {
-                    review.adminReply = replyData.message;
-                }
-                
-                this.showSuccessMessage('Reply sent successfully!');
-                this.closeModal();
-                form.reset();
-                
-                // Refresh reviews
-                this.renderReviews();
-                this.updateStats();
-                console.log('✅ Review reply submitted successfully');
-            } else {
-                throw new Error('Failed to submit reply');
-            }
-            
-        } catch (error) {
-            console.error('Error sending reply:', error);
-            this.showErrorMessage('Failed to send reply. Please try again.');
-        }
-    }
+    // Removed duplicate handleReplySubmission implementation (merged earlier version)
 
     async updateGrievanceStatus(grievanceId, newStatus) {
         try {
@@ -1577,7 +2603,6 @@ class SupportReviewsManager {
             if (grievance) {
                 grievance.status = newStatus;
                 // API call would go here for grievance status update
-                console.log('Updated grievance status:', grievanceId, newStatus);
                 
                 this.showSuccessMessage(`Grievance ${newStatus} successfully!`);
                 this.closeModal();
@@ -1592,12 +2617,10 @@ class SupportReviewsManager {
     // Search and Filter
     handleSearch(query, tabName) {
         // Implement search functionality based on current tab
-        console.log(`Searching ${tabName} for:`, query);
     }
 
     handleFilter(filterValue, tabName) {
         // Implement filter functionality based on current tab
-        console.log(`Filtering ${tabName} by:`, filterValue);
     }
 
     async handleNotificationReplySubmission(form) {
@@ -1635,7 +2658,6 @@ class SupportReviewsManager {
                     this.showSuccessMessage('Reply sent successfully!');
                     // Mark notification as read
                     notification.read = true;
-                    console.log('✅ Notification reply submitted successfully');
                 } else {
                     throw new Error('Failed to submit reply');
                 }
@@ -1668,7 +2690,6 @@ class SupportReviewsManager {
                     const result = await adminReplyResponse.json();
                     this.showSuccessMessage('Reply sent to main admin successfully!');
                     notification.read = true;
-                    console.log('✅ Reply sent to main admin notification system:', result);
                 } else {
                     const error = await adminReplyResponse.json();
                     throw new Error(error.message || 'Failed to send reply to main admin');
@@ -1688,7 +2709,10 @@ class SupportReviewsManager {
 
     openNotificationDetailsModal(notificationId) {
         const notification = this.notifications.find(n => (n._id || n.id) === notificationId);
-        if (!notification) return;
+        if (!notification) {
+            console.warn('Notification not found:', notificationId);
+            return;
+        }
 
         const modal = document.getElementById('notificationDetailsModal') || this.createNotificationDetailsModal();
         const modalHeader = modal.querySelector('.support-modal-header h3');
@@ -1699,53 +2723,106 @@ class SupportReviewsManager {
         }
         
         if (modalBody) {
+            const hasMetadata = notification.metadata && Object.keys(notification.metadata).length > 0;
+            const hasTicketId = notification.metadata?.ticketId;
+            const hasAdminMessage = notification.metadata?.adminMessage;
+            
             modalBody.innerHTML = `
-                <div class="notification-details">
-                    <div class="detail-grid">
-                        <div class="detail-row">
-                            <label>Type:</label>
-                            <span class="notification-badge ${notification.type}">${notification.type}</span>
+                <div class="notification-details" style="padding: 20px;">
+                    <div class="detail-grid" style="display: grid; grid-template-columns: 140px 1fr; gap: 16px; margin-bottom: 24px;">
+                        <div class="detail-row" style="display: contents;">
+                            <label style="font-weight: 600; color: #64748b;">Type:</label>
+                            <span class="notification-badge ${notification.type}" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">${notification.type}</span>
                         </div>
-                        <div class="detail-row">
-                            <label>Priority:</label>
-                            <span class="notification-priority priority-${notification.priority}">${notification.priority}</span>
+                        <div class="detail-row" style="display: contents;">
+                            <label style="font-weight: 600; color: #64748b;">Priority:</label>
+                            <span class="notification-priority priority-${notification.priority}" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; text-transform: uppercase;">${notification.priority}</span>
                         </div>
-                        <div class="detail-row">
-                            <label>Status:</label>
-                            <span class="notification-status ${notification.read ? 'read' : 'unread'}">${notification.read ? 'Read' : 'Unread'}</span>
+                        <div class="detail-row" style="display: contents;">
+                            <label style="font-weight: 600; color: #64748b;">Status:</label>
+                            <span class="notification-status ${notification.read ? 'read' : 'unread'}" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 13px;">${notification.read ? '✓ Read' : '● Unread'}</span>
                         </div>
-                        <div class="detail-row">
-                            <label>Created:</label>
-                            <span>${this.formatDate(notification.createdAt)}</span>
+                        <div class="detail-row" style="display: contents;">
+                            <label style="font-weight: 600; color: #64748b;">Created:</label>
+                            <span style="color: #334155;">${this.formatDate(notification.createdAt)}</span>
                         </div>
-                        ${notification.metadata?.ticketId ? `
-                            <div class="detail-row">
-                                <label>Ticket ID:</label>
-                                <span>${notification.metadata.ticketId}</span>
-                            </div>
+                        ${hasTicketId ? `
+                        <div class="detail-row" style="display: contents;">
+                            <label style="font-weight: 600; color: #64748b;">Ticket ID:</label>
+                            <span style="color: var(--primary); font-weight: 500;">#${notification.metadata.ticketId}</span>
+                        </div>
                         ` : ''}
                     </div>
-                    <div class="detail-section">
-                        <label>Message:</label>
-                        <p class="notification-full-message">${notification.message}</p>
+                    
+                    <div class="notification-message-section" style="margin-bottom: 24px;">
+                        <h4 style="color: #1e293b; margin-bottom: 12px; font-size: 16px;">Message</h4>
+                        <div class="notification-message-content" style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid var(--primary); color: #334155; line-height: 1.6;">
+                            ${notification.message}
+                        </div>
                     </div>
-                    ${notification.metadata?.adminMessage ? `
-                        <div class="detail-section">
-                            <label>Admin Message:</label>
-                            <p class="admin-message-full">${notification.metadata.adminMessage}</p>
+                    
+                    ${hasAdminMessage ? `
+                    <div class="admin-message-section" style="margin-bottom: 24px;">
+                        <h4 style="color: #dc2626; margin-bottom: 12px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user-shield"></i> Admin Message
+                        </h4>
+                        <div class="admin-message-content" style="background: #fef2f2; padding: 16px; border-radius: 8px; border-left: 4px solid #dc2626; color: #7f1d1d; line-height: 1.6;">
+                            ${notification.metadata.adminMessage}
                         </div>
+                    </div>
                     ` : ''}
-                    ${notification.metadata?.ticketSubject ? `
-                        <div class="detail-section">
-                            <label>Related Ticket Subject:</label>
-                            <p>${notification.metadata.ticketSubject}</p>
+                    
+                    ${hasMetadata ? `
+                    <div class="metadata-section" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+                        <h4 style="color: #64748b; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Additional Information</h4>
+                        <div class="metadata-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            ${Object.entries(notification.metadata)
+                                .filter(([key]) => !['adminMessage', 'ticketId'].includes(key))
+                                .map(([key, value]) => `
+                                    <div class="metadata-item" style="background: #f1f5f9; padding: 12px; border-radius: 6px;">
+                                        <div style="font-size: 12px; color: #64748b; text-transform: capitalize; margin-bottom: 4px;">${key.replace(/_/g, ' ')}</div>
+                                        <div style="font-size: 14px; color: #1e293b; font-weight: 500;">${typeof value === 'object' ? JSON.stringify(value) : value}</div>
+                                    </div>
+                                `).join('')}
                         </div>
+                    </div>
                     ` : ''}
+                    
+                    <div class="notification-actions-section" style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+                        ${!notification.read ? `
+                            <button onclick="window.supportManager.handleNotificationAction('mark-read', '${notification._id || notification.id}')" 
+                                    class="btn btn-primary" 
+                                    style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-check"></i> Mark as Read
+                            </button>
+                        ` : ''}
+                        ${this.canReplyToNotification(notification) ? `
+                            <button onclick="window.supportManager.openNotificationReplyModal('${notification._id || notification.id}')" 
+                                    class="btn btn-secondary" 
+                                    style="padding: 10px 20px; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-reply"></i> Reply
+                            </button>
+                        ` : ''}
+                        ${notification.priority === 'high' || notification.priority === 'urgent' ? `
+                            <button onclick="window.supportManager.openNotificationResponseModal('${notification._id || notification.id}')" 
+                                    class="btn btn-warning" 
+                                    style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-exclamation-triangle"></i> Respond Urgently
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             `;
         }
         
-        modal.classList.add('active');
+        modal.style.display = 'flex';
+        
+        // Mark as read after viewing (auto-read)
+        if (!notification.read) {
+            setTimeout(() => {
+                this.handleNotificationAction('mark-read', notification._id || notification.id);
+            }, 2000);
+        }
     }
 
     openNotificationResponseModal(notificationId) {
@@ -1859,17 +2936,9 @@ class SupportReviewsManager {
         };
 
         try {
-            const token = localStorage.getItem('gymAdminToken') || localStorage.getItem('gymAuthToken');
             const notification = this.notifications.find(n => (n._id || n.id) === notificationId);
             
-            // Log the urgent response (in production, this would be sent to backend)
-            console.log('Urgent response taken:', {
-                notificationId,
-                action: responseData.action,
-                notes: responseData.notes,
-                followUpTime: responseData.followUpTime,
-                timestamp: new Date().toISOString()
-            });
+          
             
             // Mark notification as read and add response metadata
             if (notification) {
@@ -1930,14 +2999,21 @@ class SupportReviewsManager {
         return colorMap[type] || colorMap[priority] || '#1976d2';
     }
 
+    // Resolve a fully-qualified gym logo URL for admin messages/avatars
+    getGymLogoUrl() {
+        try {
+            let logo = this.gymProfile?.logoUrl || this.gymProfile?.logo || '/uploads/gym-logos/default.png';
+            if (typeof logo !== 'string') logo = '/uploads/gym-logos/default.png';
+            if (logo.startsWith('http')) return logo;
+            return `${this.BASE_URL}${logo.startsWith('/') ? logo : '/' + logo}`;
+        } catch {
+            return `${this.BASE_URL}/uploads/gym-logos/default.png`;
+        }
+    }
+
     canReplyToNotification(notification) {
         const replyableTypes = ['grievance-reply', 'support-reply', 'system-alert', 'emergency', 'general'];
         const isReplyable = replyableTypes.includes(notification.type) || notification.metadata?.ticketId;
-        console.log(`🔍 Checking if notification can be replied to:`, {
-            type: notification.type,
-            hasTicketId: !!notification.metadata?.ticketId,
-            isReplyable
-        });
         return isReplyable;
     }
 
@@ -2078,7 +3154,6 @@ class SupportReviewsManager {
 
     showSuccessMessage(message) {
         // Implementation for success notifications
-        console.log('✅ Success:', message);
         
         // Create a visual notification
         const container = document.createElement('div');
@@ -2102,7 +3177,6 @@ class SupportReviewsManager {
 
     showErrorMessage(message) {
         // Implementation for error notifications
-        console.log('❌ Error:', message);
         // You could integrate with existing notification system
         
         // Create a visual notification
@@ -2577,7 +3651,6 @@ class SupportReviewsManager {
                 
                 this.closeModal();
                 form.reset();
-                console.log('✅ Escalation form submitted successfully');
             }
         } catch (error) {
             console.error('❌ Error in escalation form submission:', error);
@@ -2620,10 +3693,469 @@ class SupportReviewsManager {
             });
 
             if (response.ok) {
-                console.log('✅ Admin callback requested successfully');
             }
         } catch (error) {
             console.error('❌ Error requesting admin callback:', error);
+        }
+    }
+
+    // === Quick Message Templates System ===
+    
+    // Get quick message templates with real gym data
+    getQuickMessageTemplates(conversationId) {
+        const conversation = this.communications.find(c => (c._id || c.id) === conversationId);
+        const userName = conversation?.userName || 'Member';
+        
+        // Get gym data
+        const gymName = this.gymProfile?.gymName || this.gymProfile?.name || 'Our Gym';
+        const gymPhone = this.gymProfile?.phone || this.gymProfile?.contactNumber || 'N/A';
+        const gymEmail = this.gymProfile?.email || 'N/A';
+        const gymAddress = this.gymProfile?.address || 'N/A';
+        
+        // Parse operating hours
+        const operatingHours = this.gymProfile?.operatingHours || this.gymProfile?.hours || {};
+        const hoursText = this.formatOperatingHours(operatingHours);
+        
+        // Get membership plans
+        const plans = this.gymProfile?.membershipPlans || [];
+        const plansText = this.formatMembershipPlans(plans);
+        
+        // Get amenities
+        const amenities = this.gymProfile?.amenities || [];
+        const amenitiesText = amenities.length > 0 ? amenities.join(', ') : 'Various amenities available';
+        
+        return [
+            {
+                id: 'welcome',
+                title: 'Welcome Message',
+                icon: 'fa-hand-wave',
+                category: 'greeting',
+                template: `Hello ${userName}! 👋\n\nWelcome to ${gymName}! I'm here to help you with any questions about our gym, membership plans, or facilities.\n\nHow can I assist you today?`
+            },
+            {
+                id: 'hours',
+                title: 'Operating Hours',
+                icon: 'fa-clock',
+                category: 'info',
+                template: `Hi ${userName}! 🕒\n\nOur gym operating hours are:\n\n${hoursText}\n\nFeel free to visit us during these hours. Looking forward to seeing you!`
+            },
+            {
+                id: 'membership_plans',
+                title: 'Membership Plans',
+                icon: 'fa-id-card',
+                category: 'plans',
+                template: `Hi ${userName}! 💪\n\nHere are our current membership plans:\n\n${plansText}\n\nAll plans include access to our facilities and basic amenities. Would you like more details about any specific plan?`
+            },
+            {
+                id: 'trial',
+                title: 'Trial Session',
+                icon: 'fa-dumbbell',
+                category: 'trial',
+                template: `Hi ${userName}! 🎯\n\nWe offer a FREE trial session for new members!\n\nYou can:\n✅ Experience our facilities\n✅ Try our equipment\n✅ Meet our trainers\n✅ Get a personalized fitness assessment\n\nWould you like to schedule your trial session? Just let me know your preferred date and time!`
+            },
+            {
+                id: 'amenities',
+                title: 'Facilities & Amenities',
+                icon: 'fa-star',
+                category: 'info',
+                template: `Hi ${userName}! ⭐\n\n${gymName} offers:\n\n${amenitiesText}\n\nWe're committed to providing you with the best fitness experience. Would you like to know more about any specific facility?`
+            },
+            {
+                id: 'contact',
+                title: 'Contact Information',
+                icon: 'fa-address-card',
+                category: 'info',
+                template: `Hi ${userName}! 📞\n\nYou can reach us at:\n\n📍 Address: ${gymAddress}\n📞 Phone: ${gymPhone}\n📧 Email: ${gymEmail}\n\nOur hours: ${hoursText}\n\nFeel free to visit us or call anytime during operating hours!`
+            },
+            {
+                id: 'payment',
+                title: 'Payment Methods',
+                icon: 'fa-credit-card',
+                category: 'payment',
+                template: `Hi ${userName}! 💳\n\nWe accept the following payment methods:\n\n✅ Credit/Debit Cards\n✅ UPI\n✅ Net Banking\n✅ Cash (at gym)\n\nWe also offer EMI options for annual memberships. Let me know if you need help with payment!`
+            },
+            {
+                id: 'trainers',
+                title: 'Personal Training',
+                icon: 'fa-user-tie',
+                category: 'services',
+                template: `Hi ${userName}! 🏋️\n\nWe have certified personal trainers available for:\n\n✅ One-on-one training\n✅ Customized workout plans\n✅ Diet consultation\n✅ Progress tracking\n\nPersonal training sessions can be added to any membership plan. Would you like to know more about our trainers or pricing?`
+            },
+            {
+                id: 'diet',
+                title: 'Diet Plans',
+                icon: 'fa-utensils',
+                category: 'services',
+                template: `Hi ${userName}! 🥗\n\nWe offer professional diet consultation and customized nutrition plans:\n\n✅ Personalized meal plans\n✅ Calorie tracking\n✅ Supplement guidance\n✅ Regular progress monitoring\n\nOur nutrition experts can help you achieve your fitness goals faster. Interested in learning more?`
+            },
+            {
+                id: 'thank_you',
+                title: 'Thank You',
+                icon: 'fa-heart',
+                category: 'closing',
+                template: `Thank you for contacting ${gymName}, ${userName}! 🙏\n\nIf you have any other questions, feel free to reach out anytime. We're here to help!\n\nStay fit and healthy! 💪`
+            }
+        ];
+    }
+
+    formatOperatingHours(hours) {
+        if (!hours || Object.keys(hours).length === 0) {
+            return 'Monday - Sunday: 6:00 AM - 10:00 PM (Please contact us for exact timings)';
+        }
+        
+        const daysOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        let formatted = [];
+        
+        daysOrder.forEach(day => {
+            const dayHours = hours[day] || hours[day.toLowerCase()];
+            if (dayHours && dayHours.open && dayHours.close) {
+                const dayName = day.charAt(0).toUpperCase() + day.slice(1);
+                formatted.push(`${dayName}: ${dayHours.open} - ${dayHours.close}`);
+            }
+        });
+        
+        return formatted.length > 0 ? formatted.join('\n') : 'Please contact us for operating hours';
+    }
+
+    formatMembershipPlans(plans) {
+        if (!plans || plans.length === 0) {
+            return '• Monthly Plan\n• Quarterly Plan\n• Annual Plan\n\n(Please contact us for current pricing and details)';
+        }
+        
+        return plans.map(plan => {
+            const name = plan.name || plan.planName || 'Plan';
+            const duration = plan.duration || plan.durationMonths ? `${plan.durationMonths} month${plan.durationMonths > 1 ? 's' : ''}` : '';
+            const price = plan.price || plan.amount ? `₹${plan.price || plan.amount}` : '';
+            return `• ${name}${duration ? ` (${duration})` : ''}${price ? ` - ${price}` : ''}`;
+        }).join('\n');
+    }
+
+    // Open quick message modal
+    async openQuickMessageModal(conversationId) {
+        
+        // Ensure we have latest gym profile data
+        if (!this.gymProfile || !this.gymProfile.membershipPlans) {
+            await this.fetchDetailedGymProfile();
+        }
+        
+        const templates = this.getQuickMessageTemplates(conversationId);
+        
+        const modal = document.getElementById('quickMessageModal') || this.createQuickMessageModal();
+        const modalBody = modal.querySelector('.quick-msg-modal-body');
+        
+        if (modalBody) {
+            // Group templates by category
+            const categories = {
+                greeting: { title: 'Greetings', icon: 'fa-hand-wave', templates: [] },
+                info: { title: 'Information', icon: 'fa-info-circle', templates: [] },
+                plans: { title: 'Plans & Pricing', icon: 'fa-tags', templates: [] },
+                trial: { title: 'Trial & Demo', icon: 'fa-star', templates: [] },
+                services: { title: 'Services', icon: 'fa-concierge-bell', templates: [] },
+                payment: { title: 'Payment', icon: 'fa-credit-card', templates: [] },
+                closing: { title: 'Closing', icon: 'fa-check-circle', templates: [] }
+            };
+            
+            templates.forEach(template => {
+                if (categories[template.category]) {
+                    categories[template.category].templates.push(template);
+                }
+            });
+            
+            modalBody.innerHTML = `
+                <div class="quick-msg-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="quickMsgSearch" placeholder="Search templates..." onkeyup="supportManager.filterQuickMessages(event.target.value)">
+                </div>
+                
+                <div class="quick-msg-categories">
+                    ${Object.entries(categories).map(([key, cat]) => {
+                        if (cat.templates.length === 0) return '';
+                        return `
+                            <div class="quick-msg-category" data-category="${key}">
+                                <div class="category-header">
+                                    <i class="fas ${cat.icon}"></i>
+                                    <h4>${cat.title}</h4>
+                                    <span class="category-count">${cat.templates.length}</span>
+                                </div>
+                                <div class="category-templates">
+                                    ${cat.templates.map(template => `
+                                        <div class="quick-msg-template" data-template-id="${template.id}" onclick="supportManager.selectQuickMessage('${conversationId}', '${template.id}')">
+                                            <div class="template-header">
+                                                <i class="fas ${template.icon}"></i>
+                                                <span class="template-title">${template.title}</span>
+                                            </div>
+                                            <div class="template-preview">${template.template.substring(0, 100)}...</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        
+        // Store templates for filtering
+        this._currentTemplates = templates;
+        this._currentConversationId = conversationId;
+    }
+
+    createQuickMessageModal() {
+        const modal = document.createElement('div');
+        modal.id = 'quickMessageModal';
+        modal.className = 'support-modal quick-msg-modal';
+        modal.innerHTML = `
+            <div class="support-modal-content large">
+                <div class="support-modal-header">
+                    <h3><i class="fas fa-bolt"></i> Quick Messages</h3>
+                    <button class="support-modal-close" onclick="supportManager.closeModal()">&times;</button>
+                </div>
+                <div class="quick-msg-modal-body">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add custom styles for quick message modal
+        this.addQuickMessageStyles();
+        
+        return modal;
+    }
+
+    addQuickMessageStyles() {
+        if (document.getElementById('quickMessageStyles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'quickMessageStyles';
+        style.textContent = `
+            .quick-msg-modal .support-modal-content {
+                max-width: 800px;
+                max-height: 80vh;
+            }
+            
+            .quick-msg-modal-body {
+                padding: 0;
+                max-height: 600px;
+                overflow-y: auto;
+            }
+            
+            .quick-msg-search {
+                position: sticky;
+                top: 0;
+                background: white;
+                padding: 20px;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 10;
+            }
+            
+            .quick-msg-search i {
+                color: #94a3b8;
+                font-size: 16px;
+            }
+            
+            .quick-msg-search input {
+                flex: 1;
+                padding: 10px 16px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+            
+            .quick-msg-search input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            
+            .quick-msg-categories {
+                padding: 20px;
+            }
+            
+            .quick-msg-category {
+                margin-bottom: 24px;
+            }
+            
+            .category-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            
+            .category-header i {
+                color: #3b82f6;
+                font-size: 18px;
+            }
+            
+            .category-header h4 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1e293b;
+                flex: 1;
+            }
+            
+            .category-count {
+                background: #e0f2fe;
+                color: #0284c7;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            
+            .category-templates {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 12px;
+            }
+            
+            .quick-msg-template {
+                padding: 16px;
+                background: #f8fafc;
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .quick-msg-template:hover {
+                background: #eff6ff;
+                border-color: #3b82f6;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            }
+            
+            .template-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+            
+            .template-header i {
+                color: #f59e0b;
+                font-size: 16px;
+            }
+            
+            .template-title {
+                font-size: 14px;
+                font-weight: 600;
+                color: #1e293b;
+            }
+            
+            .template-preview {
+                font-size: 12px;
+                color: #64748b;
+                line-height: 1.5;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+            }
+            
+            .quick-msg-category.hidden {
+                display: none;
+            }
+        `;
+        
+        document.head.appendChild(style);
+    }
+
+    filterQuickMessages(searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        const categories = document.querySelectorAll('.quick-msg-category');
+        
+        if (!term) {
+            categories.forEach(cat => cat.classList.remove('hidden'));
+            document.querySelectorAll('.quick-msg-template').forEach(tpl => tpl.style.display = '');
+            return;
+        }
+        
+        categories.forEach(category => {
+            const templates = category.querySelectorAll('.quick-msg-template');
+            let hasVisibleTemplates = false;
+            
+            templates.forEach(template => {
+                const title = template.querySelector('.template-title').textContent.toLowerCase();
+                const preview = template.querySelector('.template-preview').textContent.toLowerCase();
+                
+                if (title.includes(term) || preview.includes(term)) {
+                    template.style.display = '';
+                    hasVisibleTemplates = true;
+                } else {
+                    template.style.display = 'none';
+                }
+            });
+            
+            if (hasVisibleTemplates) {
+                category.classList.remove('hidden');
+            } else {
+                category.classList.add('hidden');
+            }
+        });
+    }
+
+    selectQuickMessage(conversationId, templateId) {
+        const templates = this._currentTemplates || this.getQuickMessageTemplates(conversationId);
+        const template = templates.find(t => t.id === templateId);
+        
+        if (!template) {
+            console.error('Template not found:', templateId);
+            return;
+        }
+        
+        // Insert template into chat input
+        const chatInput = document.getElementById('chatReplyInput');
+        if (chatInput) {
+            chatInput.value = template.template;
+            chatInput.focus();
+            
+            // Auto-resize textarea if needed
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+        }
+        
+        // Close modal
+        this.closeModal();
+        
+        // Show success feedback
+        this.showSuccessMessage(`Template "${template.title}" inserted!`);
+        
+    }
+
+    async fetchDetailedGymProfile() {
+        try {
+            const token = this.getAuthToken();
+            const response = await fetch(`${this.BASE_URL}/api/gyms/profile/me?detailed=true`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.gymProfile = { ...this.gymProfile, ...data };
+                return this.gymProfile;
+            } else {
+                console.warn('⚠️ Could not fetch detailed gym profile');
+                return this.gymProfile;
+            }
+        } catch (error) {
+            console.error('❌ Error fetching detailed gym profile:', error);
+            return this.gymProfile;
         }
     }
 }

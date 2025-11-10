@@ -33,7 +33,12 @@ const memberSchema = new mongoose.Schema({
   allowanceGrantedDate: { type: Date, default: null },
   allowanceExpiryDate: { type: Date, default: null },
   planStartDate: { type: Date, default: null },
-  plannedValidityDate: { type: Date, default: null }
+  plannedValidityDate: { type: Date, default: null },
+  // ID Pass fields
+  passId: { type: String, unique: true, sparse: true },
+  passGeneratedDate: { type: Date },
+  passQRCode: { type: String }, // Data URL of QR code
+  passFilePath: { type: String } // Path to PDF pass file
 });
 
 module.exports = mongoose.model('Member', memberSchema);

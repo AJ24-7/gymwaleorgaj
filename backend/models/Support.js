@@ -5,7 +5,11 @@ const supportMessageSchema = new mongoose.Schema({
   sender: {
     type: String,
     required: true,
-    enum: ['user', 'admin']
+    enum: ['user', 'admin', 'system']
+  },
+  senderName: {
+    type: String,
+    required: false
   },
   message: {
     type: String,
@@ -14,6 +18,10 @@ const supportMessageSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  read: {
+    type: Boolean,
+    default: false
   },
   attachments: [{
     filename: String,
@@ -26,6 +34,10 @@ const supportMessageSchema = new mongoose.Schema({
     type: [String],
     enum: ['email', 'notification', 'whatsapp'],
     default: ['notification']
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 });
 
@@ -39,6 +51,11 @@ const supportTicketSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     refPath: 'userType'
+  },
+  gymId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Gym',
+    required: false // Optional, only for chat messages
   },
   userType: {
     type: String,
@@ -59,7 +76,7 @@ const supportTicketSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['technical', 'billing', 'membership', 'equipment', 'general', 'complaint']
+    enum: ['technical', 'billing', 'membership', 'equipment', 'general', 'complaint', 'chat']
   },
   priority: {
     type: String,
@@ -127,7 +144,7 @@ const supportTicketSchema = new mongoose.Schema({
     ipAddress: String,
     source: {
       type: String,
-      enum: ['web', 'mobile', 'email', 'phone', 'notification', 'admin'],
+      enum: ['web', 'mobile', 'email', 'phone', 'notification', 'admin', 'chat'],
       default: 'web'
     },
     contactFormSubmission: {
@@ -144,7 +161,12 @@ const supportTicketSchema = new mongoose.Schema({
     isGuestUser: {
       type: Boolean,
       default: false
-    }
+    },
+    isChat: {
+      type: Boolean,
+      default: false
+    },
+    userProfileImage: String
   }
 }, {
   timestamps: true

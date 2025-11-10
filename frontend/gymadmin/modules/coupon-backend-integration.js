@@ -10,10 +10,79 @@ const CouponBackendAPI = {
   },
 
   /**
+   * Safely decode a JWT payload without verifying signature (client-side check only)
+   */
+  decodeJwtPayload(token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return payload || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Retrieves the admin token using a robust strategy across storage locations.
+   * Prioritizes gym admin tokens and avoids user tokens.
+   */
+  async getToken(tokenKey = 'gymAdminToken') {
+    // 1) Preferred keys and locations
+    const preferredKeys = ['gymAdminToken', 'adminToken', 'gymAuthToken'];
+    const altKeys = ['authToken', 'token']; // May contain user tokens
+    const stores = [localStorage, sessionStorage];
+
+    // Helper to validate token shape (must contain admin/gym in payload)
+    const isGymAdminToken = (t) => {
+      const payload = this.decodeJwtPayload(t);
+      return payload && (payload.admin || payload.gym);
+    };
+
+    // Try preferred keys first (both storages)
+    for (const store of stores) {
+      for (const key of preferredKeys) {
+        const val = store.getItem(key);
+        if (val && isGymAdminToken(val)) {
+          if (key !== tokenKey) localStorage.setItem(tokenKey, val);
+          return val;
+        }
+      }
+    }
+
+    // Try alt keys but only accept if payload looks like gym/admin
+    for (const store of stores) {
+      for (const key of altKeys) {
+        const val = store.getItem(key);
+        if (val && isGymAdminToken(val)) {
+          localStorage.setItem(tokenKey, val);
+          return val;
+        }
+      }
+    }
+
+    console.error('❌ No valid gym admin authentication token found.');
+    return null;
+  },
+
+  /**
    * Get all coupons for a gym from backend
    */
-  async getCoupons(gymId, adminToken, filters = {}) {
+  async getCoupons(gymId, filters = {}) {
     try {
+      const adminToken = await this.getToken();
+      if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
+
+      // Debug: confirm token structure to avoid using user tokens unintentionally
+      const __dbgPayload = this.decodeJwtPayload(adminToken);
+      console.log('🔐 Token payload check:', __dbgPayload ? Object.keys(__dbgPayload) : 'no payload', {
+        hasAdmin: !!__dbgPayload?.admin,
+        hasGym: !!__dbgPayload?.gym,
+        type: __dbgPayload?.type || null
+      });
+
       const params = new URLSearchParams({
         gymId,
         ...filters
@@ -43,7 +112,7 @@ const CouponBackendAPI = {
           const errorText = await response.text();
           errorData = JSON.parse(errorText);
           console.error('❌ Error response body:', errorData);
-        } catch (e) {
+        } catch {
           console.error('❌ Could not parse error response');
           errorData = { message: 'Unknown error' };
         }
@@ -82,8 +151,12 @@ const CouponBackendAPI = {
   /**
    * Create a new coupon
    */
-  async createCoupon(couponData, adminToken) {
+  async createCoupon(couponData) {
     try {
+      const adminToken = await this.getToken();
+       if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       console.log('🔄 Creating coupon:', couponData);
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons`, {
@@ -114,8 +187,12 @@ const CouponBackendAPI = {
   /**
    * Update an existing coupon
    */
-  async updateCoupon(couponId, updates, adminToken) {
+  async updateCoupon(couponId, updates) {
     try {
+      const adminToken = await this.getToken();
+       if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       console.log('🔄 Updating coupon:', couponId, updates);
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons/${couponId}`, {
@@ -146,8 +223,12 @@ const CouponBackendAPI = {
   /**
    * Delete a coupon (soft delete)
    */
-  async deleteCoupon(couponId, adminToken) {
+  async deleteCoupon(couponId) {
     try {
+      const adminToken = await this.getToken();
+      if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       console.log('🔄 Deleting coupon:', couponId);
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons/${couponId}`, {
@@ -177,8 +258,12 @@ const CouponBackendAPI = {
   /**
    * Toggle coupon status (activate/deactivate)
    */
-  async toggleCouponStatus(couponId, newStatus, adminToken) {
+  async toggleCouponStatus(couponId, newStatus) {
     try {
+      const adminToken = await this.getToken();
+       if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       console.log('🔄 Toggling coupon status:', couponId, newStatus);
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons/${couponId}`, {
@@ -256,7 +341,7 @@ const CouponBackendAPI = {
   /**
    * Use a coupon (record usage)
    */
-  async useCoupon(couponCode, usageData, userId = null) {
+  async useCoupon(couponCode, usageData) {
     try {
       console.log('🔄 Using coupon:', couponCode, usageData);
       
@@ -265,11 +350,9 @@ const CouponBackendAPI = {
       };
 
       // Add user token if available
-      if (userId) {
-        const userToken = localStorage.getItem('userToken') || localStorage.getItem('token');
-        if (userToken) {
+      const userToken = localStorage.getItem('userToken') || localStorage.getItem('token');
+      if (userToken) {
           headers['Authorization'] = `Bearer ${userToken}`;
-        }
       }
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons/use/${couponCode}`, {
@@ -297,8 +380,12 @@ const CouponBackendAPI = {
   /**
    * Get coupon analytics
    */
-  async getCouponAnalytics(gymId, adminToken, dateRange = {}) {
+  async getCouponAnalytics(gymId, dateRange = {}) {
     try {
+      const adminToken = await this.getToken();
+       if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       const params = new URLSearchParams({
         gymId,
         ...dateRange
@@ -332,8 +419,12 @@ const CouponBackendAPI = {
   /**
    * Export coupons data
    */
-  async exportCoupons(gymId, adminToken) {
+  async exportCoupons(gymId) {
     try {
+      const adminToken = await this.getToken();
+      if (!adminToken) {
+        throw new Error('Authentication required. Please login as admin.');
+      }
       console.log('🔄 Exporting coupons:', gymId);
       
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/coupons/export?gymId=${gymId}`, {
@@ -364,6 +455,10 @@ const CouponBackendAPI = {
    */
   async getUserCoupons(userId, gymId) {
     try {
+       const userToken = localStorage.getItem('userToken') || localStorage.getItem('token');
+       if (!userToken) {
+         throw new Error('Authentication required. Please login as user.');
+      }
       console.log('🔄 Fetching user coupons:', { userId, gymId });
       
       const params = new URLSearchParams();
@@ -372,6 +467,7 @@ const CouponBackendAPI = {
       const response = await fetch(`${this.getApiBaseUrl()}/api/offers/user/${userId}/coupons?${params}`, {
         method: 'GET',
         headers: {
+           'Authorization': `Bearer ${userToken}`,
           'Content-Type': 'application/json'
         }
       });

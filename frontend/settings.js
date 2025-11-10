@@ -415,7 +415,7 @@ async function loadUserCoupons() {
 
         console.log('Loading user coupons...');
         
-        const response = await fetch(`${BASE_URL}/api/user/${currentUser.id || currentUser._id}/coupons`, {
+        const response = await fetch(`${BASE_URL}/api/users/${currentUser.id || currentUser._id}/coupons`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

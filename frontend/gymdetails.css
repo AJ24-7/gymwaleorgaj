@@ -4717,3 +4717,310 @@
         height: 28px;
     }
 }
+
+/* ===============================================
+   REPORT ISSUE SYSTEM STYLES
+   =============================================== */
+
+/* Report Button in Hero Section */
+.btn-report {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-report:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+}
+
+.btn-report:active {
+    transform: translateY(0);
+}
+
+.btn-report i {
+    font-size: 1.1rem;
+}
+
+/* Report Modal Styles */
+.report-modal-content {
+    max-width: 600px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.report-modal-content .modal-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 20px 24px;
+    border-bottom: none;
+}
+
+.report-modal-content .modal-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.report-modal-content .modal-header h3 i {
+    font-size: 1.8rem;
+}
+
+.report-modal-content .modal-body {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Form Styles */
+#report-issue-form .form-group {
+    margin-bottom: 20px;
+}
+
+#report-issue-form label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+#report-issue-form label i {
+    color: #dc3545;
+    font-size: 1rem;
+}
+
+#report-issue-form select,
+#report-issue-form input[type="text"],
+#report-issue-form input[type="tel"],
+#report-issue-form input[type="email"],
+#report-issue-form textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e6ed;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+#report-issue-form select:focus,
+#report-issue-form input:focus,
+#report-issue-form textarea:focus {
+    outline: none;
+    border-color: #dc3545;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.1);
+}
+
+#report-issue-form select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+}
+
+#report-issue-form select option {
+    padding: 8px;
+}
+
+#report-issue-form textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+}
+
+.char-count {
+    display: block;
+    text-align: right;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.char-count span {
+    font-weight: 600;
+    color: #dc3545;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.form-actions .btn-primary,
+.form-actions .btn-secondary {
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-actions .btn-primary {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.form-actions .btn-primary:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+}
+
+.form-actions .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.form-actions .btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Report Info Box */
+.report-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-left: 4px solid #2196f3;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.report-info i {
+    color: #2196f3;
+    font-size: 1.3rem;
+    margin-top: 2px;
+}
+
+.report-info p {
+    margin: 0;
+    color: #1565c0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Report Success Modal */
+.ticket-info {
+    text-align: center;
+    padding: 20px;
+}
+
+.ticket-info p {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.ticket-id-display {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 2px dashed #4caf50;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 24px 0;
+}
+
+.ticket-id-display label {
+    display: block;
+    font-size: 0.9rem;
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.ticket-id-display span {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1b5e20;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.ticket-note {
+    font-size: 0.9rem !important;
+    color: #666 !important;
+    line-height: 1.6 !important;
+    margin-top: 16px !important;
+}
+
+/* Priority Indicators */
+#issue-priority option[value="low"] {
+    color: #28a745;
+}
+
+#issue-priority option[value="normal"] {
+    color: #17a2b8;
+}
+
+#issue-priority option[value="high"] {
+    color: #ffc107;
+}
+
+#issue-priority option[value="urgent"] {
+    color: #dc3545;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .report-modal-content {
+        max-width: 95%;
+        margin: 20px auto;
+    }
+    
+    .report-modal-content .modal-body {
+        padding: 16px;
+        max-height: 65vh;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .form-actions .btn-primary,
+    .form-actions .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .btn-report {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .ticket-id-display span {
+        font-size: 1.4rem;
+    }
+}
+

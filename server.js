@@ -67,7 +67,9 @@ const qrCodeRoutes = require('./backend/routes/qrCodeRoutes');
 const biometricRoutes = require('./backend/routes/biometricRoutes');
 const securityRoutes = require('./backend/routes/securityRoutes');
 const offersRoutes = require('./backend/routes/offersRoutes');
+const chatRoutes = require('./backend/routes/chatRoutes');
 const testRoutes = require('./backend/routes/testRoutes');
+const idPassRoutes = require('./backend/routes/idPassRoutes');
 if (typeof testRoutes !== 'function') {
   console.error('ERROR: testRoutes is not a function!', testRoutes);
 }
@@ -101,6 +103,7 @@ app.use('/uploads/gymImages', express.static(path.join(__dirname, 'uploads/gymIm
 app.use('/uploads/gymPhotos', express.static(path.join(__dirname, 'uploads/gymPhotos')));
 app.use('/uploads/gym-logos', express.static(path.join(__dirname, 'uploads/gym-logos')));
 app.use('/uploads/equipment', express.static(path.join(__dirname, 'uploads/equipment')));
+app.use('/uploads/member-passes', express.static(path.join(__dirname, 'uploads/member-passes')));
 
 // Serve biometric agent files
 app.use('/biometric-agent', express.static(path.join(__dirname, 'biometric-agent')));
@@ -416,6 +419,9 @@ app.use('/api/trainers', trainerRoutes);
 // Mount communication routes BEFORE general admin routes to prevent conflicts
 app.use('/api/admin/communication', communicationRoutes);
 
+// Mount public communication routes (for grievances, etc.)
+app.use('/api/communications', communicationRoutes);
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
@@ -431,6 +437,7 @@ app.use('/api/gym/notifications', gymNotificationRoutes);
 app.use('/api/gym/communication', gymCommunicationRoutes); // Enhanced Gym-Admin Communication System
 
 app.use('/api/support', supportRoutes); // Legacy Admin Support System (still needed for admin panel)
+app.use('/api/chat', chatRoutes); // User-to-Gym Chat System
 
 app.use('/api/whatsapp', whatsappRoutes); // WhatsApp Business API Integration
 app.use('/api/attendance', (req, res, next) => {
@@ -465,6 +472,11 @@ app.use('/api/biometric', (req, res, next) => {
 app.use('/api/security', (req, res, next) => {
   next();
 }, securityRoutes);
+
+// ID Pass routes for member passes
+app.use('/api/id-pass', (req, res, next) => {
+  next();
+}, idPassRoutes);
 
 // Offers and Coupons Management routes (admin access)
 app.use('/api/admin', (req, res, next) => {

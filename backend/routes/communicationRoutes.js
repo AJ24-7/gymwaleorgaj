@@ -835,6 +835,232 @@ router.patch('/support/tickets/bulk/status', adminAuth, bulkUpdateTicketStatus);
 // Export support data
 router.get('/support/export', adminAuth, exportSupportData);
 
+// ========== GRIEVANCE ROUTES (USER-FACING) ==========
+
+// Submit a grievance (public/authenticated users)
+router.post('/grievances', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        let userId = null;
+        let userEmail = '';
+        let userName = 'Anonymous User';
+        let userType = 'User';
+        
+        // Try to get user info if authenticated
+        if (token) {
+            try {
+                const jwt = require('jsonwebtoken');
+                const User = require('../models/User');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const user = await User.findById(decoded.id);
+                if (user) {
+                    userId = user._id;
+                    userEmail = user.email;
+                    userName = user.name || 'User';
+                }
+            } catch (error) {
+                console.log('Token invalid or user not found, proceeding as guest');
+            }
+        }
+        
+        const {
+            gymId,
+            category,
+            priority = 'normal',
+            subject,
+            description,
+            contactNumber,
+            email
+        } = req.body;
+
+        console.log('📝 Creating grievance:', { gymId, category, priority, subject, userId });
+
+        // Validate required fields
+        if (!gymId || !category || !subject || !description) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: gymId, category, subject, description'
+            });
+        }
+
+        // Get gym details
+        const Gym = require('../models/gym');
+        const gym = await Gym.findById(gymId);
+        if (!gym) {
+            return res.status(404).json({
+                success: false,
+                message: 'Gym not found'
+            });
+        }
+
+        // Use provided email or user email
+        const effectiveEmail = email || userEmail || 'no-email@provided.com';
+        const effectiveUserId = userId || new mongoose.Types.ObjectId();
+
+        // Map priority values (frontend sends 'normal', 'high', 'urgent')
+        const priorityMap = {
+            'normal': 'medium',
+            'high': 'high',
+            'urgent': 'urgent',
+            'medium': 'medium',
+            'low': 'low'
+        };
+        const mappedPriority = priorityMap[priority] || 'medium';
+
+        // Map category to valid Support schema categories
+        const categoryMap = {
+            'cleanliness': 'complaint',
+            'equipment': 'equipment',
+            'staff': 'complaint',
+            'facilities': 'general',
+            'safety': 'complaint',
+            'other': 'general'
+        };
+        const mappedCategory = categoryMap[category] || 'complaint';
+
+        // Create grievance as a support ticket
+        const Support = require('../models/Support');
+        const grievance = new Support({
+            ticketId: `GRIEV-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            userId: effectiveUserId,
+            gymId: gymId,
+            userType: userType,
+            userEmail: effectiveEmail,
+            userName: userName,
+            userPhone: contactNumber || null,
+            category: mappedCategory,
+            priority: mappedPriority,
+            status: 'open',
+            subject: subject,
+            description: description,
+            messages: [{
+                sender: 'user',
+                message: description,
+                timestamp: new Date()
+            }],
+            metadata: {
+                source: 'web',
+                isGrievance: true,
+                originalCategory: category, // Store original category
+                originalPriority: priority,
+                gymName: gym.gymName || gym.name,
+                contactNumber: contactNumber,
+                submittedVia: 'gym-details-page'
+            }
+        });
+
+        await grievance.save();
+        console.log('✅ Grievance created successfully:', {
+            ticketId: grievance.ticketId,
+            gymId: grievance.gymId,
+            gymName: gym.gymName,
+            userName: grievance.userName,
+            isGrievance: grievance.metadata.isGrievance
+        });
+
+        // Notify gym admin about the grievance
+        try {
+            const GymNotification = require('../models/GymNotification');
+            await GymNotification.create({
+                gymId: gymId,
+                title: `New Grievance: ${category}`,
+                message: `A new grievance has been submitted regarding ${category}. Subject: ${subject}`,
+                type: 'grievance',
+                priority: mappedPriority,
+                status: 'unread',
+                metadata: {
+                    ticketId: grievance.ticketId,
+                    category: category,
+                    grievanceId: grievance._id
+                }
+            });
+            console.log('📬 Gym admin notified about grievance');
+        } catch (notifError) {
+            console.error('Error creating gym notification:', notifError);
+            // Don't fail the request if notification fails
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Grievance submitted successfully',
+            grievance: {
+                ticketId: grievance.ticketId,
+                _id: grievance._id,
+                category: grievance.category,
+                priority: grievance.priority,
+                subject: grievance.subject,
+                status: grievance.status,
+                createdAt: grievance.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating grievance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit grievance',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+});
+
+// Get grievances for a specific gym (for gym admin)
+router.get('/grievances/gym/:gymId', async (req, res) => {
+    try {
+        const { gymId } = req.params;
+        const { status, priority, page = 1, limit = 20 } = req.query;
+
+        const filter = {
+            gymId: gymId,
+            'metadata.isGrievance': true
+        };
+
+        if (status) filter.status = status;
+        if (priority) filter.priority = priority;
+
+        const skip = (page - 1) * limit;
+
+        const Support = require('../models/Support');
+        const grievances = await Support.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
+
+        const total = await Support.countDocuments(filter);
+
+        res.json({
+            success: true,
+            grievances: grievances.map(g => ({
+                _id: g._id,
+                ticketId: g.ticketId,
+                category: g.metadata?.originalCategory || g.category,
+                priority: g.metadata?.originalPriority || g.priority,
+                subject: g.subject,
+                description: g.description,
+                status: g.status,
+                userName: g.userName,
+                userEmail: g.userEmail,
+                userPhone: g.userPhone,
+                createdAt: g.createdAt,
+                updatedAt: g.updatedAt
+            })),
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / limit),
+                totalItems: total
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching grievances:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch grievances'
+        });
+    }
+});
+
 // ========== ANALYTICS ROUTES ==========
 
 // Get communication analytics

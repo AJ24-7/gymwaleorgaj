@@ -47,7 +47,6 @@
      * Hides all tabs and closes any open modals
      */
     function hideAllTabs() {
-        console.log('🔄 Hiding all tabs...');
         
         // Close all modals
         document.querySelectorAll('.modal.show, .modal[style*="display: flex"], .modal[style*="display:flex"]').forEach(modal => {
@@ -90,7 +89,6 @@
             link.classList.remove('active');
         });
         
-        console.log('✅ All tabs hidden');
     }
 
     /**
@@ -106,7 +104,6 @@
         }
         
         const tabId = tabElement.id || tabElement.className;
-        console.log(`📂 Showing tab: ${tabId}`);
         
         // Show the tab
         tabElement.style.display = 'block';
@@ -153,7 +150,6 @@
             }, 50);
         }
         
-        console.log(`✅ Tab ${tabId} is now visible`);
     }
 
     /**
@@ -174,7 +170,6 @@
      * Switch to Dashboard tab
      */
     function showDashboard() {
-        console.log('🏠 Switching to Dashboard');
         hideAllTabs();
         
         if (dashboardContent) {
@@ -203,14 +198,31 @@
      * Switch to Members tab
      */
     function showMembers() {
-        console.log('👥 Switching to Members');
         hideAllTabs();
         
-        showTabWithSkeleton(memberDisplayTab, 'table', () => {
-            if (typeof fetchAndDisplayMembers === 'function') {
-                return fetchAndDisplayMembers();
+        // Directly show the tab WITHOUT skeleton loader to avoid visibility issues
+        if (memberDisplayTab) {
+            memberDisplayTab.style.display = 'block';
+            memberDisplayTab.classList.add('active');
+            
+            // Ensure nested containers are visible
+            const tableContainer = document.getElementById('membersTableContainer');
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
             }
-        });
+            
+            const membersTable = document.getElementById('membersTable');
+            if (membersTable) {
+                membersTable.style.display = 'table';
+            }
+            
+            // Call the fetch function WITHOUT skeleton wrapper
+            if (typeof fetchAndDisplayMembers === 'function') {
+                fetchAndDisplayMembers().catch(err => {
+                    console.error('Error fetching members:', err);
+                });
+            }
+        }
         
         const membersLink = Array.from(document.querySelectorAll('.menu-link')).find(link => 
             link.querySelector('.fa-users')
@@ -222,7 +234,6 @@
      * Switch to Trainers tab
      */
     function showTrainers() {
-        console.log('💪 Switching to Trainers');
         hideAllTabs();
         
         showTabWithSkeleton(trainerTab, 'list', () => {
@@ -241,7 +252,6 @@
      * Switch to Attendance tab
      */
     function showAttendance() {
-        console.log('📅 Switching to Attendance');
         hideAllTabs();
         
         showTabWithSkeleton(attendanceTab, 'table', () => {
@@ -261,7 +271,6 @@
      * Switch to Payments tab
      */
     function showPayments() {
-        console.log('💳 Switching to Payments');
         hideAllTabs();
         
         showTabWithSkeleton(paymentTab, 'dashboard-stats', () => {
@@ -280,7 +289,6 @@
      * Switch to Equipment tab
      */
     function showEquipment() {
-        console.log('🏋️ Switching to Equipment');
         hideAllTabs();
         
         showTabWithSkeleton(equipmentTab, 'card-grid', () => {
@@ -299,7 +307,6 @@
      * Switch to Offers tab
      */
     function showOffers() {
-        console.log('🎁 Switching to Offers');
         hideAllTabs();
         
         // Close any open modals first
@@ -311,7 +318,6 @@
         showTabWithSkeleton(offersTab, 'dashboard-stats', () => {
             // Initialize offers manager if not already done
             if (!window.offersManager) {
-                console.log('🔧 Initializing offers manager...');
                 if (typeof window.initializeOffersManager === 'function') {
                     window.initializeOffersManager();
                 }
@@ -319,7 +325,6 @@
             
             // Force reload data and switch to templates tab
             if (window.offersManager) {
-                console.log('✅ Offers manager ready, loading initial data...');
                 // Update counters immediately
                 window.offersManager.updateOffersCountBadge();
                 // Load all data
@@ -343,7 +348,6 @@
      * Switch to Support & Reviews tab
      */
     function showSupport() {
-        console.log('🎧 Switching to Support & Reviews');
         hideAllTabs();
         
         showTabWithSkeleton(supportReviewsTab, 'list', () => {
@@ -362,7 +366,6 @@
      * Switch to Settings tab
      */
     function showSettings() {
-        console.log('⚙️ Switching to Settings');
         hideAllTabs();
         
         // Close any open modals first
@@ -495,7 +498,6 @@
                 }
             }
             
-            console.log('🔀 Sidebar toggled:', sidebar.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
         });
     }
 
@@ -513,12 +515,10 @@
 
     // On page load, show dashboard by default
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Tab Switcher initialized');
         
         // Small delay to ensure all other scripts are loaded
         setTimeout(() => {
             showDashboard();
-            console.log('✅ Dashboard loaded as default tab');
         }, 100);
     });
 
@@ -540,6 +540,5 @@
         closeMobileMenu: closeMobileSidebarMenu
     };
 
-    console.log('✅ Tab Switcher Module Loaded');
 
 })();

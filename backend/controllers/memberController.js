@@ -356,6 +356,64 @@ exports.addMember = async (req, res) => {
 
     await member.save();
 
+    // Generate ID Pass for new member
+    try {
+      const IDPassGenerator = require('../services/idPassGenerator');
+      const passId = IDPassGenerator.generatePassId();
+      
+      // Update member with pass ID
+      member.passId = passId;
+      member.passGeneratedDate = new Date();
+      await member.save();
+
+      // Generate QR code and PDF pass asynchronously (don't block response)
+      setTimeout(async () => {
+        try {
+          const memberData = {
+            membershipId: member.membershipId,
+            memberName: member.memberName,
+            email: member.email,
+            phone: member.phone,
+            planSelected: member.planSelected,
+            monthlyPlan: member.monthlyPlan,
+            activityPreference: member.activityPreference,
+            joinDate: member.joinDate,
+            membershipValidUntil: member.membershipValidUntil,
+            isActive: true,
+            gym: {
+              _id: gym._id,
+              name: gym.gymName,
+              city: gym.city,
+              state: gym.state
+            },
+            profileImage: profileImagePath ? path.join(__dirname, '../../', profileImagePath) : null
+          };
+
+          const qrCodeDataUrl = await IDPassGenerator.generateQRCode(memberData);
+          const passFileName = `${passId}.pdf`;
+          const passesDir = path.join(__dirname, '../../uploads/member-passes');
+          const fs = require('fs');
+          if (!fs.existsSync(passesDir)) {
+            fs.mkdirSync(passesDir, { recursive: true });
+          }
+          const passFilePath = path.join(passesDir, passFileName);
+          
+          await IDPassGenerator.generatePass(memberData, passFilePath);
+
+          member.passQRCode = qrCodeDataUrl;
+          member.passFilePath = `/uploads/member-passes/${passFileName}`;
+          await member.save();
+
+          console.log('✅ ID Pass generated successfully for member:', member.membershipId);
+        } catch (passErr) {
+          console.error('❌ Error generating ID pass:', passErr);
+        }
+      }, 500);
+    } catch (passError) {
+      console.error('[MemberController] Error initiating ID pass generation:', passError);
+      // Don't block member creation if pass generation fails
+    }
+
     // Create payment record for membership
     try {
       const payment = new Payment({

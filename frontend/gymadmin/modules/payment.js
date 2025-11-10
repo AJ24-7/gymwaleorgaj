@@ -1,7 +1,6 @@
 // Payment Tab JavaScript
 class PaymentManager {
   constructor() {
-    console.log('PaymentManager constructor started');
     this.isPaymentTabAuthorized = false;
     this.passkeyAttempts = 3;
     this.maxAttempts = 3;
@@ -19,7 +18,6 @@ class PaymentManager {
     this.seenNotifications = new Set();
     this.lastNotificationCheck = new Date();
     
-    console.log('Initializing admin passkey system...');
     this.initializeAdminPasskey();
     
     // Initialize payment data and system
@@ -32,7 +30,6 @@ class PaymentManager {
     // Initialize passkey status on page load
     this.updatePasskeySettingsUI();
     
-    console.log('PaymentManager constructor completed');
   }
 
   // Initialize admin passkey system
@@ -90,7 +87,6 @@ class PaymentManager {
 
     // Setup cancel button
     cancelBtn.addEventListener('click', () => {
-      console.log('Cancel button clicked - resetting authorization');
       this.isPaymentTabAuthorized = false; // Reset authorization when cancelled
       this.hidePasskeyModal();
     });
@@ -98,7 +94,6 @@ class PaymentManager {
     // Setup modal backdrop click
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        console.log('Modal backdrop clicked - resetting authorization');
         this.isPaymentTabAuthorized = false; // Reset authorization when cancelled
         this.hidePasskeyModal();
       }
@@ -107,31 +102,23 @@ class PaymentManager {
 
   // Setup passkey settings functionality
   setupPasskeySettings() {
-    console.log('Setting up passkey settings...');
     const changeBtn = document.getElementById('changePasskeyBtn');
     const generateBtn = document.getElementById('generatePasskeyBtn');
     const disableBtn = document.getElementById('disablePasskeyBtn');
     const cancelChangeBtn = document.getElementById('cancelChangePasskey');
     const saveBtn = document.getElementById('saveNewPasskey');
 
-    console.log('Passkey buttons found:', {
-      changeBtn: !!changeBtn,
-      generateBtn: !!generateBtn,
-      disableBtn: !!disableBtn,
-      cancelChangeBtn: !!cancelChangeBtn,
-      saveBtn: !!saveBtn
-    });
+   
+   
 
     if (changeBtn) {
       changeBtn.addEventListener('click', () => {
-        console.log('Change passkey button clicked');
         this.showChangePasskeyForm();
       });
     }
 
     if (generateBtn) {
       generateBtn.addEventListener('click', () => {
-        console.log('Generate passkey button clicked');
         this.generateRandomPasskey();
       });
     }
@@ -142,17 +129,14 @@ class PaymentManager {
       disableBtn.parentNode.replaceChild(newDisableBtn, disableBtn);
       
       newDisableBtn.addEventListener('click', () => {
-        console.log('Disable passkey button clicked');
         const gymId = this.getCurrentGymAdminId();
         const storedPasskey = localStorage.getItem(`gymAdminPasskey_${gymId}`);
         
         if (storedPasskey) {
           // Passkey exists - disable it
-          console.log('Passkey exists, calling disablePasskey()');
           this.disablePasskey();
         } else {
           // No passkey - enable it
-          console.log('No passkey found, calling enablePasskey()');
           this.enablePasskey();
         }
       });
@@ -184,7 +168,6 @@ class PaymentManager {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('Payment tab access requested, checking authorization...');
         
         if (!this.isPaymentTabAuthorized) {
           // Check if passkey exists or if setup was skipped
@@ -192,12 +175,9 @@ class PaymentManager {
           const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
           const isSkipped = skipExpiry && new Date().getTime() < parseInt(skipExpiry);
           
-          console.log('Stored passkey check:', storedPasskey ? 'Found' : 'Not found');
-          console.log('Skip check:', isSkipped ? 'Active skip' : 'No skip or expired');
           
           if (isSkipped) {
             // Skip is active, allow direct access
-            console.log('Passkey setup was skipped, allowing direct access');
             this.isPaymentTabAuthorized = true;
             this.showPaymentTab();
           } else if (!storedPasskey) {
@@ -206,7 +186,6 @@ class PaymentManager {
             this.showPasskeyModal();
           }
         } else {
-          console.log('Already authorized, showing payment tab');
           this.showPaymentTab();
         }
       });
@@ -220,7 +199,6 @@ class PaymentManager {
     if (paymentsMenuLink) {
       // Add event listener with capture phase to intercept BEFORE tab switcher
       paymentsMenuLink.addEventListener('click', (e) => {
-        console.log('Payment menu link clicked, checking authorization...');
         
         if (!this.isPaymentTabAuthorized) {
           // Stop the event from reaching tab switcher
@@ -233,12 +211,9 @@ class PaymentManager {
           const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
           const isSkipped = skipExpiry && new Date().getTime() < parseInt(skipExpiry);
           
-          console.log('Stored passkey check:', storedPasskey ? 'Found' : 'Not found');
-          console.log('Skip check:', isSkipped ? 'Active skip' : 'No skip or expired');
           
           if (isSkipped) {
             // Skip is active, allow direct access
-            console.log('Passkey setup was skipped, allowing direct access');
             this.isPaymentTabAuthorized = true;
             this.showPaymentTab();
           } else if (!storedPasskey) {
@@ -248,7 +223,6 @@ class PaymentManager {
           }
         } else {
           // Already authorized - let the tab switcher handle it normally
-          console.log('Already authorized, allowing tab switcher to handle navigation');
           // Don't prevent default - let tab switcher work
         }
       }, true); // Use capture phase to run before tab switcher's listener
@@ -260,7 +234,6 @@ class PaymentManager {
     // Check if setup was skipped recently
     const skipExpiry = localStorage.getItem(`passkeySetupSkipped_${this.getCurrentGymAdminId()}`);
     if (skipExpiry && new Date().getTime() < parseInt(skipExpiry)) {
-      console.log('Passkey setup was skipped, allowing direct access');
       this.isPaymentTabAuthorized = true;
       this.showPaymentTab();
       return;
@@ -436,7 +409,6 @@ class PaymentManager {
 
   // Skip passkey setup for 1 month
   skipPasskeySetup() {
-    console.log('Passkey setup skipped for 1 month');
     
     // Set skip expiry to 1 month from now
     const oneMonthFromNow = new Date().getTime() + (30 * 24 * 60 * 60 * 1000);
@@ -450,7 +422,6 @@ class PaymentManager {
 
   // Cancel passkey setup
   cancelPasskeySetup() {
-    console.log('Passkey setup cancelled - staying on current page');
     this.isPaymentTabAuthorized = false; // Reset authorization when setup is cancelled
     this.removeSetupDialog();
     
@@ -513,7 +484,6 @@ class PaymentManager {
 
   // Hide passkey modal
   hidePasskeyModal() {
-    console.log('Hiding passkey modal...');
     
     const modal = document.getElementById('adminPasskeyModal');
     const paymentTab = document.getElementById('paymentTab');
@@ -536,12 +506,10 @@ class PaymentManager {
     // Only redirect to dashboard if NOT authorized (i.e., cancelled)
     // If authorized, the showPaymentTab() method will handle the navigation
     if (!this.isPaymentTabAuthorized) {
-      console.log('Payment access not authorized, redirecting to dashboard...');
       
       // Use the main app's navigation system to go to dashboard
       if (typeof window.hideAllMainTabs === 'function') {
         window.hideAllMainTabs();
-        console.log('hideAllMainTabs called');
       }
       
       // Force hide payment tab specifically
@@ -556,7 +524,6 @@ class PaymentManager {
       if (dashboardContent) {
         dashboardContent.style.display = 'block';
         dashboardContent.classList.add('active');
-        console.log('Dashboard content activated using .content selector');
       }
       
       // Reset ALL navigation items and activate dashboard
@@ -571,7 +538,6 @@ class PaymentManager {
       
       if (dashboardMenuItem) {
         dashboardMenuItem.classList.add('active');
-        console.log('Dashboard menu item activated');
       }
       
       // Additional safety: update main content margins if function exists
@@ -587,15 +553,11 @@ class PaymentManager {
           );
           if (dashboardLink) {
             dashboardLink.click();
-            console.log('Dashboard link clicked as fallback');
           }
         }
       }, 100);
       
-      console.log('Successfully redirected to dashboard');
-    } else {
-      console.log('Payment access authorized, modal hidden without redirect');
-    }
+    } 
   }
 
   // Add digit to passkey
@@ -712,24 +674,20 @@ class PaymentManager {
 
   // Authorize payment access
   authorizePaymentAccess() {
-    console.log('Authorizing payment access...');
     this.isPaymentTabAuthorized = true;
     this.showPaymentTab();
   }
 
   // Show payment tab
   showPaymentTab() {
-    console.log('Attempting to show payment tab...');
     
     // Safety check: Only show payment tab if authorized
     if (!this.isPaymentTabAuthorized) {
-      console.log('Payment tab access denied - not authorized');
       this.showNotification('Please authenticate to access payment details', 'warning');
       return;
     }
 
     // CRITICAL: Use the tab switcher API for proper navigation
-    console.log('Using tab switcher to show payment tab');
     if (window.tabSwitcher && typeof window.tabSwitcher.showPayments === 'function') {
       window.tabSwitcher.showPayments();
     } else {
@@ -744,7 +702,6 @@ class PaymentManager {
     // Load payment data after navigation
     setTimeout(() => {
       this.loadPaymentData();
-      console.log('Payment data loading initiated');
     }, 100);
   }
 
@@ -791,20 +748,16 @@ class PaymentManager {
         const adminId = payload.adminId || payload.admin?.id || payload.id;
         
         if (gymId) {
-          console.log('Using gym-specific ID:', gymId);
           return `gym_${gymId}`;
         } else if (adminId) {
-          console.log('Using admin-specific ID:', adminId);
           return `admin_${adminId}`;
         } else {
-          console.log('Using payload-based fallback');
           return `user_${JSON.stringify(payload).slice(0, 10)}`;
         }
       }
       
       // Fallback: use a more specific default based on current URL or timestamp
       const urlHash = window.location.href.split('/').pop() || 'default';
-      console.log('Using URL-based fallback:', urlHash);
       return `default_${urlHash}`;
     } catch (error) {
       console.error('Error getting gym admin ID:', error);
@@ -814,7 +767,6 @@ class PaymentManager {
 
   // Show notification (use unified system if available)
   showNotification(message, type = 'info') {
-    console.log(`${type.toUpperCase()}: ${message}`);
     
     // Use unified notification system if available
     if (window.unifiedNotificationSystem) {
@@ -1019,7 +971,6 @@ class PaymentManager {
   }
 
   enablePasskey() {
-    console.log('Enabling passkey - showing setup modal');
     this.showPasskeyModal(true); // Show in setup mode
   }
 
@@ -1349,7 +1300,6 @@ class PaymentManager {
         );
         // Store for modal and stat card use
         this.recentRegularPendingPayments = manualPending;
-        console.log('Manual pending payments loaded:', manualPending.length, 'payments (excluding recurring)');
       } else {
         console.error('Failed to fetch manual pending payments:', response.status);
         manualPending = [];
@@ -1724,23 +1674,18 @@ class PaymentManager {
   }
 
   init() {
-    console.log('PaymentManager init() started');
     const token = localStorage.getItem('gymAdminToken');
-    console.log('Checking gym admin token:', token ? 'Token exists' : 'No token found');
     
     // For testing purposes, if no token exists, create a temporary one
     if (!token) {
-      console.log('No token found, creating valid token for testing...');
       // Valid token that matches the JWT_SECRET in .env
       const tempToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbiI6eyJpZCI6InRlc3QtZ3ltLWFkbWluLTEyMyIsImd5bUlkIjoidGVzdC1neW0taWQtNDU2IiwiZW1haWwiOiJ0ZXN0QGFkbWluLmNvbSJ9LCJpYXQiOjE3NTQ0MDg1NTYsImV4cCI6MTc1NDQ5NDk1Nn0.tc3o9udX1zJ1EBZ495jQntCcQD5h8v3XAn6pYcOZIBg';
       localStorage.setItem('gymAdminToken', tempToken);
-      console.log('Valid temporary token set for testing');
     }
     
     this.setupEventListeners();
     this.loadPaymentData();
     this.bindPendingPaymentsStatCard();
-    console.log('PaymentManager init() completed');
   }
 
   // Enhanced helper function to use unified notification system
@@ -1771,7 +1716,6 @@ class PaymentManager {
       if (e.target.id === 'addPaymentBtn' || e.target.closest('#addPaymentBtn')) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Add Payment button clicked');
         this.showAddPaymentModal();
         return;
       }
@@ -1893,7 +1837,6 @@ class PaymentManager {
 
   async loadPaymentStats() {
     try {
-      console.log('Loading payment stats...');
       const token = localStorage.getItem('gymAdminToken');
       
       if (!token) {
@@ -1915,7 +1858,6 @@ class PaymentManager {
         return;
       }
 
-      console.log('Making request to payment stats API...');
       const response = await fetch('http://localhost:5000/api/payments/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1923,14 +1865,12 @@ class PaymentManager {
         }
       });
 
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Payment stats API error: ${response.status} ${response.statusText}`, errorText);
         
         // For demo purposes, show mock data instead of error
-        console.log('API failed, showing mock data for demonstration');
         this.updatePaymentStats({
           received: 25000,
           paid: 12000,
@@ -1947,7 +1887,6 @@ class PaymentManager {
       }
 
       const data = await response.json();
-      console.log('Payment stats loaded successfully:', data);
       
       if (data.success && data.data) {
         this.updatePaymentStats(data.data);
@@ -1959,7 +1898,6 @@ class PaymentManager {
       console.error('Error loading payment stats:', error);
       
       // Show mock data for demonstration when API fails
-      console.log('API error, showing mock data for demonstration');
       this.updatePaymentStats({
         received: 35000,
         paid: 18000,
@@ -2130,16 +2068,11 @@ class PaymentManager {
       if (!response.ok) throw new Error('Failed to fetch recent payments');
 
       const data = await response.json();
-      console.log('Recent payments data:', data);
-      console.log('Recent payments count:', data.data?.length || 0);
       
       // Log recent payments for debugging
       if (Array.isArray(data.data)) {
-        console.log('=== RECENT PAYMENTS ANALYSIS ===');
         data.data.forEach((p, index) => {
-          console.log(`Recent Payment ${index + 1}: ${p.description} | Status: ${p.status} | Type: ${p.type} | Date: ${p.createdAt} | IsRecurring: ${p.isRecurring}`);
         });
-        console.log('===================================');
       }
       
       this.renderRecentPayments(data.data);
@@ -2222,7 +2155,6 @@ class PaymentManager {
   }
 
   async loadRecurringPayments() {
-    console.log(`Loading dues with filter: ${this.currentFilter}`);
     try {
       // For the Dues section, we only want pending payments (unpaid dues)
       const statusFilter = 'pending';
@@ -2236,16 +2168,11 @@ class PaymentManager {
       if (!response.ok) throw new Error('Failed to fetch dues');
 
       const data = await response.json();
-      console.log('Raw dues data:', data);
-      console.log('Total payments received from backend:', data.data?.length || 0);
       
       // Log each payment for debugging
       if (Array.isArray(data.data)) {
-        console.log('=== DUES SECTION ANALYSIS ===');
         data.data.forEach((p, index) => {
-          console.log(`Dues Payment ${index + 1}: ${p.description} | Status: ${p.status} | Type: ${p.type} | Recurring: ${p.isRecurring} | DueDate: ${p.dueDate}`);
         });
-        console.log('==============================');
       }
       
       // Filter to show only unpaid dues in the Dues section
@@ -2256,13 +2183,11 @@ class PaymentManager {
 
         // Only show pending payments (unpaid dues)
         if (status !== 'pending') {
-          console.log(`Filtering out non-pending payment: ${p.description} (status: ${status})`);
           return false;
         }
 
         // Exclude ANY completed payments - they belong in Recent Payments
         if (status === 'completed' || type === 'paid' || type === 'received') {
-          console.log(`Excluding completed/paid payment from dues: ${p.description} (status: ${status}, type: ${type})`);
           return false;
         }
 
@@ -2270,7 +2195,6 @@ class PaymentManager {
         if (this.currentFilter === 'monthly-recurring') {
           // Show only monthly recurring payments
           if (!isRecurring) {
-            console.log(`Filtering out non-recurring payment for monthly filter: ${p.description}`);
             return false;
           }
         } else if (this.currentFilter === 'all') {
@@ -2288,7 +2212,6 @@ class PaymentManager {
             // Show if within 7 days (past or future) for recurring payments
             const withinWindow = daysDiff <= 7;
             if (!withinWindow) {
-              console.log(`Filtering out recurring payment outside 7-day window: ${p.description} (${daysDiff} days)`);
             }
             return withinWindow;
           }
@@ -2298,20 +2221,17 @@ class PaymentManager {
         }
 
         // Filter out payments that are not due/pending type
-        console.log(`Filtering out non-due payment: ${p.description} (type: ${type})`);
         return false;
       }) : [];
 
       // For monthly recurring filter, exclude manual pending payments
       const finalFiltered = filtered.filter(p => {
         if (this.currentFilter === 'monthly-recurring' && p.type === 'pending' && !p.isRecurring) {
-          console.log(`Filtering out manual pending payment for monthly filter: ${p.description}`);
           return false;
         }
         return true;
       });
 
-      console.log(`Filtered dues: ${finalFiltered.length} items from ${data.data?.length || 0} total`);
       this.renderRecurringPayments(finalFiltered);
     } catch (error) {
       console.error('Error loading dues:', error);
@@ -2442,10 +2362,8 @@ class PaymentManager {
     }).join('');
   }
 
-  // Legacy method - now replaced by loadAllPendingPayments()
   // This method is kept for compatibility but redirects to the unified loader
   async loadMemberPendingPayments() {
-    console.log('loadMemberPendingPayments called - redirecting to unified loader');
     // Just call the unified loader instead of doing separate member loading
     await this.loadAllPendingPayments();
   }
@@ -2457,7 +2375,6 @@ class PaymentManager {
       return;
     }
 
-    console.log('Members with pending payments:', members);
 
     if (members.length === 0) {
       container.innerHTML = `
@@ -2634,8 +2551,6 @@ class PaymentManager {
     // Store member pending payments but do NOT update stat card here
     // The stat card should only be updated by updateCombinedPendingStatCard() called from loadAllPendingPayments()
     this.memberPendingAmount = memberPendingAmount;
-    console.log(`updatePendingStatWithMembers called with ${memberPendingAmount}, but NOT updating stat card to prevent conflicts`);
-    // this.updateCombinedPendingStatCard(); // Disabled to prevent conflicts
     // Optionally, show the member count somewhere if needed (not required for just the amount)
   }
 
@@ -2646,7 +2561,6 @@ class PaymentManager {
     const totalMemberCount = (this.recentMemberPendingPayments || []).length;
     const totalCount = totalRegularCount + totalMemberCount;
     
-    console.log(`Updating combined pending stat card: regular=${this.regularPendingAmount}, member=${this.memberPendingAmount}, total=${totalPending}, count=${totalCount}`);
     
     // Update main stat card
     const pendingCard = document.querySelector('.payment-stat-card.pending');
@@ -2669,7 +2583,6 @@ class PaymentManager {
       pendingAmountElement.textContent = `₹${this.formatAmount(totalPending)} pending`;
     }
     
-    console.log(`Updated pending header stats: ${totalCount} items, ₹${this.formatAmount(totalPending)}`);
   }
 
   // Handle manual payment actions (mark as paid, etc.)
@@ -2870,10 +2783,8 @@ class PaymentManager {
       }
     } else if (action === 'remind') {
       // Handle remind action (existing functionality)
-      console.log('Remind member:', memberId);
     } else if (action === 'grant-allowance') {
       // Handle grant allowance action (existing functionality)
-      console.log('Grant allowance to member:', memberId);
     }
   }
 
@@ -3129,7 +3040,6 @@ class PaymentManager {
       
       // Check if already enhanced to avoid duplicates
       if (recurringGroup.querySelector('.recurring-info-wrapper')) {
-        console.log('Recurring checkbox already enhanced');
         return;
       }
       
@@ -3277,7 +3187,6 @@ class PaymentManager {
       recurringGroup.appendChild(wrapper);
       document.body.appendChild(tooltip);
       
-      console.log('Recurring checkbox enhancement completed successfully');
     }, 200); // Increased timeout to ensure DOM is ready
   }
 
@@ -3559,13 +3468,11 @@ class PaymentManager {
 
   async handleMemberPaymentAction(action, memberId) {
     try {
-      console.log(`Handling member payment action: ${action} for member: ${memberId}`);
       
       switch (action) {
         case 'mark-paid':
           // Use the seven-day allowance system to show mark as paid modal
           if (window.sevenDayAllowanceManager && typeof window.sevenDayAllowanceManager.showMarkAsPaidModal === 'function') {
-            console.log('Opening mark as paid modal via seven-day allowance system');
             window.sevenDayAllowanceManager.showMarkAsPaidModal(memberId, 'payment-tab');
           } else {
             console.error('Seven-day allowance system not available');
@@ -3575,7 +3482,6 @@ class PaymentManager {
           
         case 'remind-member':
           // Send reminder for payment
-          console.log('Sending payment reminder for member:', memberId);
           try {
             const reminderResponse = await fetch('http://localhost:5000/api/notifications/send-payment-reminder', {
               method: 'POST',
@@ -3600,7 +3506,6 @@ class PaymentManager {
         case 'grant-allowance':
           // Use the seven-day allowance system to grant allowance
           if (window.sevenDayAllowanceManager && typeof window.sevenDayAllowanceManager.openAllowanceModal === 'function') {
-            console.log('Opening allowance modal via seven-day allowance system');
             window.sevenDayAllowanceManager.openAllowanceModal(memberId);
           } else {
             console.error('Seven-day allowance system not available');
@@ -3639,7 +3544,6 @@ class PaymentManager {
   async refreshPaymentData() {
     // Refresh all payment-related data and statistics
     try {
-      console.log('Refreshing all payment data...');
       await Promise.all([
         this.loadPaymentStats(),
         this.loadRecentPayments(),
@@ -3648,7 +3552,6 @@ class PaymentManager {
       ]);
       // Load unified pending payments after all other data is refreshed
       await this.loadAllPendingPayments();
-      console.log('Payment data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing payment data:', error);
       this.showError('Failed to refresh payment data');
@@ -3658,7 +3561,6 @@ class PaymentManager {
   async forceRefreshStats() {
     // Force refresh of payment statistics with cache busting
     try {
-      console.log('Force refreshing payment statistics...');
       const timestamp = Date.now();
       const response = await fetch(`http://localhost:5000/api/payments/stats?t=${timestamp}`, {
         headers: {
@@ -3672,7 +3574,6 @@ class PaymentManager {
       }
 
       const data = await response.json();
-      console.log('Force refreshed payment stats:', data.data);
       this.updatePaymentStats(data.data);
       
       // Note: loadAllPendingPayments() should be called separately by the caller when needed
@@ -3713,7 +3614,6 @@ class PaymentManager {
       const memberPayment = container.querySelector(`[data-member-id="${memberId}"]`);
       if (memberPayment) {
         memberPayment.remove();
-        console.log(`Removed member pending payment for member ID: ${memberId}`);
       }
     }
     
@@ -3740,7 +3640,6 @@ class PaymentManager {
   async updateMemberPendingPaymentStatus(memberId, action) {
     // This function is called from the seven-day allowance system
     // to update the member pending payments UI and stats
-    console.log(`Updating member pending payment status: ${memberId} - ${action}`);
     
     if (action === 'payment_completed') {
       // Remove the member from pending payments
@@ -3752,7 +3651,6 @@ class PaymentManager {
         this.loadAllPendingPayments()
       ]);
       
-      console.log(`Payment completed for member: ${memberId}`);
     } else if (action === 'allowance_granted') {
       // For allowance granted, update the display to show allowance status
       const memberContainer = document.getElementById('pendingPaymentsList');
@@ -3780,7 +3678,6 @@ class PaymentManager {
         }
       }
       
-      console.log(`Allowance granted for member: ${memberId}`);
     }
   }
 
@@ -3954,7 +3851,6 @@ class PaymentManager {
       if (!response.ok) throw new Error('Failed to record membership payment');
 
       const result = await response.json();
-      console.log('Membership payment recorded successfully:', result);
       
       // Refresh payment data if payment tab is active
       if (document.getElementById('paymentTab')?.style.display !== 'none') {
@@ -4005,7 +3901,6 @@ class PaymentManager {
       if (!response.ok) throw new Error('Failed to record renewal payment');
 
       const result = await response.json();
-      console.log('Renewal payment recorded successfully:', result);
       
       // Refresh payment data if payment tab is active
       if (document.getElementById('paymentTab')?.style.display !== 'none') {
@@ -4074,12 +3969,10 @@ class PaymentManager {
 
   resetSeenNotifications() {
     this.seenNotifications.clear();
-    console.log('Reset seen notifications for new day');
   }
 
   async checkEnhancedPaymentReminders() {
     try {
-      console.log('Checking enhanced payment reminders...');
       
       // Get all monthly recurring payments that are due within 7 days
       const response = await fetch('http://localhost:5000/api/payments/recurring?status=pending', {
@@ -4138,12 +4031,10 @@ class PaymentManager {
     // Mark notification as seen for tracking
     this.markNotificationAsSeen(notificationId);
     
-    console.log(`Payment due notification sent via unified system for: ${payment.description} (${daysUntilDue} days)`);
   }
 
   markNotificationAsSeen(notificationId) {
     this.seenNotifications.add(notificationId);
-    console.log(`Marked notification as seen: ${notificationId}`);
   }
 
   async checkPaymentReminders() {
@@ -4169,7 +4060,6 @@ class PaymentManager {
   async checkMonthlyRecurringPaymentNotifications() {
     // This method is now replaced by checkEnhancedPaymentReminders()
     // Keeping for compatibility, but redirecting to enhanced version
-    console.log('Legacy checkMonthlyRecurringPaymentNotifications called - redirecting to enhanced version');
     return this.checkEnhancedPaymentReminders();
   }
 
@@ -4239,7 +4129,6 @@ class PaymentManager {
 
   async loadExpiringMembersForDropdown() {
     try {
-      console.log('Loading members with expiring/expired memberships for dropdown...');
       
       // Fetch members with memberships expiring within 3 days or already expired
       // If the backend doesn't support the days parameter, it will return all expiring members
@@ -4257,7 +4146,6 @@ class PaymentManager {
 
       const data = await response.json();
       const expiringMembers = data.data || data; // Handle different response formats
-      console.log('Loaded expiring/expired members:', expiringMembers);
       this.populateExpiringMemberDropdown(expiringMembers);
     } catch (error) {
       console.error('Error loading expiring members:', error);
@@ -4282,7 +4170,6 @@ class PaymentManager {
 
     if (!members || members.length === 0) {
       memberSelect.innerHTML += '<option value="" disabled>No members with expiring/expired memberships found</option>';
-      console.log('No expiring/expired members to populate');
       return;
     }
 
@@ -4294,7 +4181,6 @@ class PaymentManager {
 
     if (filteredMembers.length === 0) {
       memberSelect.innerHTML += '<option value="" disabled>No members with urgent membership renewals found</option>';
-      console.log('No urgent membership renewals found');
       return;
     }
 
@@ -4351,7 +4237,6 @@ class PaymentManager {
       memberSelect.appendChild(option);
     });
 
-    console.log(`Populated dropdown with ${filteredMembers.length} urgent membership renewals`);
 
     // Add event listener for member selection
     memberSelect.removeEventListener('change', this.handleMemberSelection.bind(this));
@@ -5318,15 +5203,12 @@ class PaymentManager {
 
 // Initialize payment manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded, initializing PaymentManager...');
   try {
     window.paymentManager = new PaymentManager();
-    console.log('PaymentManager successfully created and attached to window');
     
     // Make it globally accessible for debugging
     window.createPaymentManager = () => {
       window.paymentManager = new PaymentManager();
-      console.log('New PaymentManager instance created');
     };
     
   } catch (error) {

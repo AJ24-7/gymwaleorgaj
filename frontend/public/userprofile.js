@@ -4,9 +4,16 @@ document.addEventListener("DOMContentLoaded", function () {
   // ✅ Redirect if not logged in
   if (!token) {
     console.warn('No token found in localStorage. Redirecting to login...');
-    window.location.href = '/frontend/public/login.html';
+    window.location.href = 'login.html';
     return;
   }
+
+  // ✅ CRITICAL: Prevent unhandled promise rejections from causing page reloads
+  window.addEventListener('unhandledrejection', function(event) {
+    console.warn('🛡️ Caught unhandled promise rejection:', event.reason);
+    event.preventDefault(); // Prevent default browser behavior (reload)
+  });
+
   // === NAVIGATION BAR: Toggle & Active Link Highlight ===
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
@@ -58,8 +65,131 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // === ID PASS: Fetch & Populate Functions (defined before use) ===
+  async function fetchIDPass(email) {
+    if (!email) {
+      console.warn('No email provided for ID pass fetch');
+      return;
+    }
+    
+    const base = window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000';
+    console.log(`Fetching ID pass for email: ${email} from ${base}`);
+    
+    try {
+      const resp = await fetch(`${base}/api/id-pass/by-email/${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (resp.status === 404) {
+        // No pass yet - this is normal for users without membership
+        console.log('No ID pass found for this user (404)');
+        const idPassCard = document.getElementById('idPassCard');
+        const noPassMessage = document.getElementById('no-pass-message');
+        const noMembership = document.getElementById('no-membership-for-pass');
+        if (idPassCard) idPassCard.style.display = 'none';
+        if (noPassMessage) noPassMessage.style.display = 'block';
+        if (noMembership) noMembership.style.display = 'none';
+        return;
+      }
+
+      if (!resp.ok) {
+        console.warn(`ID pass fetch failed with status: ${resp.status}`);
+        throw new Error(`Status ${resp.status}`);
+      }
+      
+      const data = await resp.json();
+      console.log('ID pass data received:', data);
+      window.currentPassData = data;
+      populateIDPass(data);
+    } catch (err) {
+      // Network error or server not running - gracefully handle
+      console.warn('⚠️ ID pass feature unavailable:', err.message);
+      
+      // Show no-pass message (safe fallback - doesn't break the page)
+      const idPassCard = document.getElementById('idPassCard');
+      const noPassMessage = document.getElementById('no-pass-message');
+      if (idPassCard) idPassCard.style.display = 'none';
+      if (noPassMessage) {
+        noPassMessage.style.display = 'block';
+        noPassMessage.innerHTML = '<i class="fas fa-info-circle"></i> ID Pass data unavailable';
+      }
+      // Do NOT throw - just return gracefully
+    }
+  }
+
+  function populateIDPass(data) {
+    if (!data || !data.member) return;
+    const member = data.member;
+
+    // Show ID pass card
+    const idPassCard = document.getElementById('idPassCard');
+    const noPassMessage = document.getElementById('no-pass-message');
+    const noMembership = document.getElementById('no-membership-for-pass');
+    if (idPassCard) {
+      idPassCard.classList.remove('loading');
+      idPassCard.style.display = 'block';
+    }
+    if (noPassMessage) noPassMessage.style.display = 'none';
+    if (noMembership) noMembership.style.display = 'none';
+
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || ''; };
+
+    setText('passIdDisplay', data.passId || (data.pass && data.pass.passId) || 'N/A');
+    const passPhoto = document.getElementById('passMemberPhoto');
+    if (passPhoto && member.profileImage) passPhoto.src = member.profileImage.startsWith('http') ? member.profileImage : `${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}${member.profileImage}`;
+
+    const qrImage = document.getElementById('passQRImage');
+    if (qrImage && data.qrDataUrl) { qrImage.src = data.qrDataUrl; qrImage.style.display = 'block'; }
+
+    setText('passMemberName', getFullName(member) || member.username || member.email || 'Member');
+    setText('passPlanBadge', (data.plan || data.pass?.plan) || 'Standard');
+    setText('passDurationBadge', (data.duration || data.pass?.duration) || '-');
+    setText('passEmail', member.email || '-');
+    setText('passPhone', member.phone || '-');
+    setText('passActivity', (member.activity || '-'));
+    setText('passValidFrom', data.validFrom ? formatDate(data.validFrom) : (data.pass?.validFrom ? formatDate(data.pass.validFrom) : '-'));
+    setText('passValidUntil', data.validUntil ? formatDate(data.validUntil) : (data.pass?.validUntil ? formatDate(data.pass.validUntil) : '-'));
+    const statusIndicator = document.getElementById('passStatusIndicator');
+    if (statusIndicator) statusIndicator.textContent = (data.status || (data.pass && data.pass.status) || 'ACTIVE').toUpperCase();
+    setText('passGymName', (data.gymName || data.pass?.gymName) || 'Gym-Wale');
+  }
+
+  // === DIET PLAN POPULATION FUNCTION (defined before use) ===
+  function populateDietPlan(dietPlan) {
+    console.log("Populating diet plan:", dietPlan);
+    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
+    mealTypes.forEach(meal => {
+      const mealCard = Array.from(document.querySelectorAll('.meal-card')).find(card =>
+        card.querySelector('.meal-header h4') &&
+        card.querySelector('.meal-header h4').textContent.trim().toLowerCase() === meal
+      );
+      if (mealCard && dietPlan.selectedMeals && dietPlan.selectedMeals[meal]) {
+        const mealItems = mealCard.querySelector('.meal-items');
+        const caloriesSpan = mealCard.querySelector('.calories');
+        const items = dietPlan.selectedMeals[meal];
+
+        if (mealItems) {
+          mealItems.innerHTML = items
+            .map(item => `<li>${item.name} <span class="cal">${item.calories} kcal</span></li>`)
+            .join('');
+        }
+
+        // Calculate and display total calories for this meal
+        if (caloriesSpan) {
+          const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
+          caloriesSpan.textContent = `${totalCalories} cal`;
+        }
+      }
+    });
+  }
+
   // ✅ Fetch user profile
-  fetch('http://localhost:5000/api/users/profile', {
+  const profileUrl = (typeof buildApiUrl === 'function') ? buildApiUrl(window.API_CONFIG.ENDPOINTS.USER_PROFILE) : `${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/users/profile`;
+  fetch(profileUrl, {
     method: 'GET',
     headers: {
       'Content-Type': "application/json",
@@ -69,7 +199,10 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(async (res) => {
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Server responded with ${res.status}: ${errText}`);
+        // Store status code for error handling
+        const error = new Error(`Server responded with ${res.status}: ${errText}`);
+        error.status = res.status;
+        throw error;
       }
       return res.json();
     })
@@ -77,8 +210,9 @@ document.addEventListener("DOMContentLoaded", function () {
       // Enhanced profile population with loading management
       populateEnhancedProfile(user);
 
-      // === FETCH MEMBERSHIP DETAILS ===
-      fetchMembershipDetails(user.email.trim().toLowerCase());
+      // === FETCH ID PASS - TEMPORARILY DISABLED FOR TESTING ===
+      // fetchIDPass(user.email.trim().toLowerCase());
+      console.log('🔧 ID Pass fetch temporarily disabled for testing');
 
       // === DIET PLAN ===
       if (user.dietPlan) {
@@ -87,11 +221,31 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(err => {
       console.error('❌ Error fetching profile:', err);
-      showProfileError();
-      setTimeout(() => {
-        alert('Failed to load profile. Please try logging in again.');
-        window.location.href = '/frontend/public/login.html';
-      }, 2000);
+      
+      // Check if it's an authentication error (401/403) - only then redirect to login
+      if (err.status === 401 || err.status === 403) {
+        console.warn('🔒 Authentication failed. Redirecting to login...');
+        showProfileError();
+        setTimeout(() => {
+          alert('Session expired. Please log in again.');
+          localStorage.removeItem('token');
+          window.location.href = 'login.html';
+        }, 2000);
+      } else if (err.message === 'Failed to fetch') {
+        // Network error - server not reachable
+        console.warn('⚠️ Backend server not reachable. Showing offline mode...');
+        showOfflineMode();
+      } else {
+        // Other errors - show error but don't redirect
+        console.error('❌ Unexpected error loading profile:', err);
+        showProfileError();
+        // Show user-friendly message
+        const errorBanner = document.createElement('div');
+        errorBanner.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ff6b6b; color: white; padding: 15px 30px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+        errorBanner.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Unable to load profile data. Please refresh the page.';
+        document.body.appendChild(errorBanner);
+        setTimeout(() => errorBanner.remove(), 5000);
+      }
     });
 
   // === ENHANCED PROFILE POPULATION FUNCTION ===
@@ -134,9 +288,10 @@ document.addEventListener("DOMContentLoaded", function () {
     updateElementWithLoading('usertwoFactor', user.twoFactorEnabled ? 'Enabled' : 'Disabled');
 
     // Profile picture
+    const apiBase = window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000';
     const profilePicUrl = user.profileImage
-      ? (user.profileImage.startsWith('http') ? user.profileImage : `http://localhost:5000${user.profileImage}`)
-      : `http://localhost:5000/uploads/profile-pics/default.png`;
+      ? (user.profileImage.startsWith('http') ? user.profileImage : `${apiBase}${user.profileImage}`)
+      : `${apiBase}/uploads/profile-pics/default.png`;
     document.getElementById("profileImage").src = profilePicUrl;
     
     const userIconImage = document.getElementById("profile-icon-img");
@@ -513,6 +668,55 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  function showOfflineMode() {
+    // Show offline banner
+    const offlineBanner = document.createElement('div');
+    offlineBanner.id = 'offline-banner';
+    offlineBanner.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      z-index: 10000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      font-size: 14px;
+    `;
+    offlineBanner.innerHTML = `
+      <i class="fas fa-wifi-slash"></i> 
+      <strong>Offline Mode</strong> - Backend server is not reachable. Some features may be unavailable.
+      <button onclick="location.reload()" style="margin-left: 15px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 15px; border-radius: 4px; cursor: pointer;">
+        <i class="fas fa-sync-alt"></i> Retry
+      </button>
+    `;
+    document.body.insertBefore(offlineBanner, document.body.firstChild);
+    
+    // Show offline state for loading elements
+    const loadingTexts = document.querySelectorAll('.loading-text');
+    loadingTexts.forEach(element => {
+      element.textContent = 'Unavailable (Offline)';
+      element.classList.remove('loading-text');
+      element.style.color = '#999';
+    });
+    
+    const loadingSkeletons = document.querySelectorAll('.loading-skeleton');
+    loadingSkeletons.forEach(skeleton => {
+      skeleton.style.display = 'none';
+    });
+    
+    // Hide ID pass card since it requires backend
+    const idPassCard = document.getElementById('idPassCard');
+    const noPassMessage = document.getElementById('no-pass-message');
+    if (idPassCard) idPassCard.style.display = 'none';
+    if (noPassMessage) {
+      noPassMessage.style.display = 'block';
+      noPassMessage.innerHTML = '<i class="fas fa-wifi-slash"></i> ID Pass unavailable in offline mode';
+    }
+  }
+
   // === SHARE PROFILE FUNCTION ===
   window.shareProfile = function() {
     if (navigator.share) {
@@ -529,262 +733,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // === SHOW MOCK MEMBERSHIP DETAILS (Temporary Solution) ===
-  function showMockMembershipDetails(user) {
-    // Remove loading class
-    document.querySelector('.membership-card').classList.remove('loading');
-    
-    // Generate a realistic membership
-    const membershipId = `FIT-2025-PREM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const joinDate = new Date('2024-07-15'); // Mock join date
-    const validUntil = new Date('2025-01-15'); // Mock expiry (6 months)
-    const today = new Date();
-    const timeDiff = validUntil.getTime() - today.getTime();
-    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    
-    const mockMembership = {
-      membershipId: membershipId,
-      memberName: user.username || user.name,
-      email: user.email,
-      phone: user.phone || '9999999999',
-      planName: 'Premium',
-      monthlyPlan: '6 Months',
-      validUntil: '2025-01-15',
-      amountPaid: 8999,
-      paidVia: 'UPI',
-      joinDate: '2024-07-15',
-      daysLeft: daysLeft,
-      isActive: daysLeft > 0,
-      gym: {
-        name: 'FIT-verse Premium',
-        city: 'Delhi',
-        state: 'Delhi'
-      }
-    };
-    
-    populateMembershipDetails(mockMembership);
-  }
-
-  // === FETCH MEMBERSHIP DETAILS FUNCTION ===
-  async function fetchMembershipDetails(email) {
-    try {
-      const response = await fetch(`http://localhost:5000/api/members/membership-by-email/${encodeURIComponent(email)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseErr) {
-        console.error('Failed to parse membership API response:', text);
-        showMembershipError();
-        return;
-      }
-
-      if (!response.ok) {
-        console.error('Membership API error:', data);
-        showMembershipError();
-        return;
-      }
-
-      if (data.success && data.membership) {
-        populateMembershipDetails(data.membership);
-      } else {
-        console.warn('No membership found:', data);
-        showNoMembershipFound();
-      }
-    } catch (error) {
-      console.error('Network or server error fetching membership details:', error);
-      showMembershipError();
-    }
-  }
-
-  // === POPULATE MEMBERSHIP DETAILS ===
-  function populateMembershipDetails(membership) {
-    // Remove loading class
-    document.querySelector('.membership-card').classList.remove('loading');
-
-    // Always robustly check for valid membership
-    const detailsSection = document.getElementById('membership-details-section');
-    const noMembershipMsg = document.getElementById('no-membership-message');
-
-    // If no membership object, or not an object, or missing key fields, or not active, show only the message
-    if (!membership || typeof membership !== 'object' || !membership.isActive || !membership.membershipId || !membership.gym || !membership.planSelected || !membership.membershipValidUntil) {
-      if (detailsSection) detailsSection.style.display = 'none';
-      if (noMembershipMsg) noMembershipMsg.style.display = '';
-      // Optionally clear all fields to avoid stale data
-      [
-        'membership-id', 'gym-name', 'plan-details', 'valid-till', 'amount-paid', 'payment-method', 'join-date', 'days-left-display'
-      ].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '';
-      });
-      const statusElement = document.getElementById('membership-status');
-      if (statusElement) {
-        const statusBadge = statusElement.querySelector('.status-badge');
-        if (statusBadge) statusBadge.textContent = '';
-      }
-      return;
-    }
-
-    // Show details, hide message
-    if (detailsSection) detailsSection.style.display = '';
-    if (noMembershipMsg) noMembershipMsg.style.display = 'none';
-
-    // Update membership ID
-    document.getElementById('membership-id').textContent = membership.membershipId || 'N/A';
-
-    // Update gym name
-    const gymLocation = membership.gym && membership.gym.city && membership.gym.state 
-      ? `, ${membership.gym.city}, ${membership.gym.state}`
-      : '';
-    document.getElementById('gym-name').textContent = membership.gym ? `${membership.gym.name}${gymLocation}` : 'N/A';
-
-    // Update plan details (use planSelected)
-    document.getElementById('plan-details').textContent = membership.planSelected ? `${membership.planSelected} (${membership.monthlyPlan})` : 'N/A';
-
-    // Update valid till (use membershipValidUntil)
-    if (membership.membershipValidUntil) {
-      const validTillDate = new Date(membership.membershipValidUntil);
-      document.getElementById('valid-till').textContent = validTillDate.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-    } else {
-      document.getElementById('valid-till').textContent = 'N/A';
-    }
-
-    // Update amount paid (use paymentAmount)
-    document.getElementById('amount-paid').textContent = membership.paymentAmount ? `₹${membership.paymentAmount?.toLocaleString('en-IN')}` : 'N/A';
-
-    // Update payment method (use paymentMode)
-    document.getElementById('payment-method').textContent = membership.paymentMode || 'N/A';
-
-    // Update join date
-    if (membership.joinDate) {
-      const joinDate = new Date(membership.joinDate);
-      document.getElementById('join-date').textContent = joinDate.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-    } else {
-      document.getElementById('join-date').textContent = 'N/A';
-    }
-
-    // Update days left and progress
-    updateDaysLeftDisplay(membership.daysLeft, membership.isActive);
-
-    // Update membership status
-    updateMembershipStatus(membership.daysLeft, membership.isActive);
-  }
-
-  // === UPDATE DAYS LEFT DISPLAY ===
-  function updateDaysLeftDisplay(daysLeft, isActive) {
-    const daysLeftElement = document.getElementById('days-left-display');
-    const progressRing = document.querySelector('.progress-ring');
-    const progressCircle = document.querySelector('.progress-ring-circle');
-    
-    if (!isActive || daysLeft <= 0) {
-      daysLeftElement.textContent = 'Expired';
-      daysLeftElement.className = 'days-left-critical';
-      progressCircle.className = 'progress-ring-circle critical';
-      progressRing.setAttribute('data-progress', '0');
-    } else if (daysLeft <= 7) {
-      daysLeftElement.textContent = `${daysLeft} left`;
-      daysLeftElement.className = 'days-left-critical';
-      progressCircle.className = 'progress-ring-circle critical';
-      const progress = Math.max(10, (daysLeft / 30) * 100);
-      progressRing.setAttribute('data-progress', progress);
-    } else if (daysLeft <= 30) {
-      daysLeftElement.textContent = `${daysLeft} left`;
-      daysLeftElement.className = 'days-left-warning';
-      progressCircle.className = 'progress-ring-circle warning';
-      const progress = (daysLeft / 30) * 100;
-      progressRing.setAttribute('data-progress', progress);
-    } else {
-      daysLeftElement.textContent = `${daysLeft} left`;
-      daysLeftElement.className = 'days-left-good';
-      progressCircle.className = 'progress-ring-circle good';
-      const progress = Math.min(100, (daysLeft / 365) * 100 + 50);
-      progressRing.setAttribute('data-progress', progress);
-    }
-    
-    // Update progress ring
-    updateProgressRing(progressRing);
-  }
-
-  // === UPDATE MEMBERSHIP STATUS BADGE ===
-  function updateMembershipStatus(daysLeft, isActive) {
-    const statusElement = document.getElementById('membership-status');
-    const statusBadge = statusElement.querySelector('.status-badge');
-    
-    if (!isActive || daysLeft <= 0) {
-      statusBadge.textContent = 'Expired';
-      statusBadge.className = 'status-badge expired';
-    } else if (daysLeft <= 7) {
-      statusBadge.textContent = 'Expiring Soon';
-      statusBadge.className = 'status-badge expiring';
-    } else {
-      statusBadge.textContent = 'Active';
-      statusBadge.className = 'status-badge active';
-    }
-  }
-
-  // === UPDATE PROGRESS RING ===
-  function updateProgressRing(progressRing) {
-    const progress = progressRing.getAttribute('data-progress');
-    const circle = progressRing.querySelector('.progress-ring-circle');
-    const radius = circle.r.baseVal.value;
-    const circumference = radius * 2 * Math.PI;
-    
-    circle.style.strokeDasharray = `${circumference} ${circumference}`;
-    circle.style.strokeDashoffset = circumference;
-    
-    const offset = circumference - (progress / 100) * circumference;
-    circle.style.strokeDashoffset = offset;
-  }
-
-  // === SHOW NO MEMBERSHIP FOUND ===
-  function showNoMembershipFound() {
-    // Hide membership details, show no-membership message in card
-    const detailsSection = document.getElementById('membership-details-section');
-    const noMembershipMsg = document.getElementById('no-membership-message');
-    if (detailsSection) detailsSection.style.display = 'none';
-    if (noMembershipMsg) noMembershipMsg.style.display = '';
-    // Optionally, also hide the old noMembershipCard if present
-    const noMembershipCard = document.getElementById('noMembershipCard');
-    if (noMembershipCard) noMembershipCard.style.display = 'none';
-    
-    if (noMembershipCard) {
-      noMembershipCard.style.display = 'block';
-    }
-  }
-
-  // === SHOW MEMBERSHIP ERROR ===
-  function showMembershipError() {
-    document.querySelector('.membership-card').classList.remove('loading');
-    document.getElementById('membership-id').textContent = 'Error loading';
-    document.getElementById('gym-name').textContent = 'Unable to fetch membership details';
-    document.getElementById('plan-details').textContent = 'Please try again';
-    document.getElementById('valid-till').textContent = 'N/A';
-    document.getElementById('amount-paid').textContent = 'N/A';
-    document.getElementById('payment-method').textContent = 'N/A';
-    document.getElementById('join-date').textContent = 'N/A';
-    document.getElementById('days-left-display').textContent = 'Error';
-    
-    const statusElement = document.getElementById('membership-status');
-    const statusBadge = statusElement.querySelector('.status-badge');
-    statusBadge.textContent = 'Error';
-    statusBadge.className = 'status-badge loading';
-  }
+  // === DIET PLAN FETCHING ===
   // Fetch user diet plan from dietController
-  fetch('http://localhost:5000/api/diet/my-plan', {
+  fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/diet/my-plan`, {
   method: 'GET',
   headers: {
     'Content-Type': "application/json",
@@ -807,28 +758,29 @@ document.addEventListener("DOMContentLoaded", function () {
         card.querySelector('.meal-header h4').textContent.trim().toLowerCase() === meal
       );
       if (mealCard && plan.selectedMeals && plan.selectedMeals[meal]) {
-  const mealItems = mealCard.querySelector('.meal-items');
-  const caloriesSpan = mealCard.querySelector('.calories');
-  const items = plan.selectedMeals[meal];
+        const mealItems = mealCard.querySelector('.meal-items');
+        const caloriesSpan = mealCard.querySelector('.calories');
+        const items = plan.selectedMeals[meal];
 
-  if (mealItems) {
-    mealItems.innerHTML = items
-      .map(item => `<li>${item.name} <span class="cal">${item.calories} kcal</span></li>`)
-      .join('');
-  }
+        if (mealItems) {
+          mealItems.innerHTML = items
+            .map(item => `<li>${item.name} <span class="cal">${item.calories} kcal</span></li>`)
+            .join('');
+        }
 
-  // Calculate and display total calories for this meal
-  if (caloriesSpan) {
-    const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
-    caloriesSpan.textContent = `${totalCalories} cal`;
-  }
-}
+        // Calculate and display total calories for this meal
+        if (caloriesSpan) {
+          const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
+          caloriesSpan.textContent = `${totalCalories} cal`;
+        }
+      }
     });
   })
   .catch(err => {
     console.warn('No diet plan found or error fetching diet plan:', err);
     // Optionally, show a message in the UI
   });
+
   // --- Workout Schedule Creator Logic ---
 
 const daysOfWeek = [
@@ -940,7 +892,7 @@ if (saveBtn) {
   saveBtn.addEventListener('click', async function() {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/workout-schedule', {
+      const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/users/workout-schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1010,7 +962,7 @@ function displaySavedSchedule(schedule) {
 async function fetchAndRenderWorkoutSchedule() {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:5000/api/users/workout-schedule', {
+    const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/users/workout-schedule`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -1042,8 +994,7 @@ fetchAndRenderWorkoutSchedule();
     });
   }
 
- 
-});
+}); // End of DOMContentLoaded
 
 // ✅ Helper functions
 function getActivityIcon(activityType) {
@@ -1082,7 +1033,7 @@ function formatActivityDate(dateString) {
 // ✅ Logout Function
 function logout() {
   localStorage.removeItem("token");
-  window.location.href = "/frontend/index.html";
+  window.location.href = "../index.html";
 }
 
 // === INCOMPLETE PROFILE FUNCTIONS ===
@@ -1119,7 +1070,7 @@ class AttendanceManager {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/attendance/member/history', {
+      const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/attendance/member/history`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

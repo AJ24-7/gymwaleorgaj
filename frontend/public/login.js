@@ -216,6 +216,14 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("username", data.user.name || data.user.username);
         
         setTimeout(() => {
+          // Check for stored redirect URL (from login prompt on gym details page)
+          const storedRedirect = localStorage.getItem('redirectAfterLogin');
+          if (storedRedirect) {
+            localStorage.removeItem('redirectAfterLogin');
+            window.location.href = storedRedirect;
+            return;
+          }
+          
           // Check for redirect URL parameter
           const urlParams = new URLSearchParams(window.location.search);
           const redirectUrl = urlParams.get('redirect');
@@ -279,6 +287,14 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("username", data.user.name || data.user.username);
         
         setTimeout(() => {
+          // Check for stored redirect URL (from login prompt on gym details page)
+          const storedRedirect = localStorage.getItem('redirectAfterLogin');
+          if (storedRedirect) {
+            localStorage.removeItem('redirectAfterLogin');
+            window.location.href = storedRedirect;
+            return;
+          }
+          
           // Check for redirect URL parameter
           const urlParams = new URLSearchParams(window.location.search);
           const redirectUrl = urlParams.get('redirect');

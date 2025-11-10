@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="styles/settings.css">
     <link rel="stylesheet" href="styles/enhanced-support-styles.css">
     <link rel="stylesheet" href="styles/trainer-list.css">
+    <link rel="stylesheet" href="styles/grievance-handler.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
            
@@ -32,6 +33,7 @@
     <script defer src="modules/support-reviews.js"></script>
     <script defer src="enhanced-support-integration.js"></script>
     <script defer src="modules/coupon-backend-integration.js"></script>
+    <script defer src="modules/grievance-handler.js"></script>
     <script defer src="modules/attendance.js"></script>
     <script defer src="modules/trial-bookings.js"></script>
     <script defer src="modules/attendance-stats.js"></script>
@@ -2166,21 +2168,47 @@
   </div><!-- Close tab-inner-content -->
 </div><!-- Close memberDisplayTab -->
 
-<!-- Interactive Members Detail Card (hidden by default) -->
-<div id="membersDetailCard" class="modal">
-  <div class="modal-content member-detail-modal">
-    <div class="member-detail-header" style="position:relative;">
-      <button id="editMemberDetailBtn" title="Edit Member" style="position:absolute;left:18px;top:16px;background:none;border:none;cursor:pointer;font-size:1.25rem;color:#fff;z-index:3;transition:color 0.2s;"><i class="fas fa-edit"></i></button>
-      <h2 class="member-detail-title" style="margin-left:32px;">
-        <i class="fas fa-id-card-alt"></i> Member Details
-      </h2>
-      <button id="closeMembersDetailCard" class="modal-close" title="Close">&times;</button>
+<!-- Modern Member Detail Drawer -->
+<div id="membersDetailDrawer" class="member-detail-drawer" style="display:none;">
+  <!-- Backdrop -->
+  <div class="member-drawer-backdrop" id="memberDrawerBackdrop"></div>
+  
+  <!-- Drawer Content -->
+  <div class="member-drawer-content" id="memberDrawerContent">
+    <!-- Header -->
+    <div class="member-drawer-header">
+      <div class="member-drawer-title">
+        <i class="fas fa-user-circle"></i>
+        <span>Member Details</span>
+      </div>
+      <button class="member-drawer-close" id="closeMemberDrawer" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <div id="memberDetailDynamicContent">
-      <!-- Dynamic content injected by JS -->
+    
+    <!-- Body -->
+    <div class="member-drawer-body" id="memberDrawerBody">
+      <!-- Content will be injected dynamically -->
+      <div class="member-drawer-loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading member details...</p>
+      </div>
+    </div>
+    
+    <!-- Footer Actions -->
+    <div class="member-drawer-footer" id="memberDrawerFooter" style="display:none;">
+      <button class="btn-drawer-action btn-edit" id="editMemberDrawerBtn">
+        <i class="fas fa-edit"></i> Edit Member
+      </button>
+      <button class="btn-drawer-action btn-renew" id="renewMemberDrawerBtn">
+        <i class="fas fa-redo"></i> Renew Membership
+      </button>
+      <button class="btn-drawer-action btn-delete" id="deleteMemberDrawerBtn">
+        <i class="fas fa-trash-alt"></i> Remove Member
+      </button>
     </div>
   </div>
-  </div> <!-- End tab-inner-content -->
+</div>
 <!-- Trainer Tab -->
 <div id="trainerTab" class="tab-content" style="display:none;">
   <div class="tab-inner-content">
@@ -2433,7 +2461,72 @@
       </button>
     </div>
   </div>
+   <!-- Support Statistics -->
+  <div class="offers-stats-grid">
+    <div class="offers-stat-card support-notifications" id="supportNotificationsStatCard">
+      <div class="stat-info">
+        <div class="stat-header">
+          <h3>Unread Notifications</h3>
+          <div class="stat-icon">
+            <i class="fas fa-bell"></i>
+          </div>
+        </div>
+        <div class="stat-number" id="supportNotificationsValue">0</div>
+        <div class="stat-change positive" id="supportNotificationsChange">
+          <i class="fas fa-inbox"></i>
+          <span id="supportNotificationsTotal">0 Total</span>
+        </div>
+      </div>
+    </div>
 
+    <div class="offers-stat-card support-reviews" id="supportReviewsStatCard">
+      <div class="stat-info">
+        <div class="stat-header">
+          <h3>Review Rating</h3>
+          <div class="stat-icon">
+            <i class="fas fa-star"></i>
+          </div>
+        </div>
+        <div class="stat-number" id="supportReviewsValue">0.0</div>
+        <div class="stat-change positive" id="supportReviewsChange">
+          <i class="fas fa-users"></i>
+          <span id="supportReviewsTotal">0 Reviewers</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="offers-stat-card support-grievances" id="supportGrievancesStatCard">
+      <div class="stat-info">
+        <div class="stat-header">
+          <h3>Open Grievances</h3>
+          <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+        </div>
+        <div class="stat-number" id="supportGrievancesValue">0</div>
+        <div class="stat-change positive" id="supportGrievancesChange">
+          <i class="fas fa-tasks"></i>
+          <span id="supportGrievancesTotal">0 Total</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="offers-stat-card support-chats" id="supportChatsStatCard">
+      <div class="stat-info">
+        <div class="stat-header">
+          <h3>Unreplied Chats</h3>
+          <div class="stat-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+        </div>
+        <div class="stat-number" id="supportChatsValue">0</div>
+        <div class="stat-change positive" id="supportChatsChange">
+          <i class="fas fa-inbox"></i>
+          <span id="supportChatsTotal">0 Total</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Tab Navigation -->
   <div class="support-nav-container">
     <div class="support-nav-tabs">
@@ -4631,81 +4724,126 @@
 <!-- Attendance Tab -->
  <div id="attendanceTab" class="tab-content" style="display:none;">
   <div class="tab-inner-content">
-  <div class="attendance-container">
-    <!-- Compact Top Control Panel -->
+    
+    <!-- Page Header - Matching Other Tabs -->
+    <div class="page-header">
+      <h1 class="page-title">
+        <i class="fas fa-calendar-check"></i>
+        Attendance Management
+      </h1>
+    </div>
+    
+    <!-- Stats Cards Section - Matching Offers Tab Style -->
+    <div class="attendance-stats-grid" id="attendanceStatsGrid">
+      <div class="attendance-stat-card total-members">
+        <div class="stat-info">
+          <div class="stat-header">
+            <h3>Total <span class="currentTabLabel">Members</span></h3>
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+          </div>
+          <div class="stat-number" id="totalCount">0</div>
+        </div>
+      </div>
+      
+      <div class="attendance-stat-card present-count">
+        <div class="stat-info">
+          <div class="stat-header">
+            <h3>Present Today</h3>
+            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+          </div>
+          <div class="stat-number" id="presentCount">0</div>
+        </div>
+      </div>
+      
+      <div class="attendance-stat-card absent-count">
+        <div class="stat-info">
+          <div class="stat-header">
+            <h3>Absent Today</h3>
+            <div class="stat-icon"><i class="fas fa-user-times"></i></div>
+          </div>
+          <div class="stat-number" id="absentCount">0</div>
+        </div>
+      </div>
+      
+      <div class="attendance-stat-card pending-count">
+        <div class="stat-info">
+          <div class="stat-header">
+            <h3>Pending</h3>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+          </div>
+          <div class="stat-number" id="pendingCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Panel - Redesigned -->
     <div class="attendance-control-panel">
-      <div class="control-panel-header">
-        <h1 class="attendance-title">
-          <i class="fas fa-calendar-check"></i>
-          Attendance Management
-        </h1>
-        <div class="attendance-stats-compact">
-          <div class="stat-item">
-            <span class="stat-number" id="totalCount">0</span>
-            <span class="stat-label">Total</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number" id="presentCount">0</span>
-            <span class="stat-label">Present</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number" id="absentCount">0</span>
-            <span class="stat-label">Absent</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number" id="pendingCount">0</span>
-            <span class="stat-label">Pending</span>
-          </div>
+
+      <!-- Tab Navigation - Matching Offers Tab Style -->
+      <div class="attendance-tabs-container">
+        <div class="attendance-tabs">
+          <button class="attendance-tab-btn active" data-tab="members">
+            <i class="fas fa-users"></i>
+            Members
+            <span class="tab-count" id="membersCount">0</span>
+          </button>
+          <button class="attendance-tab-btn" data-tab="trainers">
+            <i class="fas fa-user-tie"></i>
+            Trainers
+            <span class="tab-count" id="trainersCount">0</span>
+          </button>
         </div>
       </div>
 
-      <div class="control-panel-actions">
-        <!-- Tabs and Date Controls in one row -->
-        <div class="tabs-and-date">
-          <div class="attendance-tabs-compact">
-            <button class="attendance-tab-btn active" data-tab="members">
-              <i class="fas fa-users"></i>
-              Members
-            </button>
-            <button class="attendance-tab-btn" data-tab="trainers">
-              <i class="fas fa-user-tie"></i>
-              Trainers
-            </button>
+      <!-- Filters Section - Matching Offers Tab Style -->
+      <div class="attendance-filters">
+        <div class="filter-group">
+          <label>Search</label>
+          <div class="search-box">
+            <input type="text" id="attendanceSearch" class="filter-input" placeholder="Search by name or ID...">
+            <i class="fas fa-search"></i>
           </div>
-          
-          <div class="date-controls-compact">
-            <button class="date-nav-btn-compact" id="prevDay">
+        </div>
+        
+        <div class="filter-group">
+          <label>Date</label>
+          <div class="date-navigation">
+            <button class="date-nav-btn" id="prevDay" title="Previous Day">
               <i class="fas fa-chevron-left"></i>
             </button>
-            <input type="date" id="attendanceDate" class="date-input-compact" />
-            <button class="date-nav-btn-compact" id="nextDay">
+            <input type="date" id="attendanceDate" class="date-input" />
+            <button class="date-nav-btn" id="nextDay" title="Next Day">
               <i class="fas fa-chevron-right"></i>
             </button>
-            <button class="today-btn-compact" id="todayBtn">
+            <button class="today-btn" id="todayBtn">
               <i class="fas fa-calendar-day"></i>
               Today
             </button>
           </div>
         </div>
-
-        <!-- Search and Filters -->
-        <div class="search-and-filters">
-          <div class="search-box-compact">
-            <input type="text" id="attendanceSearch" placeholder="Search by name or ID...">
-            <i class="fas fa-search"></i>
-          </div>
-          <select class="filter-select-compact" id="attendanceFilter">
+        
+        <div class="filter-group">
+          <label>Filter Status</label>
+          <select class="filter-select" id="attendanceFilter">
             <option value="all">All</option>
             <option value="present">Present</option>
             <option value="absent">Absent</option>
             <option value="pending">Pending</option>
           </select>
-          <div class="bulk-actions-compact">
-            <button class="bulk-btn-compact bulk-present" id="bulkPresentBtn">
+        </div>
+        
+        <div class="filter-group">
+          <label>Quick Actions</label>
+          <div class="bulk-actions">
+            <button class="bulk-btn bulk-biometric" id="quickBiometricBtn">
+              <i class="fas fa-fingerprint"></i>
+              Quick Verify
+            </button>
+            <button class="bulk-btn bulk-present" id="bulkPresentBtn">
               <i class="fas fa-check-circle"></i>
               Mark All Present
             </button>
-            <button class="bulk-btn-compact bulk-absent" id="bulkAbsentBtn">
+            <button class="bulk-btn bulk-absent" id="bulkAbsentBtn">
               <i class="fas fa-times-circle"></i>
               Mark All Absent
             </button>
@@ -4714,20 +4852,15 @@
       </div>
     </div>
 
-    <!-- Attendance Summary (Compact) -->
-    <div class="attendance-summary-compact" id="attendanceSummary">
-      <!-- Summary will be populated by JavaScript -->
-    </div>
-
-    <!-- Enhanced Column View -->
-    <div class="attendance-column-view">
+    <!-- Attendance Table Container -->
+    <div class="attendance-table-container">
       <div class="attendance-table-header">
-        <div class="column-header photo">Photo</div>
-        <div class="column-header name">Name</div>
-        <div class="column-header id">ID</div>
-        <div class="column-header status">Status</div>
-        <div class="column-header check-in">Check-in</div>
-        <div class="column-header actions">Actions</div>
+        <div class="column-header"><i class="fas fa-image"></i></div>
+        <div class="column-header"><i class="fas fa-user"></i> Name</div>
+        <div class="column-header"><i class="fas fa-id-card"></i> ID</div>
+        <div class="column-header"><i class="fas fa-info-circle"></i> Status</div>
+        <div class="column-header"><i class="fas fa-clock"></i> Check-in</div>
+        <div class="column-header"><i class="fas fa-tasks"></i> Actions</div>
       </div>
       
       <div class="attendance-table-body" id="attendanceTableBody">
@@ -4738,7 +4871,6 @@
         </div>
       </div>
     </div>
-  </div>
   </div><!-- Close inner container -->
  </div><!-- Close attendanceTab -->
  </div> <!-- close main-container -->
@@ -5447,7 +5579,7 @@
    <!-- 7-Day Allowance System -->
    <script src="modules/seven-day-allowance.js"></script>
    <!-- QR Code Generator System -->
-   <script src="qr-code-generator.js"></script>
+   <script src="utils/qr-code-generator.js"></script>
    
   
    <!-- Enhanced Security Info Modal Functions -->

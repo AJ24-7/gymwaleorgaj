@@ -12,8 +12,8 @@ const API_CONFIG = {
     // API endpoints
     ENDPOINTS: {
         // User endpoints
-        USER_PROFILE: '/api/users/profile',
-        USER_COUPONS: '/api/user/{userId}/coupons',
+    USER_PROFILE: '/api/users/profile',
+    USER_COUPONS: '/api/users/{userId}/coupons',
         
         // Offers endpoints
         OFFERS_ACTIVE: '/api/offers/active',

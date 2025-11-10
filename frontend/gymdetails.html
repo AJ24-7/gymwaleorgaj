@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="gymdetails.css">
     <link rel="stylesheet" href="gymdetails-offers.css">
+    <link rel="stylesheet" href="gymdetails-chat.css">
+    <link rel="stylesheet" href="floating-gym-chat.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -17,6 +19,8 @@
     <script defer src="gymdetails.js"></script>
     <script defer src="gymdetails-offers.js"></script>
     <script defer src="coupon-integration.js"></script>
+    <script defer src="gymdetails-chat.js"></script>
+    <script defer src="floating-gym-chat.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -109,9 +113,10 @@
                     <button class="btn-secondary offers-btn" id="offers-btn">
                         <i class="fas fa-gift"></i> View Offers
                     </button>
-                    <button class="btn-secondary contact-btn" id="contact-btn">
-                        <i class="fas fa-phone"></i> Contact
+                    <button class="btn-report" id="report-issue-btn" onclick="openReportIssueModal()">
+                        <i class="fas fa-flag"></i> Report Issue
                     </button>
+                   
                 </div>
             </div>
         </section>
@@ -552,47 +557,6 @@
         </div>
     </div>
 
-    <!-- Contact Modal -->
-    <div id="contact-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-phone"></i> Contact Information</h3>
-                <span class="close" id="close-contact-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="contact-details">
-                    <div class="contact-item">
-                        <i class="fas fa-phone"></i>
-                        <div>
-                            <h4>Phone</h4>
-                            <p id="modal-phone">Loading...</p>
-                            <a href="#" id="call-btn" class="btn-secondary btn-small">
-                                <i class="fas fa-phone"></i> Call Now
-                            </a>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <div>
-                            <h4>Email</h4>
-                            <p id="modal-email">Loading...</p>
-                            <a href="#" id="email-btn" class="btn-secondary btn-small">
-                                <i class="fas fa-envelope"></i> Send Email
-                            </a>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-user-tie"></i>
-                        <div>
-                            <h4>Contact Person</h4>
-                            <p id="modal-contact-person">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Photo Modal -->
     <div id="photo-modal" class="modal photo-modal">
         <div class="modal-content photo-modal-content">
@@ -821,6 +785,208 @@
     <button id="back-to-top" class="back-to-top">
         <i class="fas fa-arrow-up"></i>
     </button>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="modal">
+        <div class="chat-modal-content">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <img id="chat-gym-logo" src="" alt="Gym" class="gym-avatar">
+                    <div class="chat-gym-details">
+                        <h4 id="chat-gym-name">Gym Name</h4>
+                        <div class="chat-gym-status">
+                            <span class="status-dot"></span>
+                            <span>Online</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="close-chat-btn" aria-label="Close Chat">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-messages-container" id="chat-messages">
+                <!-- Messages will be populated dynamically -->
+                <div class="empty-chat-state">
+                    <i class="fas fa-comments empty-chat-icon"></i>
+                    <h3>Start a Conversation</h3>
+                    <p>Send a message to connect with this gym</p>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="typing-dots">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+
+            <!-- Quick Messages -->
+            <div class="quick-messages">
+                <div class="quick-messages-title">Quick Messages</div>
+                <div class="quick-messages-list">
+                    <button class="quick-message-btn">Hi! I'd like to know more about your gym</button>
+                    <button class="quick-message-btn">What are your membership plans?</button>
+                    <button class="quick-message-btn">Are you currently open?</button>
+                    <button class="quick-message-btn">Do you have personal training available?</button>
+                    <button class="quick-message-btn">Can I book a trial session?</button>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <button class="attach-btn" aria-label="Attach File" title="Attach File">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <textarea 
+                    class="chat-input" 
+                    placeholder="Type your message..."
+                    rows="1"
+                    maxlength="1000"
+                ></textarea>
+                <button class="send-btn" aria-label="Send Message" title="Send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Issue Modal -->
+    <div id="report-issue-modal" class="modal">
+        <div class="modal-content report-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-flag"></i> Report an Issue</h3>
+                <span class="close" id="close-report-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="report-issue-form">
+                    <div class="form-group">
+                        <label for="issue-category">
+                            <i class="fas fa-list"></i> Issue Category *
+                        </label>
+                        <select id="issue-category" name="category" required>
+                            <option value="">Select a category...</option>
+                            <option value="equipment">🏋️ Equipment Issues</option>
+                            <option value="cleanliness">🧹 Cleanliness & Hygiene</option>
+                            <option value="staff">👥 Staff Behavior</option>
+                            <option value="safety">🛡️ Safety Concerns</option>
+                            <option value="billing">💳 Billing & Payment</option>
+                            <option value="facilities">🏢 Facilities & Amenities</option>
+                            <option value="timing">⏰ Timing & Schedule</option>
+                            <option value="other">📝 Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issue-priority">
+                            <i class="fas fa-exclamation-circle"></i> Priority Level *
+                        </label>
+                        <select id="issue-priority" name="priority" required>
+                            <option value="low">Low - General feedback</option>
+                            <option value="normal" selected>Normal - Standard issue</option>
+                            <option value="high">High - Needs attention</option>
+                            <option value="urgent">Urgent - Immediate action required</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issue-subject">
+                            <i class="fas fa-heading"></i> Subject *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="issue-subject" 
+                            name="subject" 
+                            placeholder="Brief summary of the issue"
+                            maxlength="100"
+                            required
+                        >
+                        <small class="char-count"><span id="subject-count">0</span>/100</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issue-description">
+                            <i class="fas fa-align-left"></i> Description *
+                        </label>
+                        <textarea 
+                            id="issue-description" 
+                            name="description" 
+                            rows="5"
+                            placeholder="Please provide detailed information about the issue..."
+                            maxlength="1000"
+                            required
+                        ></textarea>
+                        <small class="char-count"><span id="description-count">0</span>/1000</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issue-contact">
+                            <i class="fas fa-phone"></i> Contact Number (Optional)
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="issue-contact" 
+                            name="contactNumber" 
+                            placeholder="Your contact number for follow-up"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issue-email">
+                            <i class="fas fa-envelope"></i> Email Address (Optional)
+                        </label>
+                        <input 
+                            type="email" 
+                            id="issue-email" 
+                            name="email" 
+                            placeholder="Your email for updates"
+                        >
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeReportModal()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Report
+                        </button>
+                    </div>
+                </form>
+
+                <div class="report-info">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Your report will be sent to the gym management. You'll receive a ticket ID for tracking.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Success Modal -->
+    <div id="report-success-modal" class="modal">
+        <div class="modal-content success-modal-content">
+            <div class="modal-header success-header">
+                <h3><i class="fas fa-check-circle"></i> Report Submitted!</h3>
+            </div>
+            <div class="modal-body">
+                <div class="ticket-info">
+                    <p>Your issue has been reported successfully.</p>
+                    <div class="ticket-id-display">
+                        <label>Ticket ID:</label>
+                        <span id="ticket-id-value">-</span>
+                    </div>
+                    <p class="ticket-note">
+                        The gym will review your report and respond shortly. 
+                        You can track your ticket status in your profile.
+                    </p>
+                </div>
+                <button id="report-success-ok-btn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Include shared functionality from script.js for navbar and auth -->
     <script>

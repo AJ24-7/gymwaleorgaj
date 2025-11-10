@@ -1985,7 +1985,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedPlan = currentPlanSelected.value;
     const selectedDuration = currentMonthlyPlan.value;
     
-    console.log('[AddMember] Payment calculation:', { selectedPlan, selectedDuration, plansCache });
 
     if (!selectedPlan || !selectedDuration) {
       currentPaymentAmount.value = '';
@@ -2014,7 +2013,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    console.log('[AddMember] Extracted months:', months);
 
     // Find plan in cache
     const plan = plansCache.find(p => p.name === selectedPlan);
@@ -2026,7 +2024,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    console.log('[AddMember] Found plan:', plan);
 
     // Calculate amount
     const baseAmount = plan.price * months;
@@ -2050,13 +2047,7 @@ document.addEventListener('DOMContentLoaded', function() {
       finalAmount = baseAmount - discountAmount;
     }
 
-    console.log('[AddMember] Payment calculation result:', {
-      baseAmount,
-      finalAmount,
-      discountApplies,
-      discountAmount,
-      discountPercentage
-    });
+  
 
     // Update UI
     currentPaymentAmount.value = finalAmount;
@@ -2092,7 +2083,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Open modal
   async function openAddMemberModal() {
-    console.log('[AddMember] Opening modal and fetching data...');
     
     try {
       await fetchPlansForModal();
@@ -2105,8 +2095,39 @@ document.addEventListener('DOMContentLoaded', function() {
       addMemberModal.style.display = 'flex';
     }
     
-    // Reset form
-    if (addMemberForm) addMemberForm.reset();
+    // Reset form and ensure it's in "add" mode
+    if (addMemberForm) {
+      addMemberForm.reset();
+      addMemberForm.dataset.editMode = 'false';
+      
+      // Remove hidden memberId field if exists
+      const memberIdInput = document.getElementById('editMemberId');
+      if (memberIdInput) {
+        memberIdInput.remove();
+      }
+      
+      // Reset modal title
+      const modalTitle = addMemberModal.querySelector('.modal-title-style');
+      if (modalTitle) {
+        modalTitle.innerHTML = '<i class="fas fa-user-plus"></i> Add New Member';
+      }
+      
+      // Reset submit button
+      const submitBtn = addMemberForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-check"></i> Add Member';
+        submitBtn.style.background = 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)';
+      }
+      
+      // Re-enable all form fields
+      const nameInput = document.getElementById('memberName');
+      const ageInput = document.getElementById('memberAge');
+      const genderInput = document.getElementById('memberGender');
+      if (nameInput) nameInput.disabled = false;
+      if (ageInput) ageInput.disabled = false;
+      if (genderInput) genderInput.disabled = false;
+    }
+    
     if (paymentAmount) paymentAmount.value = '';
     if (memberImageTag) memberImageTag.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik00OCA2NEM1Ni44MzY2IDY0IDY0IDU2LjgzNjYgNjQgNDhDNjQgMzkuMTYzNCA1Ni44MzY2IDMyIDQ4IDMyQzM5LjE2MzQgMzIgMzIgMzkuMTYzNCAzMiA0OEMzMiA1Ni44MzY2IDM5LjE2MzQgNjQgNDggNjRaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yNCA3Nkg3MlY4MEgyNFY3NloiIGZpbGw9IiNDQ0NDQ0MiLz4KPHRleHQgeD0iNDgiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTk5OTkiPlBob3RvPC90ZXh0Pgo8L3N2Zz4K';
     if (addMemberSuccessMsg) addMemberSuccessMsg.style.display = 'none';
@@ -2118,7 +2139,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Populate plan dropdown with enhanced options
     if (planSelected) {
       if (plansCache.length > 0) {
-        console.log('[AddMember] Populating plans:', plansCache);
         
         const planOptions = plansCache.map(plan => {
           const planDetails = `${plan.name} - ₹${plan.price}/month`;
@@ -2336,19 +2356,77 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
       }
+      
+      // Check if form is in edit mode
+      const isEditMode = addMemberForm.dataset.editMode === 'true';
+      const memberId = document.getElementById('editMemberId')?.value;
+      
       const formData = prepareMemberFormData(addMemberForm);
       const { gymName, plan, monthlyPlan, memberEmail, memberName, membershipId, validDate } = getMemberFormMeta(formData);
      
       // Debug: Log FormData contents
       for (let [key, value] of formData.entries()) {
       }
+      
       try {
-        const res = await fetch('http://localhost:5000/api/members', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-        const data = await res.json();
+        let res, data;
+        
+        if (isEditMode && memberId) {
+          // Update existing member
+          res = await fetch(`http://localhost:5000/api/members/${memberId}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          data = await res.json();
+          
+          if (res.ok) {
+            // Show success message
+            showDialog({
+              title: 'Success!',
+              message: 'Member details updated successfully.',
+              confirmText: 'OK',
+              iconHtml: '<i class="fas fa-check-circle" style="color:#4caf50;font-size:2.5em;"></i>',
+              onConfirm: () => {
+                // Reset form and close modal
+                addMemberForm.reset();
+                addMemberForm.dataset.editMode = 'false';
+                const modalTitle = document.querySelector('#addMemberModal .modal-title-style');
+                if (modalTitle) {
+                  modalTitle.innerHTML = '<i class="fas fa-user-plus"></i> Add New Member';
+                }
+                const submitBtn = addMemberForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                  submitBtn.innerHTML = '<i class="fas fa-check"></i> Add Member';
+                  submitBtn.style.background = 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)';
+                }
+                // Re-enable disabled fields
+                const nameInput = document.getElementById('memberName');
+                const ageInput = document.getElementById('memberAge');
+                const genderInput = document.getElementById('memberGender');
+                if (nameInput) nameInput.disabled = false;
+                if (ageInput) ageInput.disabled = false;
+                if (genderInput) genderInput.disabled = false;
+                
+                closeAddMemberModalFunc();
+                
+                // Refresh members table
+                if (typeof fetchAndDisplayMembers === 'function') {
+                  fetchAndDisplayMembers();
+                }
+              }
+            });
+            return;
+          }
+        } else {
+          // Add new member
+          res = await fetch('http://localhost:5000/api/members', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          data = await res.json();
+        }
         
         // Handle successful response
         if (res.ok && (data.success || data.message === 'Member added successfully')) {
@@ -2365,7 +2443,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 membershipValidUntil: validDate
               };
               await window.paymentManager.recordMembershipPayment(memberData);
-              console.log('✅ Membership payment recorded successfully');
               
               // Trigger payment notification using enhanced system
               if (window.NotificationManager) {
@@ -2440,7 +2517,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         membershipValidUntil: validDate
                       };
                       await window.paymentManager.recordMembershipPayment(memberData);
-                      console.log('✅ Membership payment recorded successfully (forced add)');
                       
                       // Trigger payment notification for forced add using enhanced system
                       if (window.NotificationManager) {
@@ -2939,7 +3015,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 membershipValidUntil: data.newExpiryDate
               };
               await window.paymentManager.recordRenewalPayment(memberData, renewalPaymentData);
-              console.log('✅ Renewal payment recorded successfully');
               
               // Trigger payment notification for renewal using enhanced system
               if (window.NotificationManager) {
@@ -3184,11 +3259,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (profile._id) {
             localStorage.setItem('gymId', profile._id);
             localStorage.setItem('currentGymId', profile._id);
-            console.log('✅ Stored gymId in localStorage:', profile._id);
         } else if (profile.id) {
             localStorage.setItem('gymId', profile.id);
             localStorage.setItem('currentGymId', profile.id);
-            console.log('✅ Stored gymId in localStorage:', profile.id);
         }
         
         if (adminNameElement) {
@@ -3842,6 +3915,31 @@ function clearUploadPhotoMsgAndCloseModal() {
             });
         }
 
+        // Generate QR Code quick action button
+        const generateQRCodeBtn = document.getElementById('generateQRCodeBtn');
+        if (generateQRCodeBtn) {
+            generateQRCodeBtn.addEventListener('click', () => {
+                console.log('QR Code button clicked from quick action');
+                // Check if QR generator is available
+                if (window.qrGenerator && typeof window.qrGenerator.openQRCodeModal === 'function') {
+                    window.qrGenerator.openQRCodeModal();
+                } else {
+                    // Fallback: directly open the modal if generator isn't loaded yet
+                    const qrModal = document.getElementById('qrCodeGeneratorModal');
+                    if (qrModal) {
+                        qrModal.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        if (window.unifiedNotificationSystem) {
+                            window.unifiedNotificationSystem.showToast('QR Code generator is loading. Please try again in a moment.', 'info');
+                        } else {
+                            alert('QR Code generator is loading. Please try again in a moment.');
+                        }
+                    }
+                }
+            });
+        }
+
         // File input change for logo preview in Edit Profile Modal
         const editGymLogoInput = document.getElementById('editGymLogo');
         if (editGymLogoInput && logoPreviewImage) {
@@ -3970,7 +4068,6 @@ function clearUploadPhotoMsgAndCloseModal() {
                             const adminAvatarElement = document.getElementById('adminAvatar');
                             if (adminAvatarElement) adminAvatarElement.src = `${logoPath}?${new Date().getTime()}`;
                             // Debug: Log the final logo URL used
-                            console.log('Logo preview URL:', cacheBustedLogo);
                         }
                         if(editProfileModal) editProfileModal.style.display = 'none';
                         if(typeof hidePasswordConfirmDialog === 'function') hidePasswordConfirmDialog(); // Hide password dialog on success
@@ -4142,7 +4239,6 @@ async function initializeStatCards() {
     // Hide loading state
     hideStatCardsLoading();
     
-    console.log('📊 Stat cards initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing stat cards:', error);
     hideStatCardsLoading();
@@ -4159,7 +4255,6 @@ async function updateStatCardData() {
       return;
     }
 
-    console.log('🔄 Fetching stat card data with token:', token.substring(0, 20) + '...');
 
     // Fetch all stats in parallel
     const [membersStats, paymentsStats, attendanceStats, trainersStats] = await Promise.all([
@@ -4169,7 +4264,6 @@ async function updateStatCardData() {
       fetchTrainersStats(token)
     ]);
 
-    console.log('📊 Fetched stats:', { membersStats, paymentsStats, attendanceStats, trainersStats });
 
     // Update each stat card
     updateMembersStatCard(membersStats);
@@ -4177,7 +4271,6 @@ async function updateStatCardData() {
     updateAttendanceStatCard(attendanceStats);
     updateTrainersStatCard(trainersStats);
 
-    console.log('✅ All stat cards updated with live data');
   } catch (error) {
     console.error('❌ Error updating stat cards:', error);
     updateStatCardsWithDefaultData();
@@ -4187,14 +4280,11 @@ async function updateStatCardData() {
 // Individual stat fetching functions
 async function fetchMembersStats(token) {
   try {
-    console.log('🔄 Fetching members stats...');
     const response = await fetch('http://localhost:5000/api/members', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    console.log('👥 Members response status:', response.status);
     if (response.ok) {
       const members = await response.json();
-      console.log('👥 Members data:', members.length, 'members found');
       const total = members.length;
       
       // Calculate change based on new members from last 7 days
@@ -4209,7 +4299,6 @@ async function fetchMembersStats(token) {
       const change = total > 0 ? (newMembers.length / total) * 100 : 0;
       
       const result = { total, change: change.toFixed(1), active: total };
-      console.log('👥 Members stats result:', result);
       return result;
     }
     throw new Error(`HTTP ${response.status}`);
@@ -4328,7 +4417,6 @@ function updateMembersStatCard(data) {
   const valueElement = card.querySelector('.stat-value');
   const changeElement = card.querySelector('.stat-change');
   
-  console.log('👥 Updating members stat card with:', data);
   
   if (valueElement) valueElement.textContent = data.total || 0;
   
@@ -4351,7 +4439,6 @@ function updatePaymentsStatCard(data) {
   const valueElement = card.querySelector('.stat-value');
   const changeElement = card.querySelector('.stat-change');
   
-  console.log('💰 Updating payments stat card with:', data);
   
   if (valueElement) {
     const total = data.total || 0;
@@ -4377,7 +4464,6 @@ function updateAttendanceStatCard(data) {
   const valueElement = card.querySelector('.stat-value');
   const changeElement = card.querySelector('.stat-change');
   
-  console.log('📅 Updating attendance stat card with:', data);
   
   if (valueElement) {
     valueElement.textContent = `${data.percentage || 0}%`;
@@ -4408,7 +4494,6 @@ function updateTrainersStatCard(data) {
   const valueElement = card.querySelector('.stat-value');
   const changeElement = card.querySelector('.stat-change');
   
-  console.log('🏋️ Updating trainers stat card with:', data);
   
   if (valueElement) valueElement.textContent = data.active || data.total || 0;
   
@@ -4450,7 +4535,6 @@ function showStatCardsError() {
 }
 
 function updateStatCardsWithDefaultData() {
-  console.log('📊 Using default/demo data for stat cards');
   updateMembersStatCard({ total: 24, change: 8.5 });
   updatePaymentsStatCard({ total: 125000, change: 12.3 });
   updateAttendanceStatCard({ percentage: 78, trend: 'up' });
@@ -4470,22 +4554,17 @@ window.updatePaymentsStatsCard = function() {
 
 // Test function for debugging stat cards (can be called from console)
 window.testStatCards = async function() {
-  console.log('🧪 Testing stat cards system...');
   const token = localStorage.getItem('gymAdminToken');
-  console.log('🔑 Token found:', !!token);
   
   if (token) {
-    console.log('🔗 Testing API endpoints...');
     
     // Test members endpoint
     try {
       const membersResponse = await fetch('http://localhost:5000/api/members', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('👥 Members API status:', membersResponse.status);
       if (membersResponse.ok) {
         const members = await membersResponse.json();
-        console.log('👥 Members count:', members.length);
       }
     } catch (e) {
       console.error('👥 Members API error:', e);
@@ -4496,10 +4575,8 @@ window.testStatCards = async function() {
       const paymentsResponse = await fetch('http://localhost:5000/api/payments/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('💰 Payments API status:', paymentsResponse.status);
       if (paymentsResponse.ok) {
         const payments = await paymentsResponse.json();
-        console.log('💰 Payments data:', payments);
       }
     } catch (e) {
       console.error('💰 Payments API error:', e);
@@ -4510,10 +4587,8 @@ window.testStatCards = async function() {
       const trainersResponse = await fetch('http://localhost:5000/api/trainers', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('🏋️ Trainers API status:', trainersResponse.status);
       if (trainersResponse.ok) {
         const trainers = await trainersResponse.json();
-        console.log('🏋️ Trainers count:', trainers.length);
       }
     } catch (e) {
       console.error('🏋️ Trainers API error:', e);
@@ -4521,8 +4596,68 @@ window.testStatCards = async function() {
   }
   
   // Force refresh stat cards
-  console.log('🔄 Force refreshing stat cards...');
   await initializeStatCards();
+};
+
+// Debug function to test token and API connection (callable from browser console)
+window.debugMembersFetch = async function() {
+  
+  // Check token
+  const token = localStorage.getItem('gymAdminToken');
+  if (!token) {
+    console.error('❌ No token found in localStorage');
+    return;
+  }
+  
+  
+  // Decode token
+  try {
+    const parts = token.split('.');
+    const payload = JSON.parse(atob(parts[1]));
+    
+    const now = Math.floor(Date.now() / 1000);
+    const expired = payload.exp && payload.exp < now;
+    if (expired) {
+      console.error('❌ Token is EXPIRED!');
+     
+      return;
+    }
+    
+    // Extract gym ID
+    const gymId = payload.admin?.id || payload.admin?.gymId || payload.gym?.id || payload.id;
+    
+    // Test API call
+    const url = `http://localhost:5000/api/members?gym=${gymId}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    
+    if (response.ok) {
+      const data = await response.json();
+    
+      
+      // Test table rendering
+      const tableBody = document.getElementById('membersTableBody');
+      if (tableBody) {
+      }
+    } else {
+      const errorData = await response.text();
+      console.error('❌ API ERROR:', errorData);
+    }
+  } catch (e) {
+    console.error('❌ Error during debug:', e);
+  }
+};
+
+// Quick function to force refresh members table (callable from console)
+window.refreshMembersTable = function() {
+  fetchAndDisplayMembers();
 };
 
 // Initialize dashboard customization on page load
@@ -4540,10 +4675,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedPaymentVisible = getGymSpecificSetting ? 
       getGymSpecificSetting(`dashboardPaymentVisible_${gymId}`) !== 'false' : true;
     
-    console.log(`Gymadmin.js applying customization for gym ${gymId}:`, {
-      equipment: savedEquipmentVisible,
-      payment: savedPaymentVisible
-    });
+ 
     
     // Apply customization settings using the new unified function
     if (typeof applyTabVisibility === 'function') {
@@ -4566,11 +4698,62 @@ document.addEventListener('DOMContentLoaded', function() {
 const membersTableBody = document.getElementById('membersTableBody');
 
 let allMembersCache = [];
+
+// Helper function to validate and get token
+function getValidToken() {
+  const token = localStorage.getItem('gymAdminToken');
+  
+  if (!token) {
+    console.error('❌ No token found in localStorage');
+    return null;
+  }
+  
+  // Check if token looks valid (JWT format: xxx.yyy.zzz)
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    console.error('❌ Token format is invalid (not JWT)');
+    localStorage.removeItem('gymAdminToken');
+    return null;
+  }
+  
+  try {
+    // Decode token to check expiration
+    const payload = JSON.parse(atob(parts[1]));
+ 
+    
+    // Check if token is expired
+    if (payload.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp < now) {
+        console.error('❌ Token has expired');
+        localStorage.removeItem('gymAdminToken');
+        return null;
+      }
+    }
+    
+    return token;
+  } catch (e) {
+    console.error('❌ Error decoding token:', e);
+    localStorage.removeItem('gymAdminToken');
+    return null;
+  }
+}
+
 // --- Enhanced Member Search & Filter Logic ---
 async function fetchAndDisplayMembers() {
-  const token = localStorage.getItem('gymAdminToken');
   if (!membersTableBody) return;
   membersTableBody.innerHTML = '<tr><td colspan="13" style="text-align:center;">Loading...</td></tr>';
+  
+  // Get and validate token
+  const token = getValidToken();
+  if (!token) {
+    console.error('No valid authentication token found');
+    membersTableBody.innerHTML = `<tr><td colspan="13" style="color:red;text-align:center;">Authentication required. Please log in again.</td></tr>`;
+    setTimeout(() => {
+      window.location.href = '/public/admin-login.html';
+    }, 2000);
+    return;
+  }
   
   try {
     // Get gym ID for API call
@@ -4583,28 +4766,68 @@ async function fetchAndDisplayMembers() {
       // Fallback: extract from token
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        gymId = payload.admin?.gymId || payload.admin?.id;
+        gymId = payload.admin?.gymId || payload.admin?.id || payload.gymId || payload.id;
       } catch (e) {
-        console.warn('Could not extract gym ID from token');
+        console.warn('Could not extract gym ID from token', e);
       }
     }
     
+    if (!gymId) {
+      throw new Error('Gym ID not found. Please refresh the page.');
+    }
+    
     // Build API URL with gym ID parameter
-    const apiUrl = gymId ? 
-      `http://localhost:5000/api/members?gym=${gymId}` : 
-      'http://localhost:5000/api/members';
+    const apiUrl = `http://localhost:5000/api/members?gym=${gymId}`;
     
     const res = await fetch(apiUrl, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      method: 'GET',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     });
+
     
-    if (!res.ok) throw new Error('Failed to fetch members');
+    // Handle 401 Unauthorized specifically
+    if (res.status === 401) {
+      console.error('❌ 401 Authentication failed - token may be expired');
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      localStorage.removeItem('gymAdminToken');
+      membersTableBody.innerHTML = `<tr><td colspan="13" style="color:red;text-align:center;">Session expired. Redirecting to login...</td></tr>`;
+      setTimeout(() => {
+        window.location.href = '/public/admin-login.html';
+      }, 2000);
+      return;
+    }
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('❌ Server error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || 'Failed to fetch members' };
+      }
+      throw new Error(errorData.message || `Server error: ${res.status}`);
+    }
+    
     const members = await res.json();
+ 
+    
     allMembersCache = Array.isArray(members) ? members : [];
+    
+    if (allMembersCache.length === 0) {
+      membersTableBody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:20px;color:#666;">No members found. Add your first member to get started!</td></tr>`;
+      return;
+    }
+    
     renderMembersTable(allMembersCache);
+    
   } catch (err) {
-    console.error('Error loading members:', err);
-    membersTableBody.innerHTML = `<tr><td colspan="13" style="color:red;text-align:center;">Error loading members</td></tr>`;
+    console.error('❌ Error loading members:', err);
+    membersTableBody.innerHTML = `<tr><td colspan="13" style="color:red;text-align:center;">Error loading members: ${err.message}</td></tr>`;
   }
 }
 
@@ -4652,15 +4875,25 @@ function handleMemberSearchAndFilter() {
 }
 
 function renderMembersTable(members) {
-  if (!membersTableBody) return;
+
+  
+  if (!membersTableBody) {
+    console.error('❌ membersTableBody element not found!');
+    return;
+  }
+  
   if (!Array.isArray(members) || !members.length) {
     membersTableBody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#888;">No members found.</td></tr>';
     return;
   }
-  membersTableBody.innerHTML = '';
+  
+  
+  // Build all rows as an array first, then insert once (more efficient)
+  const rows = [];
   const today = new Date();
   today.setHours(0,0,0,0);
-  members.forEach(member => {
+  
+  members.forEach((member, index) => {
     const imgSrc = member.profileImage ? `http://localhost:5000${member.profileImage}` : 'https://via.placeholder.com/48?text=Photo';
     const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '';
     const membershipId = member.membershipId || '';
@@ -4732,7 +4965,7 @@ function renderMembersTable(members) {
       `;
     }
     
-    membersTableBody.innerHTML += `
+    rows.push(`
       <tr ${rowId} class="${statusClass}">
         <td style="text-align:center;"><img src="${imgSrc}" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;"></td>
         <td>${member.memberName || ''}${paymentStatusBadge}</td>
@@ -4750,8 +4983,13 @@ function renderMembersTable(members) {
         <td>${amountPaid}</td>
         <td style="text-align:center;">${actionButton}</td>
       </tr>
-    `;
+    `);
   });
+  
+  // Insert all rows at once
+  membersTableBody.innerHTML = rows.join('');
+  
+ 
 }
 // Ensure only one event listener is attached and openMembersDetailCard is always available
 function openMembersDetailCard() {
@@ -4837,7 +5075,6 @@ function openMembersDetailCard() {
       if (membersDetailLoading) membersDetailLoading.style.display = 'none';
       if (membersDetailContent) membersDetailContent.style.display = 'block';
       // Unique log for this instance
-      console.log('[fetchAndRenderMembersDetail] (mobile sidebar version) rendered at', new Date().toISOString());
     } catch (err) {
       if (membersDetailLoading) membersDetailLoading.style.display = 'none';
       if (membersDetailError) {
@@ -4849,7 +5086,7 @@ function openMembersDetailCard() {
 }
 window.openMembersDetailCard = openMembersDetailCard;
 
-// --- Member Detail Card: Show details for clicked member row ---
+// --- Member Detail Drawer: Show details for clicked member row ---
 if (membersTableBody) {
   membersTableBody.addEventListener('click', function(e) {
     // Check if the clicked element is a renew membership button
@@ -4883,90 +5120,392 @@ if (membersTableBody) {
       return;
     }
     
+    // Check if clicking action buttons
+    if (e.target.closest('.mark-paid-btn, .seven-day-allowance-btn')) {
+      return; // Let those buttons handle their own logic
+    }
+    
     // Original row click functionality for member details
     let tr = e.target;
     while (tr && tr.tagName !== 'TR') tr = tr.parentElement;
-    if (tr) {
-      // Get all cells in the row
-      const cells = tr.querySelectorAll('td');
-      // Extract member info from the row (order must match table columns)
-      const member = {
-        _id: tr.getAttribute('data-member-id') || '',
-        profileImage: cells[0]?.querySelector('img')?.src || '',
-        memberName: cells[1]?.textContent.trim() || '',
-        membershipId: cells[2]?.textContent.trim() || '',
-        age: cells[3]?.textContent.trim() || '',
-        gender: cells[4]?.textContent.trim() || '',
-        phone: cells[5]?.textContent.trim() || '',
-        email: cells[6]?.textContent.trim() || '',
-        address: cells[7]?.textContent.trim() || '',
-        planSelected: cells[8]?.textContent.trim() || '',
-        monthlyPlan: cells[9]?.textContent.trim() || '',
-        activityPreference: cells[10]?.textContent.trim() || '',
-        joinDate: cells[11]?.textContent.trim() || '',
-        validUntil: cells[12]?.textContent.trim() || '',
-        paymentAmount: cells[13]?.textContent.trim() || ''
-      };
-      showMemberDetailCard(member);
+    if (tr && tr.hasAttribute('data-member-id')) {
+      const memberId = tr.getAttribute('data-member-id');
+      const memberData = allMembersCache.find(m => m._id === memberId);
+      
+      if (memberData) {
+        showMemberDrawer(memberData);
+      }
     }
   });
 }
 
-function showMemberDetailCard(member) {
-  const modal = document.getElementById('membersDetailCard');
-  if (!modal) return;
-  // Build the detail HTML using only classes for styling
+// Show member detail drawer
+function showMemberDrawer(member) {
+  const drawer = document.getElementById('membersDetailDrawer');
+  const drawerBody = document.getElementById('memberDrawerBody');
+  const drawerFooter = document.getElementById('memberDrawerFooter');
+  
+  if (!drawer || !drawerBody) return;  
+  
+  // Calculate membership status
+  const validUntilDate = member.membershipValidUntil ? new Date(member.membershipValidUntil) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let status = 'active';
+  let statusLabel = 'Active';
+  let statusIcon = '<i class="fas fa-check-circle" style="color:#28a745;"></i>';
+  
+  if (validUntilDate) {
+    validUntilDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((validUntilDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      status = 'expired';
+      statusLabel = 'Expired';
+      statusIcon = '<i class="fas fa-times-circle" style="color:#dc3545;"></i>';
+    } else if (diffDays <= 3) {
+      status = 'expiring';
+      statusLabel = 'Expiring Soon';
+      statusIcon = '<i class="fas fa-exclamation-triangle" style="color:#ffc107;"></i>';
+    }
+  }
+  
+  // Check payment status
+  const paymentStatus = member.paymentStatus || '';
+  let paymentBadge = '';
+  if (paymentStatus === 'pending' || member.pendingPaymentAmount > 0) {
+    paymentBadge = `<div class="member-status-badge pending">${'💳'} Payment Pending</div>`;
+  }
+  
+  // Build drawer content
   const content = `
-    <div class="modal-content member-detail-modal">
-      <div class="member-detail-header" style="position:relative;">
-        <button id="editMemberDetailBtn" title="Edit Member" style="position:absolute;left:18px;top:16px;background:none;border:none;cursor:pointer;font-size:1.25rem;color:#fff;z-index:3;transition:color 0.2s;"><i class='fas fa-edit'></i></button>
-        <h2 class="member-detail-title" style="margin-left:32px;">
-          <i class="fas fa-id-card-alt"></i> Member Details
-        </h2>
-        <button id="closeMembersDetailCard" class="modal-close" title="Close">&times;</button>
+    <!-- Profile Section -->
+    <div class="member-profile-section">
+      <img src="${member.profileImage || 'https://via.placeholder.com/120?text=Photo'}" 
+           alt="${member.memberName}" 
+           class="member-profile-avatar">
+      <div class="member-profile-name">${member.memberName || 'Unknown Member'}</div>
+      <div class="member-profile-id">${member.membershipId || 'N/A'}</div>
+      <div class="member-status-badges">
+        <div class="member-status-badge ${status}">${statusIcon} ${statusLabel}</div>
+        ${paymentBadge}
       </div>
-      <div class="member-detail-body">
-        <div class="member-detail-top">
-          <img src="${member.profileImage}" alt="Profile" class="profile-pic" id="memberDetailProfilePic">
-          <div>
-            <div class="member-name">${member.memberName}</div>
-            <div class="member-id">${member.membershipId}</div>
+    </div>
+    
+    <!-- Membership Plan -->
+    <div class="member-info-section">
+      <div class="member-info-header">
+        <i class="fas fa-crown"></i>
+        <span>Membership Plan</span>
+      </div>
+      <div class="member-info-grid">
+        <div class="member-plan-card">
+          <div class="member-plan-name">
+            <i class="fas fa-star"></i>
+            ${member.planSelected || 'N/A'}
+          </div>
+          <div class="member-plan-details">
+            <span><strong>Duration:</strong> ${member.monthlyPlan || 'N/A'}</span>
+            <span><strong>Amount:</strong> ₹${member.paymentAmount || 'N/A'}</span>
           </div>
         </div>
-        <ul class="info-list" id="memberDetailInfoList">
-          <li><i class="fas fa-crown"></i> <span class="member-detail-label">Plan:</span> <span class="plan-badge">${member.planSelected} (${member.monthlyPlan})</span></li>
-          <li><i class="fas fa-dumbbell"></i> <span class="member-detail-label">Activity:</span> <span id="memberDetailActivity">${member.activityPreference || ''}</span></li>
-          <li><i class="fas fa-phone"></i> <span class="member-detail-label">Phone:</span> <span id="memberDetailPhone">${member.phone || ''}</span></li>
-          <li><i class="fas fa-envelope"></i> <span class="member-detail-label">Email:</span> <span id="memberDetailEmail">${member.email || ''}</span></li>
-          <li><i class="fas fa-map-marker-alt"></i> <span class="member-detail-label">Address:</span> <span id="memberDetailAddress">${member.address || ''}</span></li>
-          <li><i class="fas fa-venus-mars"></i> <span class="member-detail-label">Gender:</span> ${member.gender || ''} <span class="member-detail-label">Age:</span> ${member.age || ''}</li>
-          <li><i class="fas fa-calendar-plus"></i> <span class="member-detail-label">Join Date:</span> ${member.joinDate || ''}</li>
-          <li><i class="fas fa-calendar-check"></i> <span class="member-detail-label">Valid Until:</span> ${member.validUntil || ''}</li>
-          <li><i class="fas fa-rupee-sign"></i> <span class="member-detail-label">Amount Paid:</span> ${member.paymentAmount || ''}</li>
-        </ul>
+      </div>
+    </div>
+    
+    <!-- Contact Information -->
+    <div class="member-info-section">
+      <div class="member-info-header">
+        <i class="fas fa-address-card"></i>
+        <span>Contact Information</span>
+      </div>
+      <div class="member-info-grid">
+        <div class="member-info-item">
+          <div class="member-info-label"><i class="fas fa-phone"></i> Phone Number</div>
+          <div class="member-info-value">${member.phone || 'Not provided'}</div>
+        </div>
+        <div class="member-info-item">
+          <div class="member-info-label"><i class="fas fa-envelope"></i> Email Address</div>
+          <div class="member-info-value">${member.email || 'Not provided'}</div>
+        </div>
+        <div class="member-info-item">
+          <div class="member-info-label"><i class="fas fa-map-marker-alt"></i> Address</div>
+          <div class="member-info-value">${member.address || member.memberAddress || 'Not provided'}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Personal Information -->
+    <div class="member-info-section">
+      <div class="member-info-header">
+        <i class="fas fa-user"></i>
+        <span>Personal Information</span>
+      </div>
+      <div class="member-info-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-venus-mars"></i> Gender</div>
+            <div class="member-info-value">${member.gender || 'Not specified'}</div>
+          </div>
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-birthday-cake"></i> Age</div>
+            <div class="member-info-value">${member.age || 'Not specified'}</div>
+          </div>
+        </div>
+        <div class="member-info-item">
+          <div class="member-info-label"><i class="fas fa-dumbbell"></i> Activity Preference</div>
+          <div class="member-info-value highlight">${member.activityPreference || 'Not specified'}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Membership Timeline -->
+    <div class="member-info-section">
+      <div class="member-info-header">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Membership Timeline</span>
+      </div>
+      <div class="member-info-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-calendar-plus"></i> Join Date</div>
+            <div class="member-info-value">${member.joinDate ? new Date(member.joinDate).toLocaleDateString() : 'N/A'}</div>
+          </div>
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-calendar-check"></i> Valid Until</div>
+            <div class="member-info-value ${status === 'expired' ? 'text-danger' : status === 'expiring' ? 'text-warning' : 'text-success'}">${member.membershipValidUntil ? new Date(member.membershipValidUntil).toLocaleDateString() : 'N/A'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Payment Information -->
+    <div class="member-info-section">
+      <div class="member-info-header">
+        <i class="fas fa-credit-card"></i>
+        <span>Payment Information</span>
+      </div>
+      <div class="member-info-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-rupee-sign"></i> Amount Paid</div>
+            <div class="member-info-value highlight">₹${member.paymentAmount || 'N/A'}</div>
+          </div>
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-money-bill-wave"></i> Payment Mode</div>
+            <div class="member-info-value">${member.paymentMode || 'N/A'}</div>
+          </div>
+        </div>
+        ${paymentStatus === 'pending' ? `
+          <div class="member-info-item">
+            <div class="member-info-label"><i class="fas fa-hourglass-half"></i> Pending Amount</div>
+            <div class="member-info-value" style="color:#ff9800;font-weight:700;">₹${member.pendingPaymentAmount || 'N/A'}</div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
-  modal.innerHTML = content;
-  modal.style.display = 'flex';
-  // Add close logic
-  const closeBtn = document.getElementById('closeMembersDetailCard');
-  if (closeBtn) closeBtn.onclick = function() { modal.style.display = 'none'; };
-  // Close on outside click
-  modal.addEventListener('mousedown', function handler(e) {
-    if (e.target === modal) {
-      modal.style.display = 'none';
-      modal.removeEventListener('mousedown', handler);
-    }
-  });
+  
+  drawerBody.innerHTML = content;
+  
+  // Show drawer
+  drawer.style.display = 'block';
+  setTimeout(() => {
+    drawer.classList.add('active');
+  }, 10);
+  
+  // Show footer
+  if (drawerFooter) {
+    drawerFooter.style.display = 'flex';
+  }
+  
+  // Setup event listeners
+  setupDrawerEventListeners(member);
+}
 
-  // Edit logic
-  const editBtn = document.getElementById('editMemberDetailBtn');
+// Setup drawer event listeners
+function setupDrawerEventListeners(member) {
+  const drawer = document.getElementById('membersDetailDrawer');
+  const backdrop = document.getElementById('memberDrawerBackdrop');
+  const closeBtn = document.getElementById('closeMemberDrawer');
+  const editBtn = document.getElementById('editMemberDrawerBtn');
+  const renewBtn = document.getElementById('renewMemberDrawerBtn');
+  const deleteBtn = document.getElementById('deleteMemberDrawerBtn');
+  
+  // Close handlers
+  const closeDrawer = () => {
+    drawer.classList.remove('active');
+    setTimeout(() => {
+      drawer.style.display = 'none';
+    }, 300);
+  };
+  
+  if (closeBtn) {
+    closeBtn.onclick = closeDrawer;
+  }
+  
+  if (backdrop) {
+    backdrop.onclick = closeDrawer;
+  }
+  
+  // Edit button - opens edit modal with member data
   if (editBtn) {
-    editBtn.onclick = function() {
-      enableMemberDetailEdit(member);
+    editBtn.onclick = () => {
+      closeDrawer();
+      setTimeout(() => {
+        openMemberEditModal(member);
+      }, 350);
     };
   }
+  
+  // Renew button
+  if (renewBtn) {
+    renewBtn.onclick = () => {
+      closeDrawer();
+      setTimeout(() => {
+        if (typeof window.openRenewalModal === 'function') {
+          window.openRenewalModal(member);
+        } else {
+          console.error('openRenewalModal function not found');
+          showDialog({
+            title: 'Error',
+            message: 'Renewal modal not available. Please refresh the page.',
+            confirmText: 'OK',
+            iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#f44336;font-size:2.5em;"></i>'
+          });
+        }
+      }, 350);
+    };
+  }
+  
+  // Delete button
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      showDialog({
+        title: 'Remove Member?',
+        message: `Are you sure you want to remove ${member.memberName || 'this member'}? This action cannot be undone.`,
+        confirmText: 'Yes, Remove',
+        cancelText: 'Cancel',
+        iconHtml: '<i class="fas fa-trash-alt" style="color:#f44336;font-size:2.5em;"></i>',
+        onConfirm: async () => {
+          try {
+            const token = localStorage.getItem('gymAdminToken');
+            const response = await fetch(`http://localhost:5000/api/members/bulk`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ membershipIds: [member.membershipId] })
+            });
+            
+            if (response.ok) {
+              closeDrawer();
+              showDialog({
+                title: 'Success!',
+                message: 'Member removed successfully.',
+                confirmText: 'OK',
+                iconHtml: '<i class="fas fa-check-circle" style="color:#4caf50;font-size:2.5em;"></i>',
+                onConfirm: () => {
+                  if (typeof fetchAndDisplayMembers === 'function') {
+                    fetchAndDisplayMembers();
+                  }
+                }
+              });
+            } else {
+              throw new Error('Failed to remove member');
+            }
+          } catch (error) {
+            console.error('Error removing member:', error);
+            showDialog({
+              title: 'Error',
+              message: 'Failed to remove member. Please try again.',
+              confirmText: 'OK',
+              iconHtml: '<i class="fas fa-exclamation-triangle" style="color:#f44336;font-size:2.5em;"></i>'
+            });
+          }
+        }
+      });
+    };
+  }
+}
+
+// Open member edit modal with pre-filled data
+function openMemberEditModal(member) {
+  const modal = document.getElementById('addMemberModal');
+  if (!modal) {
+    console.error('Add member modal not found');
+    return;
+  }
+  
+  // Show modal
+  modal.style.display = 'flex';
+  
+  // Update modal title to "Edit Member"
+  const modalTitle = modal.querySelector('.modal-title-style');
+  if (modalTitle) {
+    modalTitle.innerHTML = '<i class="fas fa-user-edit"></i> Edit Member';
+  }
+  
+  // Pre-fill form fields with member data
+  setTimeout(() => {
+    const form = document.getElementById('addMemberForm');
+    if (!form) return;
+    
+    // Set member ID in hidden field for update
+    let memberIdInput = document.getElementById('editMemberId');
+    if (!memberIdInput) {
+      memberIdInput = document.createElement('input');
+      memberIdInput.type = 'hidden';
+      memberIdInput.id = 'editMemberId';
+      memberIdInput.name = 'memberId';
+      form.appendChild(memberIdInput);
+    }
+    memberIdInput.value = member._id;
+    
+    // Fill form fields
+    const nameInput = document.getElementById('memberName');
+    const ageInput = document.getElementById('memberAge');
+    const genderInput = document.getElementById('memberGender');
+    const phoneInput = document.getElementById('memberPhone');
+    const emailInput = document.getElementById('memberEmail');
+    const addressInput = document.getElementById('memberAddress');
+    const activityInput = document.getElementById('activityPreference');
+    
+    if (nameInput) nameInput.value = member.memberName || '';
+    if (ageInput) ageInput.value = member.age || '';
+    if (genderInput) genderInput.value = member.gender || '';
+    if (phoneInput) phoneInput.value = member.phone || '';
+    if (emailInput) emailInput.value = member.email || '';
+    if (addressInput) addressInput.value = member.address || '';
+    if (activityInput) activityInput.value = member.activityPreference || '';
+    
+    // Disable fields that shouldn't be edited
+    if (nameInput) nameInput.disabled = true;
+    if (ageInput) ageInput.disabled = true;
+    if (genderInput) genderInput.disabled = true;
+    
+    // Update profile image preview
+    const profileImg = document.getElementById('memberImageTag');
+    if (profileImg && member.profileImage) {
+      profileImg.src = member.profileImage;
+    }
+    
+    // Change submit button text
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Member';
+      submitBtn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+    }
+    
+    // Mark form as edit mode
+    form.dataset.editMode = 'true';
+  }, 100);
+}
+
+// Keep old function for compatibility but redirect to new drawer
+function showMemberDetailCard(member) {
+  showMemberDrawer(member);
 }
 
 // Enable editing for allowed fields in the member detail card

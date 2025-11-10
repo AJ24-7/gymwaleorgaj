@@ -421,8 +421,14 @@ router.get('/grievances/:gymId', gymadminAuth, async (req, res) => {
         const { gymId } = req.params;
         const currentGymId = req.gym.id || req.admin.id;
         
-        // Verify gym access
-        if (currentGymId !== gymId) {
+        console.log('🔍 Grievance access check:', {
+            requestedGymId: gymId,
+            currentGymId: currentGymId,
+            gymObject: req.gym
+        });
+        
+        // Verify gym access (compare as strings)
+        if (currentGymId.toString() !== gymId.toString()) {
             console.warn(`⚠️ Gym grievance access denied: ${currentGymId} tried to access ${gymId}`);
             return res.status(403).json({
                 success: false,
@@ -432,26 +438,54 @@ router.get('/grievances/:gymId', gymadminAuth, async (req, res) => {
         
         console.log('📋 Fetching grievances for gym:', gymId);
         
-        const grievances = await Support.find({
-            userId: gymId,
-            userType: 'Gym',
-            category: { $in: ['complaint', 'grievance', 'issue'] }
-        }).populate('user', 'name email').sort({ createdAt: -1 });
+        // Convert to ObjectId for proper MongoDB query
+        const mongoose = require('mongoose');
+        const gymObjectId = mongoose.Types.ObjectId(gymId);
+        
+        // Fetch grievances submitted ABOUT this gym (by users)
+        const query = {
+            gymId: gymObjectId,
+            'metadata.isGrievance': true
+        };
+        
+        console.log('🔎 Query filter:', JSON.stringify(query));
+        
+        const grievances = await Support.find(query).sort({ createdAt: -1 });
 
         console.log(`✅ Found ${grievances.length} grievances for gym ${gymId}`);
+        
+        if (grievances.length > 0) {
+            console.log('📄 Sample grievance:', {
+                ticketId: grievances[0].ticketId,
+                gymId: grievances[0].gymId,
+                subject: grievances[0].subject,
+                metadata: grievances[0].metadata
+            });
+        }
 
         res.json({
             success: true,
             grievances: grievances.map(ticket => ({
-                _id: ticket.ticketId,
+                _id: ticket._id,
+                ticketId: ticket.ticketId,
                 id: ticket.ticketId,
                 title: ticket.subject,
+                subject: ticket.subject,
                 description: ticket.description,
-                category: ticket.category,
-                priority: ticket.priority,
+                category: ticket.metadata?.originalCategory || ticket.category,
+                priority: ticket.metadata?.originalPriority || ticket.priority,
                 status: ticket.status,
                 createdAt: ticket.createdAt,
-                member: { name: ticket.userDetails?.gymName || 'Gym Admin' },
+                updatedAt: ticket.updatedAt,
+                member: { 
+                    name: ticket.userName || 'Anonymous User',
+                    email: ticket.userEmail,
+                    phone: ticket.userPhone
+                },
+                userName: ticket.userName,
+                userEmail: ticket.userEmail,
+                userPhone: ticket.userPhone,
+                contactNumber: ticket.metadata?.contactNumber,
                 metadata: ticket.metadata || {}
             })),
             totalCount: grievances.length
@@ -462,6 +496,145 @@ router.get('/grievances/:gymId', gymadminAuth, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch grievances',
+            error: error.message
+        });
+    }
+});
+
+// Update grievance status (gym admin can respond/update)
+router.patch('/grievances/:ticketId/status', gymadminAuth, async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { status, response } = req.body;
+        const gymId = req.gym.id;
+
+        console.log(`🔄 Updating grievance status: ${ticketId} to ${status}`);
+
+        // Find the grievance
+        const grievance = await Support.findOne({ 
+            $or: [
+                { ticketId: ticketId },
+                { _id: ticketId }
+            ],
+            gymId: gymId
+        });
+
+        if (!grievance) {
+            return res.status(404).json({
+                success: false,
+                message: 'Grievance not found or access denied'
+            });
+        }
+
+        // Update status
+        if (status) {
+            grievance.status = status;
+        }
+
+        // Add gym's response if provided
+        if (response) {
+            grievance.messages.push({
+                sender: 'admin',
+                senderName: req.gym.gymName || 'Gym Admin',
+                message: response,
+                timestamp: new Date(),
+                sentVia: ['notification']
+            });
+        }
+
+        grievance.updatedAt = new Date();
+        await grievance.save();
+
+        console.log(`✅ Grievance ${ticketId} updated successfully`);
+
+        res.json({
+            success: true,
+            message: 'Grievance updated successfully',
+            grievance: {
+                ticketId: grievance.ticketId,
+                status: grievance.status,
+                updatedAt: grievance.updatedAt
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating grievance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update grievance',
+            error: error.message
+        });
+    }
+});
+
+// Add response to grievance
+router.post('/grievances/:ticketId/response', gymadminAuth, async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { message } = req.body;
+        const gymId = req.gym.id;
+
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: 'Message is required'
+            });
+        }
+
+        console.log(`💬 Adding response to grievance: ${ticketId}`);
+
+        // Find the grievance
+        const grievance = await Support.findOne({ 
+            $or: [
+                { ticketId: ticketId },
+                { _id: ticketId }
+            ],
+            gymId: gymId
+        });
+
+        if (!grievance) {
+            return res.status(404).json({
+                success: false,
+                message: 'Grievance not found or access denied'
+            });
+        }
+
+        // Add response
+        grievance.messages.push({
+            sender: 'admin',
+            senderName: req.gym.gymName || 'Gym Admin',
+            message: message,
+            timestamp: new Date(),
+            sentVia: ['notification']
+        });
+
+        // Update status if it's still open
+        if (grievance.status === 'open') {
+            grievance.status = 'in-progress';
+        }
+
+        grievance.updatedAt = new Date();
+        await grievance.save();
+
+        console.log(`✅ Response added to grievance ${ticketId}`);
+
+        // TODO: Notify the user about the response
+
+        res.json({
+            success: true,
+            message: 'Response added successfully',
+            grievance: {
+                ticketId: grievance.ticketId,
+                status: grievance.status,
+                messages: grievance.messages
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error adding response to grievance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to add response',
             error: error.message
         });
     }

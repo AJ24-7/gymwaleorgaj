@@ -7,13 +7,16 @@ class GymOffersManager {
     constructor() {
         this.currentGymId = null;
         this.activeOffers = [];
-        this.userCoupons = JSON.parse(localStorage.getItem('userCoupons') || '[]');
-        this.userOffers = JSON.parse(localStorage.getItem('userOffers') || '[]');
+        // Only load user data if user is logged in
+        this.userCoupons = [];
+        this.userOffers = [];
+        this.isUserLoggedIn = false;
         this.baseUrl = 'http://localhost:5000/api'; // Backend API base URL
         this.init();
     }
 
     init() {
+        this.checkUserLogin();
         this.setupEventListeners();
         this.checkForAutoShowOffers();
         
@@ -25,6 +28,26 @@ class GymOffersManager {
                 this.currentGymId = fallbackGymId;
                 this.loadActiveOffers();
             }
+        }
+    }
+
+    checkUserLogin() {
+        // Check if user is logged in
+        const token = localStorage.getItem('token') || localStorage.getItem('userToken');
+        this.isUserLoggedIn = !!token;
+        
+        // Only load user data if logged in
+        if (this.isUserLoggedIn) {
+            this.userCoupons = JSON.parse(localStorage.getItem('userCoupons') || '[]');
+            this.userOffers = JSON.parse(localStorage.getItem('userOffers') || '[]');
+            console.log('✅ User is logged in, loaded coupons and offers:', {
+                coupons: this.userCoupons.length,
+                offers: this.userOffers.length
+            });
+        } else {
+            this.userCoupons = [];
+            this.userOffers = [];
+            console.log('⚠️ User is not logged in, all offers will show as claimable');
         }
     }
 
@@ -293,7 +316,9 @@ class GymOffersManager {
 
     createTabOfferCard(offer) {
         const offerId = offer._id || offer.id;
-        const isAlreadyClaimed = this.userOffers.some(userOffer => 
+        
+        // Only check if already claimed if user is logged in
+        const isAlreadyClaimed = this.isUserLoggedIn && this.userOffers.some(userOffer => 
             (userOffer._id === offerId || userOffer.id === offerId)
         );
         
@@ -610,14 +635,13 @@ class GymOffersManager {
     }
 
     showOffersPopup() {
-        if (this.activeOffers.length === 0) {
-            console.log('No active offers to show');
+        // Don't show popup if no offers are available
+        if (!this.activeOffers || this.activeOffers.length === 0) {
+            console.log('⚠️ No active offers available, skipping popup display');
             return;
         }
 
-        // ALWAYS show popup on gym profile page load
-        // Remove the "shown today" check to ensure popup appears every time
-        console.log('Showing offers popup with', this.activeOffers.length, 'offers');
+        console.log('🎁 Showing offers popup with', this.activeOffers.length, 'offers');
         
         // Create and show offers popup
         this.createOffersPopup();
@@ -706,7 +730,9 @@ class GymOffersManager {
 
         return this.activeOffers.slice(0, 6).map(offer => {
             const offerId = offer._id || offer.id;
-            const isAlreadyClaimed = this.userOffers.some(userOffer => 
+            
+            // Only check if already claimed if user is logged in
+            const isAlreadyClaimed = this.isUserLoggedIn && this.userOffers.some(userOffer => 
                 (userOffer._id === offerId || userOffer.id === offerId)
             );
             
@@ -811,30 +837,19 @@ class GymOffersManager {
         }
 
         try {
-            // Check multiple authentication sources
+            // Check if user is logged in
             const userToken = localStorage.getItem('token') || localStorage.getItem('userToken');
-            const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
-            const userEmail = localStorage.getItem('userEmail') || localStorage.getItem('email');
-            const userName = localStorage.getItem('userName') || localStorage.getItem('name');
             
             console.log('🔐 Auth Check:', {
                 hasToken: !!userToken,
-                hasUserId: !!userId,
-                hasEmail: !!userEmail,
-                userName: userName
+                isUserLoggedIn: this.isUserLoggedIn
             });
 
-            // Verify user is logged in with proper credentials
-            if (!userToken && !userId) {
-                console.warn('❌ No authentication found, showing login prompt');
+            // Verify user is logged in
+            if (!userToken || !this.isUserLoggedIn) {
+                console.warn('❌ User not authenticated, showing login prompt');
                 this.showLoginPrompt();
                 return;
-            }
-            
-            // If we have userId but no token, user might be logged in but without token
-            // Allow local claim in this case
-            if (!userToken && userId) {
-                console.warn('⚠️ User ID found but no token - will process locally');
             }
 
             // Check if already claimed
@@ -859,6 +874,7 @@ class GymOffersManager {
             // Try to claim via backend with proper error handling
             let couponCode = null;
             let backendSuccess = false;
+            const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
             
             // Only attempt backend claim if we have a token
             if (userToken && userId) {
@@ -918,37 +934,47 @@ class GymOffersManager {
     }
 
     showLoginPrompt() {
+        // Store current page URL for redirect after login
+        const currentUrl = window.location.href;
+        localStorage.setItem('redirectAfterLogin', currentUrl);
+        
         const loginModal = document.createElement('div');
-        loginModal.className = 'login-prompt-modal show';
+        loginModal.className = 'modal';
+        loginModal.style.display = 'flex';
         loginModal.innerHTML = `
-            <div class="login-prompt-overlay" onclick="this.parentElement.remove()"></div>
-            <div class="login-prompt-content">
-                <div class="login-prompt-icon">
-                    <i class="fas fa-user-lock"></i>
+            <div class="modal-content" style="max-width: 450px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="padding: 20px; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.3rem;">
+                        <i class="fas fa-sign-in-alt" style="color: var(--primary-color);"></i>
+                        Login Required
+                    </h3>
                 </div>
-                <h3>🔐 Login Required</h3>
-                <p>Please login to your account to claim this exclusive offer and unlock amazing benefits!</p>
-                <div class="login-benefits">
-                    <div class="benefit-item">
-                        <i class="fas fa-gift"></i>
-                        <span>Claim exclusive offers</span>
+                <div class="modal-body" style="padding: 25px;">
+                    <p style="margin: 0 0 20px 0; color: #555; line-height: 1.6;">
+                        Please login to your account to claim exclusive offers and unlock amazing benefits!
+                    </p>
+                    <div class="login-benefits" style="margin: 0 0 25px 0; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <i class="fas fa-gift" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                            <span style="color: #333; font-size: 0.95rem;">Claim exclusive offers</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <i class="fas fa-ticket-alt" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                            <span style="color: #333; font-size: 0.95rem;">Get discount coupons</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-star" style="color: var(--primary-color); font-size: 1.1rem; width: 20px;"></i>
+                            <span style="color: #333; font-size: 0.95rem;">Track your benefits</span>
+                        </div>
                     </div>
-                    <div class="benefit-item">
-                        <i class="fas fa-ticket-alt"></i>
-                        <span>Get discount coupons</span>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="btn-secondary" onclick="this.closest('.modal').remove()" style="padding: 10px 20px;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn-primary" onclick="window.location.href='/frontend/public/login.html'" style="padding: 10px 20px;">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
                     </div>
-                    <div class="benefit-item">
-                        <i class="fas fa-star"></i>
-                        <span>Track your benefits</span>
-                    </div>
-                </div>
-                <div class="login-prompt-actions">
-                    <button class="btn-cancel" onclick="this.closest('.login-prompt-modal').remove()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <a href="public/login.html" class="btn-login">
-                        <i class="fas fa-sign-in-alt"></i> Login / Signup
-                    </a>
                 </div>
             </div>
         `;
@@ -1328,7 +1354,9 @@ class GymOffersManager {
         // Use same card rendering as popup for consistency
         return this.activeOffers.map(offer => {
             const offerId = offer._id || offer.id;
-            const isAlreadyClaimed = this.userOffers.some(userOffer => 
+            
+            // Only check if already claimed if user is logged in
+            const isAlreadyClaimed = this.isUserLoggedIn && this.userOffers.some(userOffer => 
                 (userOffer._id === offerId || userOffer.id === offerId)
             );
             
