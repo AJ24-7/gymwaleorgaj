@@ -22,7 +22,7 @@ const ENV_CONFIG = {
     // Production (Vercel + Render)
     PRODUCTION: {
         // IMPORTANT: Replace this with your actual Render backend URL
-        API_URL: import.meta?.env?.VITE_API_URL || 'https://your-backend.onrender.com',
+        API_URL: import.meta?.env?.VITE_API_URL || 'https://gym-wale.onrender.com',
         ENV_NAME: 'production'
     }
 };
