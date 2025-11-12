@@ -1,6 +1,15 @@
 // === GLOBAL VARIABLES ===
+// BASE_URL will be initialized from config.js when available
+let BASE_URL;
+
 // Default location (Delhi) - will be overridden when user allows geolocation
 let userLocation = { lat: 28.357353, lng: 77.295289 };
+
+// Initialize BASE_URL when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
+  console.log('API BASE_URL initialized:', BASE_URL);
+});
 
 // === LOADING SCREEN ===
 document.addEventListener('DOMContentLoaded', function () {
@@ -127,10 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// === DYNAMIC BASE URL FOR API (works on mobile and desktop) ===
-// Using centralized config from config.js
-const BASE_URL = window.API_CONFIG.BASE_URL;
-//gym search logic //
+// === GYM SEARCH LOGIC ===
 
 // Haversine formula for calculating distance between two points on Earth
 function getDistance(loc1, loc2) {

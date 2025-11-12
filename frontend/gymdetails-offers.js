@@ -11,7 +11,7 @@ class GymOffersManager {
         this.userCoupons = [];
         this.userOffers = [];
         this.isUserLoggedIn = false;
-        this.baseUrl = window.API_CONFIG.BASE_URL + '/api'; // Backend API base URL
+        this.baseUrl = (window.API_CONFIG?.BASE_URL || 'http://localhost:5000') + '/api'; // Backend API base URL
         this.init();
     }
 

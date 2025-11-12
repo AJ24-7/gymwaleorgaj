@@ -5,7 +5,7 @@
 
 class GymChatSystem {
     constructor() {
-        const BASE_URL = window.API_CONFIG.BASE_URL;
+        this.BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
         this.currentGymId = null;
         this.currentChatId = null;
         this.messages = [];
@@ -598,15 +598,7 @@ class GymChatSystem {
 
 // Initialize chat system when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait for BASE_URL to be defined
-    if (typeof BASE_URL !== 'undefined') {
-        window.gymChatSystem = new GymChatSystem();
-        console.log('✅ Gym Chat System initialized');
-    } else {
-        console.warn('⚠️ BASE_URL not defined, waiting...');
-        setTimeout(() => {
-            window.gymChatSystem = new GymChatSystem();
-            console.log('✅ Gym Chat System initialized (delayed)');
-        }, 1000);
-    }
+    // Initialize the chat system (BASE_URL is handled in the constructor)
+    window.gymChatSystem = new GymChatSystem();
+    console.log('✅ Gym Chat System initialized');
 });

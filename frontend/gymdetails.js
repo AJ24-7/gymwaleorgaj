@@ -5,17 +5,10 @@
 console.log('Gym details script loaded!');
 
 // Global variables
+const BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
 let currentGym = null;
 let currentPhotoIndex = 0;
 let gymPhotos = [];
-
-// BASE_URL is defined globally in the HTML file
-
-// DOM Elements
-const loadingScreen = document.getElementById('loading-screen');
-const gymContent = document.getElementById('gym-content');
-const tabButtons = document.querySelectorAll('.tab-btn');
-const tabContents = document.querySelectorAll('.tab-content');
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {

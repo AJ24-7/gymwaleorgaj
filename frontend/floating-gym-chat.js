@@ -15,7 +15,7 @@ class FloatingGymChatWidget {
         this.currentChatId = null;
         this.lastMessageCount = 0;
         this.pollingInterval = null;
-        this.BASE_URL = window.API_CONFIG.BASE_URL;        
+        this.BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';        
         this.init();
     }
 
