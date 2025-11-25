@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = decodeURIComponent(redirectUrl);
           } else {
             // Default redirect to user profile
-            window.location.href = "./userprofile.html";
+            window.location.href = ".userprofile.html";
           }
         }, 1000);
       } else {
@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = decodeURIComponent(redirectUrl);
           } else {
             // Default redirect to user profile
-            window.location.href = "./userprofile.html";
+            window.location.href = "userprofile.html";
           }
         }, 1000);
       } else {
@@ -353,7 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("profileImage", data.user.profileImage || "");
         
         setTimeout(() => {
-          window.location.href = "./userprofile.html";
+          window.location.href = "userprofile.html";
         }, 100);
       } else {
         console.error('Backend authentication failed:', data.message);
