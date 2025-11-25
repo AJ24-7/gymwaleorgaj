@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetButton.textContent = "Sending...";
 
         try {
-            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/forgot-password`, {
+            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/request-password-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
