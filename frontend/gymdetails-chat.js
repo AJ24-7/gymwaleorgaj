@@ -501,7 +501,7 @@ class GymChatSystem {
                             <button class="btn-secondary" onclick="this.closest('.modal').remove()" style="padding: 10px 20px;">
                                 <i class="fas fa-times"></i> Cancel
                             </button>
-                            <button class="btn-primary" onclick="window.location.href='/frontend/public/login.html'" style="padding: 10px 20px;">
+                            <button class="btn-primary" onclick="window.location.href='/public/login.html'" style="padding: 10px 20px;">
                                 <i class="fas fa-sign-in-alt"></i> Login
                             </button>
                         </div>

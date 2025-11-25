@@ -2124,7 +2124,7 @@ async function buyMembership(planName, finalPrice, planId, originalPrice, discou
     if (!token) {
         // Redirect to login with return URL
         const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&price=${finalPrice}`);
-        window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+        window.location.href = `/public/login.html?redirect=${returnUrl}&reason=membership`;
         return;
     }
 
@@ -2142,7 +2142,7 @@ async function buyMembership(planName, finalPrice, planId, originalPrice, discou
             // Token invalid, redirect to login
             localStorage.removeItem('token');
             const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&price=${finalPrice}`);
-            window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+            window.location.href = `/public/login.html?redirect=${returnUrl}&reason=membership`;
             return;
         }
 
@@ -2255,7 +2255,7 @@ async function buyMembershipWithDuration(planName, planIdx, planId, originalPric
     if (!token) {
         // Redirect to login with return URL
         const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&months=${months}&price=${totalAmount}`);
-        window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+        window.location.href = `/public/login.html?redirect=${returnUrl}&reason=membership`;
         return;
     }
 
@@ -2273,7 +2273,7 @@ async function buyMembershipWithDuration(planName, planIdx, planId, originalPric
             // Token invalid, redirect to login
             localStorage.removeItem('token');
             const returnUrl = encodeURIComponent(`${window.location.origin}/frontend/gymdetails.html?gymId=${currentGym._id}&plan=${planName}&months=${months}&price=${totalAmount}`);
-            window.location.href = `/frontend/public/login.html?redirect=${returnUrl}&reason=membership`;
+            window.location.href = `/public/login.html?redirect=${returnUrl}&reason=membership`;
             return;
         }
 
@@ -2604,7 +2604,7 @@ function showStandardLoginPrompt(feature = 'this feature') {
                     <button class="btn-secondary" onclick="this.closest('.modal').remove()" style="padding: 10px 20px;">
                         <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button class="btn-primary" onclick="window.location.href='/frontend/public/login.html'" style="padding: 10px 20px;">
+                    <button class="btn-primary" onclick="window.location.href='/public/login.html'" style="padding: 10px 20px;">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </button>
                 </div>
@@ -3106,7 +3106,7 @@ function initializeReviewModal() {
                 confirmText: 'Go to Login',
                 cancelText: 'Cancel',
                 onConfirm: () => {
-                    window.location.href = '/frontend/public/login.html';
+                    window.location.href = '/public/login.html';
                 }
             });
         }
@@ -3164,7 +3164,7 @@ async function submitReview() {
             confirmText: 'Go to Login',
             cancelText: 'Cancel',
             onConfirm: () => {
-                window.location.href = '/frontend/public/login.html';
+                window.location.href = '/public/login.html';
             }
         });
         return;
