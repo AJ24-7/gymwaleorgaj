@@ -145,173 +145,68 @@ exports.login = async (req, res) => {
   const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
   const requestUserAgent = userAgent || req.get('User-Agent') || 'Unknown';
   
-  // Helper function to format device information properly
-  const formatDeviceInfo = (deviceInfo, userAgent) => {
-    if (deviceInfo && typeof deviceInfo === 'object') {
-      return {
-        device: `${deviceInfo.os || 'Unknown'} - ${deviceInfo.browser || 'Unknown'}`,
-        browser: deviceInfo.browser || extractBrowserInfo(userAgent),
-        os: deviceInfo.os || 'Unknown',
-        platform: deviceInfo.platform || 'Unknown',
-        userAgent: deviceInfo.userAgent || userAgent,
-        screen: deviceInfo.screen ? `${deviceInfo.screen.width}x${deviceInfo.screen.height}` : 'Unknown',
-        language: deviceInfo.language || 'Unknown',
-        timezone: deviceInfo.timezone || timezone || 'Unknown'
-      };
-    } else {
-      return {
-        device: extractDeviceInfo(userAgent),
-        browser: extractBrowserInfo(userAgent),
-        os: 'Unknown',
-        platform: 'Unknown',
-        userAgent: userAgent,
-        screen: 'Unknown',
-        language: 'Unknown',
-        timezone: timezone || 'Unknown'
-      };
-    }
-  };
-
-  // Helper function to format location information properly
-  const formatLocationInfo = (locationInfo, ipAddress) => {
-    if (locationInfo && typeof locationInfo === 'object') {
-      const locationParts = [];
-      
-      // Filter out invalid location data
-      const isValidLocation = (value) => {
-        return value && 
-               value !== 'Unknown' && 
-               value !== 'Detecting...' && 
-               value !== 'pending' && 
-               !value.includes('Detecting');
-      };
-      
-      if (isValidLocation(locationInfo.city)) {
-        locationParts.push(locationInfo.city);
-      }
-      if (isValidLocation(locationInfo.region) && locationInfo.region !== locationInfo.city) {
-        locationParts.push(locationInfo.region);
-      }
-      if (isValidLocation(locationInfo.country)) {
-        locationParts.push(locationInfo.country);
-      }
-
-      return {
-        location: locationParts.length > 0 ? locationParts.join(', ') : 'Unknown',
-        city: isValidLocation(locationInfo.city) ? locationInfo.city : 'Unknown',
-        country: isValidLocation(locationInfo.country) ? locationInfo.country : 'Unknown',
-        region: isValidLocation(locationInfo.region) ? locationInfo.region : 'Unknown',
-        coordinates: (locationInfo.latitude && locationInfo.longitude) 
-          ? { lat: locationInfo.latitude, lng: locationInfo.longitude }
-          : { lat: 0, lng: 0 },
-        method: locationInfo.method || 'unknown',
-        ipAddress: ipAddress
-      };
-    } else {
-      // Fallback to IP-based location detection
-      return null; // Will be filled by getLocationFromIP
-    }
-  };
-
-  const formattedDeviceInfo = formatDeviceInfo(deviceInfo, requestUserAgent);
-  const formattedLocationInfo = formatLocationInfo(locationInfo, ipAddress);
-  
-  // Helper function to record login attempt
-  const recordLoginAttempt = async (gymId, success, failureReason = null) => {
-    try {
-      // Use formatted location if available, otherwise get from IP
-      const locationData = formattedLocationInfo || await getLocationFromIP(ipAddress);
-      
-      const loginAttempt = new LoginAttempt({
-        gymId,
-        ipAddress,
-        userAgent: requestUserAgent,
-        success,
-        failureReason,
-        device: formattedDeviceInfo.device,
-        browser: formattedDeviceInfo.browser,
-        suspicious: await isSuspiciousLogin(gymId, ipAddress),
-        location: locationData,
-        deviceDetails: formattedDeviceInfo // Store complete device info
-      });
-      await loginAttempt.save();
-      
-      // Send notification if enabled (only if SecuritySettings exist and are configured)
-      if (success && gymId) {
-        const settings = await SecuritySettings.findOne({ gymId });
-       
-        
-        if (settings && settings.loginNotifications && settings.loginNotifications.enabled) {
-          await sendLoginNotification(gymId, loginAttempt);
-        } else {
-        }
-      } else if (!success && gymId && await shouldNotifyFailedLogin(gymId)) {
-        await sendLoginNotification(gymId, loginAttempt);
-      }
-    } catch (error) {
-      console.error('Error recording login attempt:', error);
-    }
-  };
-  
   try {
-    // Find gym by email
-    const gym = await Gym.findOne({ email });
+    // Find gym by email - FIRST
+    const gym = await Gym.findOne({ email }).select('+password');
     if (!gym) {
-      await recordLoginAttempt(null, false, 'Invalid email');
       return res.status(401).json({ success: false, message: 'Invalid credentials or gym not found.' });
     }
         
-    // Check password
+    // Check password - SECOND (fail fast if password is wrong)
     const isMatch = await bcrypt.compare(password, gym.password);
     if (!isMatch) {
-      await recordLoginAttempt(gym._id, false, 'Invalid password');
+      // Record failed attempt asynchronously (don't wait)
+      setImmediate(() => {
+        recordLoginAttempt(gym._id, false, 'Invalid password', ipAddress, requestUserAgent, deviceInfo, locationInfo).catch(console.error);
+      });
       return res.status(401).json({ success: false, message: 'Invalid credentials or gym not found.' });
     }
     
-    // Check if 2FA is enabled via SecuritySettings
-    let securitySettings = await SecuritySettings.findOne({ gymId: gym._id });
-    if (!securitySettings) {
-      // Create default settings if they don't exist
-      securitySettings = new SecuritySettings({ 
-        gymId: gym._id,
-        twoFactorEnabled: false, // Default to disabled
-        loginNotifications: { enabled: false }
+    // Check approval status - THIRD
+    if (gym.status !== 'approved') {
+      setImmediate(() => {
+        recordLoginAttempt(gym._id, false, `Account status: ${gym.status}`, ipAddress, requestUserAgent, deviceInfo, locationInfo).catch(console.error);
       });
-      await securitySettings.save();
+      if (gym.status === 'pending') {
+        return res.status(403).json({ success: false, message: 'Your gym registration is pending approval. Please wait for the admin to review your application.' });
+      } else if (gym.status === 'rejected') {
+        return res.status(403).json({ success: false, message: 'Your gym registration has been rejected. Please contact support for more information.' });
+      } else {
+        return res.status(403).json({ success: false, message: 'Your gym registration is not approved.' });
+      }
+    }
+    
+    // Check if 2FA is enabled - FOURTH
+    let securitySettings = await SecuritySettings.findOne({ gymId: gym._id }).lean();
+    if (!securitySettings) {
+      // Create default settings asynchronously (don't wait)
+      setImmediate(() => {
+        new SecuritySettings({ 
+          gymId: gym._id,
+          twoFactorEnabled: false,
+          loginNotifications: { enabled: false }
+        }).save().catch(console.error);
+      });
+      securitySettings = { twoFactorEnabled: false };
     }
 
-    // Use SecuritySettings to determine 2FA requirement
     const twoFactorRequired = securitySettings.twoFactorEnabled;
     
     if (twoFactorRequired) {
       if (!twoFactorCode) {
         // Generate OTP and send via email
-        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
         
         // Save OTP to database
         gym.twoFactorOTP = otp;
         gym.twoFactorOTPExpiry = otpExpiry;
         await gym.save();
         
-        // Send OTP via email
-        try {
-          const emailResult = await send2FAEmail(email, otp, gym.gymName);
-          if (!emailResult.success) {
-            await recordLoginAttempt(gym._id, false, '2FA email send failed');
-            return res.status(500).json({ 
-              success: false, 
-              message: 'Failed to send verification code. Please try again.' 
-            });
-          }
-        } catch (emailError) {
-          console.error('Error sending 2FA email:', emailError);
-          await recordLoginAttempt(gym._id, false, '2FA email send failed');
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Failed to send verification code. Please try again.' 
-          });
-        }
+        // Send OTP via email asynchronously
+        send2FAEmail(email, otp, gym.gymName).catch(err => {
+          console.error('Error sending 2FA email:', err);
+        });
         
         // Generate temporary token for 2FA verification
         const tempPayload = {
@@ -331,25 +226,11 @@ exports.login = async (req, res) => {
         });
       }
       
-      // For email OTP, we'll handle this in a separate endpoint
       if (twoFactorCode) {
-        await recordLoginAttempt(gym._id, false, 'Direct 2FA verification not supported');
         return res.status(400).json({ 
           success: false, 
           message: 'Please use the email verification process' 
         });
-      }
-    }
-        
-    // Check approval status
-    if (gym.status !== 'approved') {
-      await recordLoginAttempt(gym._id, false, `Account status: ${gym.status}`);
-      if (gym.status === 'pending') {
-        return res.status(403).json({ success: false, message: 'Your gym registration is pending approval. Please wait for the admin to review your application.' });
-      } else if (gym.status === 'rejected') {
-        return res.status(403).json({ success: false, message: 'Your gym registration has been rejected. Please contact support for more information.' });
-      } else {
-        return res.status(403).json({ success: false, message: 'Your gym registration is not approved.' });
       }
     }
         
@@ -362,54 +243,18 @@ exports.login = async (req, res) => {
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
     
-    // Update lastLogin field
-    gym.lastLogin = new Date();
-    await gym.save();
-    
-    // Record successful login
-    await recordLoginAttempt(gym._id, true);
-    
-    // Send login notification if enabled
-    try {
+    // Update lastLogin and record attempt asynchronously (don't wait)
+    setImmediate(() => {
+      gym.lastLogin = new Date();
+      gym.save().catch(console.error);
+      
+      recordLoginAttempt(gym._id, true, null, ipAddress, requestUserAgent, deviceInfo, locationInfo).catch(console.error);
+      
+      // Send login notification if enabled (async)
       if (securitySettings.loginNotifications && securitySettings.loginNotifications.enabled) {
-        // Use formatted location if available, otherwise get from IP
-        const locationData = formattedLocationInfo || await getLocationFromIP(ipAddress);
-        
-        const loginDetails = {
-          timestamp: new Date().toLocaleString('en-US', { 
-            timeZone: 'Asia/Kolkata',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          }),
-          ip: ipAddress,
-          device: formattedDeviceInfo.device,
-          browser: formattedDeviceInfo.browser,
-          os: formattedDeviceInfo.os,
-          userAgent: formattedDeviceInfo.userAgent,
-          screen: formattedDeviceInfo.screen,
-          timezone: formattedDeviceInfo.timezone,
-          location: locationData.location || `${locationData.city}, ${locationData.country}`,
-          city: locationData.city,
-          country: locationData.country,
-          coordinates: locationData.coordinates,
-          method: locationData.method || 'ip'
-        };
-        
-        const emailService = new EmailService();
-        await emailService.sendLoginAlert(
-          gym.email, 
-          gym.contactPerson || gym.gymName, 
-          loginDetails
-        );
+        sendLoginNotificationAsync(gym, ipAddress, requestUserAgent, deviceInfo, locationInfo).catch(console.error);
       }
-    } catch (notificationError) {
-      console.error('❌ Error sending login notification:', notificationError);
-      // Don't fail the login if notification fails
-    }
+    });
     
     res.status(200).json({
       success: true,
@@ -421,6 +266,138 @@ exports.login = async (req, res) => {
     console.error('❌ Unified gym login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login.' });
   }
+};
+
+// Helper function to record login attempt (optimized, async)
+const recordLoginAttempt = async (gymId, success, failureReason, ipAddress, requestUserAgent, deviceInfo, locationInfo) => {
+  try {
+    const formattedDeviceInfo = formatDeviceInfo(deviceInfo, requestUserAgent);
+    const formattedLocationInfo = formatLocationInfo(locationInfo, ipAddress);
+    
+    const loginAttempt = new LoginAttempt({
+      gymId,
+      ipAddress,
+      userAgent: requestUserAgent,
+      success,
+      failureReason,
+      device: formattedDeviceInfo.device,
+      browser: formattedDeviceInfo.browser,
+      suspicious: false, // Skip suspicious check for speed
+      location: formattedLocationInfo || { city: 'Unknown', country: 'Unknown', coordinates: { lat: 0, lng: 0 } },
+      deviceDetails: formattedDeviceInfo
+    });
+    await loginAttempt.save();
+  } catch (error) {
+    console.error('Error recording login attempt:', error);
+  }
+};
+
+// Async login notification sender
+const sendLoginNotificationAsync = async (gym, ipAddress, requestUserAgent, deviceInfo, locationInfo) => {
+  try {
+    const formattedDeviceInfo = formatDeviceInfo(deviceInfo, requestUserAgent);
+    const formattedLocationInfo = formatLocationInfo(locationInfo, ipAddress);
+    
+    const locationData = formattedLocationInfo || { city: 'Unknown', country: 'Unknown', coordinates: { lat: 0, lng: 0 } };
+    
+    const loginDetails = {
+      timestamp: new Date().toLocaleString('en-US', { 
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      ip: ipAddress,
+      device: formattedDeviceInfo.device,
+      browser: formattedDeviceInfo.browser,
+      os: formattedDeviceInfo.os,
+      userAgent: formattedDeviceInfo.userAgent,
+      screen: formattedDeviceInfo.screen,
+      timezone: formattedDeviceInfo.timezone,
+      location: locationData.location || `${locationData.city}, ${locationData.country}`,
+      city: locationData.city,
+      country: locationData.country,
+      coordinates: locationData.coordinates,
+      method: locationData.method || 'ip'
+    };
+    
+    const emailService = new EmailService();
+    await emailService.sendLoginAlert(
+      gym.email, 
+      gym.contactPerson || gym.gymName, 
+      loginDetails
+    );
+  } catch (error) {
+    console.error('Error sending login notification:', error);
+  }
+};
+
+// Helper function to format device information properly
+const formatDeviceInfo = (deviceInfo, userAgent) => {
+  if (deviceInfo && typeof deviceInfo === 'object') {
+    return {
+      device: `${deviceInfo.os || 'Unknown'} - ${deviceInfo.browser || 'Unknown'}`,
+      browser: deviceInfo.browser || extractBrowserInfo(userAgent),
+      os: deviceInfo.os || 'Unknown',
+      platform: deviceInfo.platform || 'Unknown',
+      userAgent: deviceInfo.userAgent || userAgent,
+      screen: deviceInfo.screen ? `${deviceInfo.screen.width}x${deviceInfo.screen.height}` : 'Unknown',
+      language: deviceInfo.language || 'Unknown',
+      timezone: deviceInfo.timezone || 'Unknown'
+    };
+  } else {
+    return {
+      device: extractDeviceInfo(userAgent),
+      browser: extractBrowserInfo(userAgent),
+      os: 'Unknown',
+      platform: 'Unknown',
+      userAgent: userAgent,
+      screen: 'Unknown',
+      language: 'Unknown',
+      timezone: 'Unknown'
+    };
+  }
+};
+
+// Helper function to format location information properly
+const formatLocationInfo = (locationInfo, ipAddress) => {
+  if (locationInfo && typeof locationInfo === 'object') {
+    const locationParts = [];
+    
+    const isValidLocation = (value) => {
+      return value && 
+             value !== 'Unknown' && 
+             value !== 'Detecting...' && 
+             value !== 'pending' && 
+             !value.includes('Detecting');
+    };
+    
+    if (isValidLocation(locationInfo.city)) {
+      locationParts.push(locationInfo.city);
+    }
+    if (isValidLocation(locationInfo.region) && locationInfo.region !== locationInfo.city) {
+      locationParts.push(locationInfo.region);
+    }
+    if (isValidLocation(locationInfo.country)) {
+      locationParts.push(locationInfo.country);
+    }
+
+    return {
+      location: locationParts.length > 0 ? locationParts.join(', ') : 'Unknown',
+      city: isValidLocation(locationInfo.city) ? locationInfo.city : 'Unknown',
+      country: isValidLocation(locationInfo.country) ? locationInfo.country : 'Unknown',
+      region: isValidLocation(locationInfo.region) ? locationInfo.region : 'Unknown',
+      coordinates: (locationInfo.latitude && locationInfo.longitude) 
+        ? { lat: locationInfo.latitude, lng: locationInfo.longitude }
+        : { lat: 0, lng: 0 },
+      method: locationInfo.method || 'unknown',
+      ipAddress: ipAddress
+    };
+  }
+  return null;
 };
 
 // Token validation endpoint to check if user is already authenticated

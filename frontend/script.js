@@ -50,30 +50,54 @@ document.addEventListener('DOMContentLoaded', function () {
         alert('Geolocation is not supported by your browser.');
         return;
       }
+      
       nearYouBtn.disabled = true;
       nearYouBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating...';
+      
+      const timeout = setTimeout(() => {
+        alert('Location request timed out. Please try again or enter your location manually.');
+        nearYouBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Near You';
+        nearYouBtn.disabled = false;
+      }, 10000); // 10 second timeout
+      
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          clearTimeout(timeout);
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           // Store user location globally for searchGyms
           window.userLocation = { lat, lng };
           // Update the global userLocation variable as well
           userLocation = { lat, lng };
-          console.log('User location obtained:', userLocation);
-          // Optionally, reverse geocode to get city/pincode (not required for backend search)
+          console.log('✅ User location obtained:', userLocation);
+          
+          // Clear search inputs to use location-based search
+          document.getElementById("city").value = '';
+          document.getElementById("pincode").value = '';
+          
           // Trigger searchGyms with location
           searchGyms();
-          nearYouBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Near You';
-          nearYouBtn.disabled = false;
+          nearYouBtn.innerHTML = '<i class="fas fa-check"></i> Location Set';
+          
+          setTimeout(() => {
+            nearYouBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Near You';
+            nearYouBtn.disabled = false;
+          }, 2000);
         },
         (err) => {
+          clearTimeout(timeout);
           console.warn('Geolocation error:', err);
-          alert('Unable to fetch your location. Please allow location access or search manually by city/pincode.');
+          let errorMsg = 'Unable to fetch your location. ';
+          if (err.code === 1) errorMsg += 'Please allow location access in your browser settings.';
+          else if (err.code === 2) errorMsg += 'Location information unavailable.';
+          else if (err.code === 3) errorMsg += 'Location request timed out.';
+          else errorMsg += 'Please try again or search manually.';
+          
+          alert(errorMsg);
           nearYouBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Near You';
           nearYouBtn.disabled = false;
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 } // Cache location for 30s
       );
     });
   }
@@ -138,6 +162,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // === GYM SEARCH LOGIC ===
 
+// Debounce function to prevent rapid API calls
+let searchTimeout;
+function debounceSearch(func, delay = 500) {
+  return function(...args) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
 // Haversine formula for calculating distance between two points on Earth
 function getDistance(loc1, loc2) {
   // Validate input coordinates
@@ -157,16 +190,35 @@ function getDistance(loc1, loc2) {
   return R * c;
 }
 
-// Geocode an address to get lat/lng coordinates
+// Geocode an address to get lat/lng coordinates (with timeout and caching)
+const geocodeCache = new Map(); // Cache geocoding results
+
 async function geocodeAddress(address, city, state, pincode) {
   try {
     // Build full address string
     const fullAddress = [address, city, state, pincode].filter(Boolean).join(', ');
     
-    // Use a geocoding service (you can replace this with your preferred service)
-    // This example uses OpenStreetMap Nominatim (free but rate-limited)
+    // Check cache first
+    if (geocodeCache.has(fullAddress)) {
+      return geocodeCache.get(fullAddress);
+    }
+    
+    // Use a geocoding service with timeout
     const encodedAddress = encodeURIComponent(fullAddress);
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+    
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1&countrycodes=in`,
+      { 
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'GymWale/1.0' // Identify our app
+        }
+      }
+    );
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error('Geocoding service error');
@@ -175,22 +227,43 @@ async function geocodeAddress(address, city, state, pincode) {
     const data = await response.json();
     
     if (data && data.length > 0) {
-      return {
+      const coords = {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon)
       };
+      geocodeCache.set(fullAddress, coords); // Cache the result
+      return coords;
     }
     
+    geocodeCache.set(fullAddress, null); // Cache null results too
     return null;
   } catch (error) {
-    console.warn('Geocoding failed for address:', address, error);
+    if (error.name === 'AbortError') {
+      console.warn('Geocoding timed out for address:', address);
+    } else {
+      console.warn('Geocoding failed for address:', address, error);
+    }
     return null;
   }
 }
 function searchGyms() {
+  // Prevent duplicate searches while one is in progress
+  if (window.searchInProgress) {
+    console.log('Search already in progress, skipping...');
+    return;
+  }
+  
+  window.searchInProgress = true;
+  
   // Show loading state
   const resultsDiv = document.getElementById("results");
-  resultsDiv.innerHTML = "<p>Searching for gyms...</p>";
+  resultsDiv.innerHTML = `
+    <div style="text-align: center; padding: 2rem;">
+      <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
+      <p style="margin-top: 1rem; color: var(--text-color);">Searching for gyms...</p>
+    </div>
+  `;
+  
   // Hide gym counter until results arrive
   const gymCounter = document.getElementById("gymSearchCounter");
   if (gymCounter) gymCounter.style.display = "none";
@@ -203,9 +276,6 @@ function searchGyms() {
     console.log('Using actual user location:', userLocation);
   }
   
-  // Log location status for debugging
-  logLocationStatus();
-  
   // Get search parameters from the form
   const city = document.getElementById("city").value.trim();
   const pincode = document.getElementById("pincode").value.trim();
@@ -215,7 +285,6 @@ function searchGyms() {
   const activities = Array.from(document.querySelectorAll(".activity-chip.active"))
     .map(div => div.dataset.activity);
 
-
   // Build query parameters
   const params = new URLSearchParams();
   if (city) params.append('city', city);
@@ -224,7 +293,16 @@ function searchGyms() {
   activities.forEach(activity => params.append('activities', activity));
 
   // Make the API call with query parameters
-  fetch(`${BASE_URL}/api/gyms/search?${params.toString()}`)
+  const startTime = performance.now();
+  
+  fetch(`${BASE_URL}/api/gyms/search?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    // Add timeout using AbortController
+    signal: AbortSignal.timeout(15000) // 15 second timeout
+  })
     .then(res => {
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -234,40 +312,28 @@ function searchGyms() {
     .then(async gyms => {
       console.log('Received gyms from backend:', gyms.length);
       
-      // Calculate distances for sorting with improved logic
-      const gymsWithDistance = await Promise.all(gyms.map(async gym => {
+      // OPTIMIZED: Process gyms with minimal async operations
+      const gymsWithDistance = gyms.map(gym => {
         let distance = null;
         let gymCoords = null;
         
-        // Try to get coordinates from gym data
+        // Try to get coordinates from gym data (sync operation)
         if (gym.location?.lat && gym.location?.lng) {
           gymCoords = {
             lat: parseFloat(gym.location.lat),
             lng: parseFloat(gym.location.lng)
           };
-        } else if (gym.location?.address || gym.location?.city) {
-          // Attempt to geocode the address
-          console.log('Geocoding address for gym:', gym.gymName);
-          gymCoords = await geocodeAddress(
-            gym.location.address,
-            gym.location.city,
-            gym.location.state,
-            gym.location.pincode
-          );
           
-          // Add a small delay to respect rate limits
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Calculate distance immediately if we have coords
+          if (gymCoords && userLocation && userLocation.lat && userLocation.lng) {
+            distance = getDistance(userLocation, gymCoords);
+          }
         }
-        
-        // Calculate distance if we have both user location and gym coordinates
-        if (gymCoords && userLocation) {
-          distance = getDistance(userLocation, gymCoords);
-        }
+        // Skip geocoding for gyms without coordinates - it's too slow
         
         // Process activities for display - handle new object format
         let combinedActivities = [];
         if (gym.activities && Array.isArray(gym.activities)) {
-          // Activities are now objects with name, icon, description
           combinedActivities = gym.activities.map(activity => {
             if (typeof activity === 'object' && activity.name) {
               return activity.name;
@@ -293,32 +359,40 @@ function searchGyms() {
         return {
           ...gym,
           distance,
-          gymCoords, // Store coordinates for future use
+          gymCoords,
           processedActivities: uniqueGymActivities
         };
-      }));
+      });
       
-      // Sort by distance (nulls/undefined distances go to the end)
+      // Sort by distance (gyms with coords first, then by distance)
       const sortedGyms = gymsWithDistance.sort((a, b) => {
-        if (a.distance === null && b.distance === null) return 0;
-        if (a.distance === null) return 1;
-        if (b.distance === null) return -1;
+        // Prioritize gyms with valid distances
+        const aHasDistance = a.distance !== null && !isNaN(a.distance);
+        const bHasDistance = b.distance !== null && !isNaN(b.distance);
+        
+        if (aHasDistance && !bHasDistance) return -1;
+        if (!aHasDistance && bHasDistance) return 1;
+        if (!aHasDistance && !bHasDistance) return 0;
+        
         return a.distance - b.distance;
       });
       
-      console.log('Gyms with calculated distances:', sortedGyms.map(g => ({ 
-        name: g.gymName, 
-        distance: g.distance 
-      })));
+      console.log('Gyms processed (instant):', sortedGyms.length);
       
       showResults(sortedGyms);
+      
       // Show gym counter with number of unique gyms
       const gymCounter = document.getElementById("gymSearchCounter");
       if (gymCounter) {
+        const withDistance = sortedGyms.filter(g => g.distance !== null).length;
         let counterText = `${sortedGyms.length} gym${sortedGyms.length !== 1 ? 's' : ''} found`;
         
-        if (!hasRealUserLocation()) {
-          counterText += ' (distances are approximate - click "Near You" for accurate distances)';
+        if (withDistance > 0 && withDistance < sortedGyms.length) {
+          counterText += ` (${withDistance} with distance info)`;
+        }
+        
+        if (!hasRealUserLocation() && withDistance > 0) {
+          counterText += ' • Click "Near You" for precise distances';
         }
         
         gymCounter.textContent = counterText;
@@ -327,10 +401,35 @@ function searchGyms() {
     })
     .catch(err => {
       console.error("Error searching gyms:", err);
-      resultsDiv.innerHTML = "<p>Failed to load gyms. Please try again later.</p>";
+      window.searchInProgress = false;
+      
+      let errorMsg = "Failed to load gyms. ";
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        errorMsg = "Search request timed out. Please try again.";
+      } else if (!navigator.onLine) {
+        errorMsg = "No internet connection. Please check your connection and try again.";
+      } else {
+        errorMsg += "Please try again later.";
+      }
+      
+      resultsDiv.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--danger-color);"></i>
+          <p style="margin-top: 1rem; color: var(--text-color);">${errorMsg}</p>
+          <button onclick="searchGyms()" class="btn-primary" style="margin-top: 1rem;">
+            <i class="fas fa-redo"></i> Try Again
+          </button>
+        </div>
+      `;
+      
       // Hide counter on error
       const gymCounter = document.getElementById("gymSearchCounter");
       if (gymCounter) gymCounter.style.display = "none";
+    })
+    .finally(() => {
+      window.searchInProgress = false;
+      const endTime = performance.now();
+      console.log(`Search completed in ${((endTime - startTime) / 1000).toFixed(2)} seconds`);
     });
 }
 
