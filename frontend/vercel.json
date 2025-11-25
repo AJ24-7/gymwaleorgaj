@@ -1,15 +1,13 @@
-{{
-
-  "buildCommand": null,  "headers": [
-
-  "devCommand": null,    {
-
-  "installCommand": null,      "source": "/(.*)",
-
-  "outputDirectory": null      "headers": [
-
-}        {
-
+{
+  "buildCommand": null,
+  "devCommand": null,
+  "installCommand": null,
+  "outputDirectory": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
         },
