@@ -1,0 +1,8 @@
+# Ignore everything not in frontend
+node_modules
+backend
+server.js
+package.json
+package-lock.json
+.env
+.git
