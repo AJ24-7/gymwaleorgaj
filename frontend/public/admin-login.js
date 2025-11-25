@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showNotification('success', 'Login Successful!', 'Welcome back! Redirecting to your dashboard...');
 
         setTimeout(() => {
-            const dashboardUrl = '/frontend/gymadmin/gymadmin.html';
+            const dashboardUrl = '../gymadmin/gymadmin.html';
             window.location.href = dashboardUrl;
         }, 1000); // Delay to allow user to see success message
     }
