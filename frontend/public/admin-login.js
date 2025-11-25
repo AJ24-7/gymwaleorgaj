@@ -395,12 +395,40 @@ document.addEventListener('DOMContentLoaded', function() {
         resetButton.textContent = "Sending...";
 
         try {
-            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/request-password-otp`, {
+            const apiUrl = `${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/request-password-otp`;
+            console.log('Sending OTP request to:', apiUrl);
+            
+            const res = await fetch(apiUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ email })
             });
+            
+            console.log('Response status:', res.status);
+            
+            if (!res.ok) {
+                let errorMessage = 'Failed to send OTP';
+                try {
+                    const errorData = await res.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    // If response is not JSON, check status
+                    if (res.status === 502) {
+                        errorMessage = 'Server is starting up, please wait and try again in a moment';
+                    } else if (res.status === 504) {
+                        errorMessage = 'Request timed out, please try again';
+                    } else {
+                        errorMessage = `Server error (${res.status}), please try again`;
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+            
             const data = await res.json();
+            
             if (data.success) {
                 resetSuccess.textContent = `OTP sent to ${email}`;
                 resetSuccess.style.display = "block";
@@ -416,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error sending OTP:', error);
-            resetEmailError.textContent = "Network error. Please try again.";
+            resetEmailError.textContent = error.message || "Network error. Please try again.";
             resetEmailError.classList.add('show');
         } finally {
             resetButton.disabled = false;
@@ -447,12 +475,39 @@ document.addEventListener('DOMContentLoaded', function() {
         submitNewPasswordButton.textContent = "Resetting...";
 
         try {
-            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-password-otp`, {
+            const apiUrl = `${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-password-otp`;
+            console.log('Verifying OTP request to:', apiUrl);
+            
+            const res = await fetch(apiUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ email, otp, newPassword })
             });
+            
+            console.log('Response status:', res.status);
+            
+            if (!res.ok) {
+                let errorMessage = 'Failed to reset password';
+                try {
+                    const errorData = await res.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    if (res.status === 502) {
+                        errorMessage = 'Server is starting up, please wait and try again in a moment';
+                    } else if (res.status === 504) {
+                        errorMessage = 'Request timed out, please try again';
+                    } else {
+                        errorMessage = `Server error (${res.status}), please try again`;
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+            
             const data = await res.json();
+            
             if (data.success) {
                 forgotPasswordModal.classList.remove('active');
                 showNotification('success', 'Password Reset!', 'You can now log in with your new password.');
@@ -472,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error resetting password:', error);
-            resetNewPassError.textContent = "Network error. Please try again.";
+            resetNewPassError.textContent = error.message || "Network error. Please try again.";
             resetNewPassError.style.display = "block";
         } finally {
             submitNewPasswordButton.disabled = false;

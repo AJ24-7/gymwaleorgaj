@@ -180,6 +180,23 @@ router.post('/test-email', gymadminAuth, async (req, res) => {
 router.post('/request-password-otp', require('../controllers/gymController').requestPasswordChangeOTP);
 router.post('/verify-password-otp', require('../controllers/gymController').verifyPasswordChangeOTP);
 
+// OPTIONS preflight for password reset endpoints
+router.options('/request-password-otp', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(204);
+});
+
+router.options('/verify-password-otp', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(204);
+});
+
 // ⭐ Get and Update Logged-in Gym's Profile [GET, PUT] /profile/me
 router.get('/profile/me', gymadminAuth, require('../controllers/gymController').getMyProfile);
 router.put('/profile/me', gymadminAuth, upload.single('gymLogo'), require('../controllers/gymController').updateMyProfile);

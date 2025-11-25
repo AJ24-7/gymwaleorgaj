@@ -81,6 +81,26 @@ const SubscriptionService = require('./backend/services/subscriptionService');
 app.get('/test-route', (req, res) => {
   res.status(200).send('Test route is working!');
 });
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'Gym-Wale Backend',
+    version: '1.0.0'
+  });
+});
+
+// Wake-up endpoint (call this to wake the server from sleep)
+app.get('/wake', (req, res) => {
+  res.status(200).json({
+    message: 'Server is awake!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // <<<< END TEMPORARY TEST ROUTE >>>>
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -218,13 +238,17 @@ const allowedOrigins = [
   'http://127.0.0.1:5000',
   'http://localhost:3000',
   'http://localhost:8000',
-  // Production origin (set via environment variable)
+  // Production origins
+  'https://gymwaleorgaj.vercel.app',
+  'https://gym-wale.onrender.com',
   process.env.FRONTEND_URL,
   null
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('🌐 CORS request from origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) {
       return callback(null, true);
@@ -232,16 +256,19 @@ app.use(cors({
     
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin allowed:', origin);
       return callback(null, true);
     }
     
     // Allow all Vercel preview deployments (*.vercel.app)
     if (origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+      console.log('✅ Vercel deployment allowed:', origin);
       return callback(null, true);
     }
     
     // Allow all Render deployments (*.onrender.com)
     if (origin.match(/^https:\/\/.*\.onrender\.com$/)) {
+      console.log('✅ Render deployment allowed:', origin);
       return callback(null, true);
     }
     
@@ -250,7 +277,9 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight requests for 10 minutes
 }));
 
 // ===== QR REGISTRATION ROUTES (MUST BE BEFORE OTHER API ROUTES) =====
