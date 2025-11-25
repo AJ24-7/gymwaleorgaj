@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deviceFingerprint: deviceInfo.fingerprint,
             };
 
-            const response = await fetch('${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/login', {
+            const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/login`, {
                 method: 'POST',
                 body: JSON.stringify(loginPayload),
                 headers: { 'Content-Type': 'application/json' }
@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetButton.textContent = "Sending...";
 
         try {
-            const res = await fetch('${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/forgot-password', {
+            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitNewPasswordButton.textContent = "Resetting...";
 
         try {
-            const res = await fetch('${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-password-otp', {
+            const res = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-password-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp, newPassword })
@@ -529,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         verifyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
 
         try {
-            const response = await fetch('${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-login-2fa', {
+            const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/verify-login-2fa`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tempToken}` },
                 body: JSON.stringify({ otp: code })
@@ -558,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Note: Your backend needs an endpoint to resend 2FA code based on email/temp state
             // This assumes an endpoint like '/resend-2fa' exists.
-            const response = await fetch('${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/resend-2fa-code', {
+            const response = await fetch(`${window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:5000'}/api/gyms/resend-2fa-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
