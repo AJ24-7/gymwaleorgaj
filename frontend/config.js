@@ -22,7 +22,7 @@ const ENV_CONFIG = {
     // Production (Vercel + Render)
     PRODUCTION: {
         // IMPORTANT: Replace this with your actual Render backend URL
-        API_URL: import.meta?.env?.VITE_API_URL || 'https://gym-wale.onrender.com',
+        API_URL: 'https://gym-wale.onrender.com',
         ENV_NAME: 'production'
     }
 };
@@ -35,11 +35,6 @@ function detectEnvironment() {
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
                        window.location.hostname === '';
-    
-    // Check for explicit environment variable (Vite/Webpack)
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        return import.meta.env.MODE === 'production' ? 'PRODUCTION' : 'DEVELOPMENT';
-    }
     
     // Fallback to hostname detection
     return isLocalhost ? 'DEVELOPMENT' : 'PRODUCTION';

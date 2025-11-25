@@ -14,10 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <!-- IMPORTANT: Load centralized config FIRST -->
     <script src="config.js"></script>
-    <script>
-        // BASE_URL now comes from config.js (window.API_CONFIG.BASE_URL)
-        const BASE_URL = window.API_CONFIG.BASE_URL;
-    </script>
     <script defer src="gymdetails.js"></script>
     <script defer src="gymdetails-offers.js"></script>
     <script defer src="coupon-integration.js"></script>
@@ -1015,7 +1011,7 @@
             }
 
             // Try to fetch user profile if token exists
-            fetch(`${BASE_URL}/api/users/profile`, {
+            fetch(`${window.API_CONFIG.BASE_URL}/api/users/profile`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': "application/json",
@@ -1035,10 +1031,10 @@
                     if (user.profileImage.startsWith('http')) {
                         profilePicUrl = user.profileImage;
                     } else {
-                        profilePicUrl = `${BASE_URL}/${user.profileImage}`;
+                        profilePicUrl = `${window.API_CONFIG.BASE_URL}/${user.profileImage}`;
                     }
                 } else {
-                    profilePicUrl = `${BASE_URL}/uploads/profile-pics/default.png`;
+                    profilePicUrl = `${window.API_CONFIG.BASE_URL}/uploads/profile-pics/default.png`;
                 }
 
                 const userIconImage = document.getElementById("profile-icon-img");

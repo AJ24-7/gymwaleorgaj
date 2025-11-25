@@ -9,9 +9,14 @@ const BASE_URL = window.API_CONFIG?.BASE_URL || 'http://localhost:5000';
 let currentGym = null;
 let currentPhotoIndex = 0;
 let gymPhotos = [];
+let loadingScreen;
+let gymContent;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
+    // Get DOM elements
+    loadingScreen = document.getElementById('loading-screen');
+    gymContent = document.getElementById('gym-content');
     console.log('DOM Content Loaded');
     console.log('Current URL:', window.location.href);
     
@@ -61,7 +66,13 @@ async function loadGymDetails(gymId) {
         console.log('Gym data received:', gym);
         currentGym = gym;
         
-        populateGymDetails(gym);
+        try {
+            populateGymDetails(gym);
+        } catch (populateError) {
+            console.error('Error populating gym details:', populateError);
+            // Still hide loading screen even if populate fails
+        }
+        
         hideLoadingScreen();
         
         // Trigger gym data loaded event for offers system
@@ -74,6 +85,7 @@ async function loadGymDetails(gymId) {
         
     } catch (error) {
         console.error('Error loading gym details:', error);
+        hideLoadingScreen(); // Hide loading screen even on error
         showError('Failed to load gym details. Please try again later.');
     }
 }
@@ -2445,6 +2457,20 @@ function showDialog({ title = '', message = '', confirmText = 'OK', cancelText =
 
 function hideLoadingScreen() {
     console.log('Hiding loading screen and showing gym content');
+    
+    if (!loadingScreen || !gymContent) {
+        console.error('Loading screen or gym content element not found!');
+        console.log('loadingScreen:', loadingScreen);
+        console.log('gymContent:', gymContent);
+        // Try to get them again
+        loadingScreen = document.getElementById('loading-screen');
+        gymContent = document.getElementById('gym-content');
+        if (!loadingScreen || !gymContent) {
+            console.error('Still cannot find elements after retry');
+            return;
+        }
+    }
+    
     loadingScreen.style.opacity = '0';
     setTimeout(() => {
         loadingScreen.style.display = 'none';
