@@ -1108,7 +1108,7 @@ class PaymentManager {
 
     try {
       // Fetch received payments from multiple months for month selector
-      const response = await fetch('${this.BASE_URL}/api/payments/recent?limit=200', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recent?limit=200`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -1284,7 +1284,7 @@ class PaymentManager {
     // Always fetch latest manual (add payment) pending payments from backend
     try {
       // First try to get all recent payments and filter for pending ones
-      const response = await fetch('${this.BASE_URL}/api/payments/recent?limit=100', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recent?limit=100`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -1313,7 +1313,7 @@ class PaymentManager {
 
     try {
       // Fetch member pending payments (API call)
-      const response = await fetch('${this.BASE_URL}/api/members', {
+      const response = await fetch(`${this.BASE_URL}/api/members`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -1482,7 +1482,7 @@ class PaymentManager {
       let allPendingPayments = [];
       
       // Fetch regular pending payments
-      const regularResponse = await fetch('${this.BASE_URL}/api/payments/recent?limit=200', {
+      const regularResponse = await fetch(`${this.BASE_URL}/api/payments/recent?limit=200`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -1497,7 +1497,7 @@ class PaymentManager {
       }
 
       // Fetch member pending payments
-      const memberResponse = await fetch('${this.BASE_URL}/api/members', {
+      const memberResponse = await fetch(`${this.BASE_URL}/api/members`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -1859,7 +1859,7 @@ class PaymentManager {
         return;
       }
 
-      const response = await fetch('${this.BASE_URL}/api/payments/stats', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -2060,7 +2060,7 @@ class PaymentManager {
 
   async loadRecentPayments() {
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments/recent?limit=10', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recent?limit=10`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
         }
@@ -2725,7 +2725,7 @@ class PaymentManager {
 
         // Send email notification to member
         try {
-          await fetch('${this.BASE_URL}/api/members/send-renewal-email', {
+          await fetch(`${this.BASE_URL}/api/members/send-renewal-email`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
@@ -3289,7 +3289,7 @@ class PaymentManager {
     }
 
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments', {
+      const response = await fetch(`${this.BASE_URL}/api/payments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3484,7 +3484,7 @@ class PaymentManager {
         case 'remind-member':
           // Send reminder for payment
           try {
-            const reminderResponse = await fetch('${this.BASE_URL}/api/notifications/send-payment-reminder', {
+            const reminderResponse = await fetch(`${this.BASE_URL}/api/notifications/send-payment-reminder`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -3840,7 +3840,7 @@ class PaymentManager {
     };
 
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments', {
+      const response = await fetch(`${this.BASE_URL}/api/payments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3890,7 +3890,7 @@ class PaymentManager {
     };
 
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments', {
+      const response = await fetch(`${this.BASE_URL}/api/payments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3976,7 +3976,7 @@ class PaymentManager {
     try {
       
       // Get all monthly recurring payments that are due within 7 days
-      const response = await fetch('${this.BASE_URL}/api/payments/recurring?status=pending', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recurring?status=pending`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
         }
@@ -4040,7 +4040,7 @@ class PaymentManager {
 
   async checkPaymentReminders() {
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments/reminders', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/reminders`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
         }
@@ -4134,7 +4134,7 @@ class PaymentManager {
       // Fetch members with memberships expiring within 3 days or already expired
       // If the backend doesn't support the days parameter, it will return all expiring members
       // and we'll filter them on the frontend
-      const response = await fetch('${this.BASE_URL}/api/members/expiring?days=3', {
+      const response = await fetch(`${this.BASE_URL}/api/members/expiring?days=3`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
         }
@@ -4384,7 +4384,7 @@ class PaymentManager {
     modal.style.display = 'flex';
 
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments/recent?limit=200', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recent?limit=200`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -4567,7 +4567,7 @@ class PaymentManager {
 
     try {
       // Fetch due payments from recurring payments endpoint
-      const response = await fetch('${this.BASE_URL}/api/payments/recurring?limit=200', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recurring?limit=200`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -4756,7 +4756,7 @@ class PaymentManager {
     modal.style.display = 'flex';
 
     try {
-      const response = await fetch('${this.BASE_URL}/api/payments/recent?limit=200', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/recent?limit=200`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'
@@ -5061,7 +5061,7 @@ class PaymentManager {
     
     try {
       // Fetch complete payment history for the specific gym
-      const response = await fetch('${this.BASE_URL}/api/payments/history?limit=500', {
+      const response = await fetch(`${this.BASE_URL}/api/payments/history?limit=500`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`,
           'Content-Type': 'application/json'

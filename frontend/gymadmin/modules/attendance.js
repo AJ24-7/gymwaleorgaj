@@ -157,7 +157,7 @@ class AttendanceManager {
             }
 
             // Load members data
-            const membersResponse = await fetch('${this.BASE_URL}/api/members', {
+            const membersResponse = await fetch(`${this.BASE_URL}/api/members`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -184,7 +184,7 @@ class AttendanceManager {
             // Fetch gymId from admin profile if not already set
             if (!this.gymId) {
                 try {
-                    const profileResponse = await fetch('${this.BASE_URL}/api/gyms/profile/me', {
+                    const profileResponse = await fetch(`${this.BASE_URL}/api/gyms/profile/me`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -491,7 +491,7 @@ class AttendanceManager {
         }
 
         try {
-            const response = await fetch('${this.BASE_URL}/api/attendance', {
+            const response = await fetch(`${this.BASE_URL}/api/attendance`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -795,7 +795,7 @@ class AttendanceManager {
         if (expiredMembers.length === 0) return;
 
         try {
-            const response = await fetch('${this.BASE_URL}/api/members/remove-expired', {
+            const response = await fetch(`${this.BASE_URL}/api/members/remove-expired`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1860,7 +1860,7 @@ class AttendanceManager {
             statusElement.textContent = 'Saving enrollment data...';
             progressBar.style.width = '80%';
             
-            const backendResponse = await fetch('${this.BASE_URL}/api/biometric/enroll', {
+            const backendResponse = await fetch(`${this.BASE_URL}/api/biometric/enroll`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1988,7 +1988,7 @@ class AttendanceManager {
             }
 
             // Step 2: Mark attendance on backend
-            const response = await fetch('${this.BASE_URL}/api/biometric/verify-attendance', {
+            const response = await fetch(`${this.BASE_URL}/api/biometric/verify-attendance`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

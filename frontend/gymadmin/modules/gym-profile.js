@@ -107,7 +107,7 @@ class GymProfileManager {
             }
 
             // Direct API call
-            const response = await fetch('${this.BASE_URL}/api/gyms/profile/me', {
+            const response = await fetch(`${this.BASE_URL}/api/gyms/profile/me`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
                 }
@@ -288,7 +288,7 @@ class GymProfileManager {
                 formData.append('gymLogo', logoInput.files[0]);
             }
 
-            const response = await fetch('${this.BASE_URL}/api/gyms/profile/me', {
+            const response = await fetch(`${this.BASE_URL}/api/gyms/profile/me`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('gymAdminToken')}`
@@ -398,7 +398,7 @@ class GymProfileManager {
         }
 
         try {
-            const response = await fetch('${this.BASE_URL}/api/gyms/change-password', {
+            const response = await fetch(`${this.BASE_URL}/api/gyms/change-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
