@@ -202,15 +202,40 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/login`, {
+      const apiUrl = `${API_BASE_URL}/login`;
+      console.log('User login request to:', apiUrl);
+      
+      const res = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Response status:', res.status);
+      
+      if (!res.ok) {
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          if (res.status === 502) {
+            errorMessage = 'Server is starting up, please wait a moment and try again';
+          } else if (res.status === 504) {
+            errorMessage = 'Request timed out, please try again';
+          } else {
+            errorMessage = `Server error (${res.status}), please try again`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
       const data = await res.json();
 
-      if (res.ok) {
+      if (data.token) {
         submitBtn.innerHTML = '<i class="fas fa-check"></i> Success!';
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.user.name || data.user.username);
@@ -233,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = decodeURIComponent(redirectUrl);
           } else {
             // Default redirect to user profile
-            window.location.href = ".userprofile.html";
+            window.location.href = "userprofile.html";
           }
         }, 1000);
       } else {

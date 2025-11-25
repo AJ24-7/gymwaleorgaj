@@ -241,6 +241,8 @@ const allowedOrigins = [
   // Production origins
   'https://gymwaleorgaj.vercel.app',
   'https://gym-wale.onrender.com',
+  'http://gym-wale.com',
+  'https://gym-wale.com',
   process.env.FRONTEND_URL,
   null
 ];
