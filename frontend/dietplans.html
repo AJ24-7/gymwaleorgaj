@@ -273,6 +273,8 @@
 
   
 
+
+
 <!-- Mobile Bottom Navigation Bar -->
 <nav class="mobile-bottom-nav">
     <div class="mobile-bottom-nav-content">
@@ -296,13 +298,9 @@
             <i class="fas fa-envelope"></i>
             <span>Contact</span>
         </a>
-        <a href="public/login.html" class="mobile-nav-item" data-page="profile" id="mobile-profile-nav" style="display: none;">
-            <img id="mobile-profile-icon-img" src="/uploads/profile-pics/default.png" alt="Profile" class="user-icon" />
-            <span>Profile</span>
-        </a>
-        <a href="public/login.html" class="mobile-nav-item" data-page="login" id="mobile-login-nav">
-            <i class="fas fa-sign-in-alt"></i>
-            <span>Login</span>
+        <a href="settings.html" class="mobile-nav-item" data-page="settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
         </a>
     </div>
 </nav>
@@ -329,8 +327,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'dietplans.html': 'diet',
         'contact.html': 'contact',
         'gymdetails.html': 'home',
-        'edit-profile.html': 'profile',
-        'settings.html': 'profile'
+        'edit-profile.html': 'settings',
+        'settings.html': 'settings'
     };
     
     const activePage = pageMap[currentPage] || 'home';

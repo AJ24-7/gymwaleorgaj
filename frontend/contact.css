@@ -1425,3 +1425,205 @@
                 min-width: auto;
             }
         }
+
+/* ============================================
+   MOBILE BOTTOM NAVIGATION BAR
+   ============================================ */
+
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--secondary-color, #264653), var(--primary-color, #2a9d8f));
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    backdrop-filter: blur(10px);
+}
+
+.mobile-bottom-nav-content {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 5px;
+}
+
+.mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    padding: 8px 8px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    min-width: 50px;
+    flex: 1;
+    max-width: 70px;
+}
+
+.mobile-nav-item i {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+
+.mobile-nav-item span {
+    font-size: 0.65rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.mobile-nav-item:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Active state with theme-matching highlight */
+.mobile-nav-item.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.mobile-nav-item.active i {
+    font-size: 1.6rem;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 8px rgba(233, 196, 106, 0.6));
+    color: var(--accent-color, #e9c46a);
+    animation: bounceIcon 0.6s ease;
+}
+
+.mobile-nav-item.active span {
+    opacity: 1;
+    transform: translateY(0);
+    color: var(--accent-color, #e9c46a);
+    font-weight: 600;
+}
+
+.mobile-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 3px;
+    background: var(--accent-color, #e9c46a);
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 0 10px rgba(233, 196, 106, 0.8);
+}
+
+@keyframes bounceIcon {
+    0%, 100% { transform: scale(1.1) translateY(0); }
+    50% { transform: scale(1.15) translateY(-4px); }
+}
+
+/* Show mobile nav on small screens */
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: block;
+    }
+    
+    /* Keep header visible but simplify it on mobile */
+    header {
+        display: block;
+        padding: 0.75rem 0;
+    }
+    
+    .navbar {
+        padding: 0 15px;
+    }
+    
+    /* Hide desktop navigation links on mobile */
+    .nav-links {
+        display: none !important;
+    }
+    
+    .menu-toggle {
+        display: none !important;
+    }
+    
+    /* Show only logo and user profile/login in header */
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Make logo smaller on mobile */
+    .logo {
+        max-height: 36px;
+    }
+    
+    .brand-title {
+        font-size: 1.3rem;
+    }
+    
+    /* Style user profile for mobile header */
+    .user-profile {
+        display: flex !important;
+        margin: 0 !important;
+    }
+    
+    .user-profile .dropdown-menu {
+        display: none !important;
+    }
+    
+    #login-signup-nav {
+        display: flex !important;
+        margin: 0 !important;
+    }
+    
+    #login-signup-nav a {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+    
+    #login-signup-nav a:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .user-icon {
+        width: 36px;
+        height: 36px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Keep top padding for header */
+    body {
+        padding-top: 65px;
+        padding-bottom: 70px !important; /* Space for bottom nav */
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .mobile-nav-item {
+        min-width: 45px;
+        padding: 6px 6px;
+    }
+    
+    .mobile-nav-item i {
+        font-size: 1.3rem;
+    }
+    
+    .mobile-nav-item.active i {
+        font-size: 1.5rem;
+    }
+    
+    .mobile-nav-item span {
+        font-size: 0.6rem;
+    }
+}

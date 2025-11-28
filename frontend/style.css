@@ -3454,9 +3454,9 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    max-width: 600px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 0 10px;
+    padding: 0 5px;
 }
 
 .mobile-nav-item {
@@ -3466,13 +3466,13 @@ body {
     justify-content: center;
     color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
-    padding: 8px 12px;
+    padding: 8px 8px;
     border-radius: 12px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    min-width: 60px;
+    min-width: 50px;
     flex: 1;
-    max-width: 80px;
+    max-width: 70px;
 }
 
 .mobile-nav-item i {
@@ -3555,21 +3555,84 @@ body {
         display: block;
     }
     
-    /* Hide desktop navbar on mobile */
+    /* Keep header visible but simplify it on mobile */
     header {
-        display: none;
+        display: block;
+        padding: 0.75rem 0;
     }
     
-    /* Remove top padding since header is hidden */
+    .navbar {
+        padding: 0 15px;
+    }
+    
+    /* Hide desktop navigation links on mobile */
+    .nav-links {
+        display: none !important;
+    }
+    
+    .menu-toggle {
+        display: none !important;
+    }
+    
+    /* Show only logo and user profile/login in header */
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Make logo smaller on mobile */
+    .logo {
+        max-height: 36px;
+    }
+    
+    .brand-title {
+        font-size: 1.3rem;
+    }
+    
+    /* Style user profile for mobile header */
+    .user-profile {
+        display: flex !important;
+        margin: 0 !important;
+    }
+    
+    .user-profile .dropdown-menu {
+        display: none !important;
+    }
+    
+    #login-signup-nav {
+        display: flex !important;
+        margin: 0 !important;
+    }
+    
+    #login-signup-nav a {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+    
+    #login-signup-nav a:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .user-icon {
+        width: 36px;
+        height: 36px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Keep top padding for header */
     body {
-        padding-top: 0;
+        padding-top: 65px;
         padding-bottom: 70px; /* Space for bottom nav */
     }
     
     /* Adjust maintenance banner for mobile */
     .maintenance-banner {
-        top: 0;
-        position: relative;
+        top: 65px;
+        position: sticky;
     }
 }
 
