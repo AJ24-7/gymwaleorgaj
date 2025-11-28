@@ -3433,3 +3433,163 @@ body {
     }
 }
 
+/* ============================================
+   MOBILE BOTTOM NAVIGATION BAR
+   ============================================ */
+
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    backdrop-filter: blur(10px);
+}
+
+.mobile-bottom-nav-content {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+.mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    min-width: 60px;
+    flex: 1;
+    max-width: 80px;
+}
+
+.mobile-nav-item i {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+
+.mobile-nav-item span {
+    font-size: 0.65rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.mobile-nav-item:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Active state with theme-matching highlight */
+.mobile-nav-item.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.mobile-nav-item.active i {
+    font-size: 1.6rem;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 8px rgba(233, 196, 106, 0.6));
+    color: var(--accent-color);
+    animation: bounceIcon 0.6s ease;
+}
+
+.mobile-nav-item.active span {
+    opacity: 1;
+    transform: translateY(0);
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.mobile-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 3px;
+    background: var(--accent-color);
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 0 10px rgba(233, 196, 106, 0.8);
+}
+
+@keyframes bounceIcon {
+    0%, 100% { transform: scale(1.1) translateY(0); }
+    50% { transform: scale(1.15) translateY(-4px); }
+}
+
+/* Profile Icon in Mobile Nav */
+.mobile-nav-item .user-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.mobile-nav-item.active .user-icon {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(233, 196, 106, 0.6);
+    transform: scale(1.1);
+}
+
+/* Show mobile nav on small screens */
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: block;
+    }
+    
+    /* Hide desktop navbar on mobile */
+    header {
+        display: none;
+    }
+    
+    /* Remove top padding since header is hidden */
+    body {
+        padding-top: 0;
+        padding-bottom: 70px; /* Space for bottom nav */
+    }
+    
+    /* Adjust maintenance banner for mobile */
+    .maintenance-banner {
+        top: 0;
+        position: relative;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .mobile-nav-item {
+        min-width: 50px;
+        padding: 6px 8px;
+    }
+    
+    .mobile-nav-item i {
+        font-size: 1.3rem;
+    }
+    
+    .mobile-nav-item.active i {
+        font-size: 1.5rem;
+    }
+    
+    .mobile-nav-item span {
+        font-size: 0.6rem;
+    }
+}
+

@@ -715,14 +715,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const userIconImage = document.getElementById("profile-icon-img");
       if (userIconImage) userIconImage.src = profilePicUrl;
 
+      // Mobile nav profile icon
+      const mobileUserIconImage = document.getElementById("mobile-profile-icon-img");
+      if (mobileUserIconImage) mobileUserIconImage.src = profilePicUrl;
+
       // 👤 Show profile dropdown, hide login
       if (userNav) userNav.style.display = "block";
       if (loginNav) loginNav.style.display = "none";
+      
+      // Mobile nav profile handling
+      const mobileProfileNav = document.getElementById("mobile-profile-nav");
+      const mobileLoginNav = document.getElementById("mobile-login-nav");
+      if (mobileProfileNav) mobileProfileNav.style.display = "flex";
+      if (mobileLoginNav) mobileLoginNav.style.display = "none";
     })
     .catch(error => {
       console.error("Error fetching user:", error.message);
       // 🔐 Failed to authenticate, show login
       if (loginNav) loginNav.style.display = "block";
+      
+      const mobileLoginNav = document.getElementById("mobile-login-nav");
+      if (mobileLoginNav) mobileLoginNav.style.display = "flex";
     });
 });
 // Helper for stars

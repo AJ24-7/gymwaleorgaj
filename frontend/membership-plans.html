@@ -161,5 +161,70 @@
     </footer>
     <!-- Font Awesome for icons (in a real app, you might want to use the actual kit) -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<!-- Mobile Bottom Navigation Bar -->
+<nav class="mobile-bottom-nav">
+    <div class="mobile-bottom-nav-content">
+        <a href="index.html" class="mobile-nav-item" data-page="home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="personaltraining.html" class="mobile-nav-item" data-page="training">
+            <i class="fas fa-dumbbell"></i>
+            <span>Training</span>
+        </a>
+        <a href="membership-plans.html" class="mobile-nav-item" data-page="plans">
+            <i class="fas fa-id-card"></i>
+            <span>Plans</span>
+        </a>
+        <a href="dietplans.html" class="mobile-nav-item" data-page="diet">
+            <i class="fas fa-apple-alt"></i>
+            <span>Diet</span>
+        </a>
+        <a href="contact.html" class="mobile-nav-item" data-page="contact">
+            <i class="fas fa-envelope"></i>
+            <span>Contact</span>
+        </a>
+        <a href="public/login.html" class="mobile-nav-item" data-page="profile" id="mobile-profile-nav" style="display: none;">
+            <img id="mobile-profile-icon-img" src="/uploads/profile-pics/default.png" alt="Profile" class="user-icon" />
+            <span>Profile</span>
+        </a>
+        <a href="public/login.html" class="mobile-nav-item" data-page="login" id="mobile-login-nav">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Login</span>
+        </a>
+    </div>
+</nav>
+
+<script>
+// Mobile Bottom Nav Active State Handler
+function setActiveMobileNav(page) {
+    const navItems = document.querySelectorAll('.mobile-nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.page === page) {
+            item.classList.add('active');
+        }
+    });
+}
+
+// Auto-detect and set active page
+document.addEventListener('DOMContentLoaded', () => {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const pageMap = {
+        'index.html': 'home',
+        'personaltraining.html': 'training',
+        'membership-plans.html': 'plans',
+        'dietplans.html': 'diet',
+        'contact.html': 'contact',
+        'gymdetails.html': 'home',
+        'edit-profile.html': 'profile',
+        'settings.html': 'profile'
+    };
+    
+    const activePage = pageMap[currentPage] || 'home';
+    setActiveMobileNav(activePage);
+});
+</script>
 </body>
 </html>
